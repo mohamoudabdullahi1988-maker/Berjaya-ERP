@@ -1,0 +1,212 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "customer",
+  "company",
+  "project",
+  "column_break_main",
+  "service_type",
+  "status",
+  "engineer",
+  "section_site",
+  "site_location",
+  "plot_number",
+  "column_break_site",
+  "gps",
+  "title_reference",
+  "section_stages",
+  "stages",
+  "section_boq",
+  "boq",
+  "boq_total"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SCJ-.YYYY.-",
+   "default": "SCJ-.YYYY.-",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "project",
+   "fieldtype": "Link",
+   "label": "ERPNext Project",
+   "options": "Project"
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "service_type",
+   "fieldtype": "Select",
+   "label": "Service Type",
+   "options": "Full Construction\nDesign Only\nInspection Only\nBeacon / Foundation",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Enquiry\nQuoted\nContracted\nIn Progress\nOn Hold\nCompleted\nDefects Period\nClosed\nCancelled",
+   "default": "Enquiry",
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "engineer",
+   "fieldtype": "Link",
+   "label": "Responsible Engineer",
+   "options": "User"
+  },
+  {
+   "fieldname": "section_site",
+   "fieldtype": "Section Break",
+   "label": "Site (CON-01)"
+  },
+  {
+   "fieldname": "site_location",
+   "fieldtype": "Data",
+   "label": "Site Location"
+  },
+  {
+   "fieldname": "plot_number",
+   "fieldtype": "Data",
+   "label": "Plot Number"
+  },
+  {
+   "fieldname": "column_break_site",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "gps",
+   "fieldtype": "Data",
+   "label": "GPS"
+  },
+  {
+   "fieldname": "title_reference",
+   "fieldtype": "Data",
+   "label": "Title Deed Reference"
+  },
+  {
+   "fieldname": "section_stages",
+   "fieldtype": "Section Break",
+   "label": "Stages (CON-04)"
+  },
+  {
+   "fieldname": "stages",
+   "fieldtype": "Table",
+   "label": "Stages",
+   "options": "Sidra Project Stage"
+  },
+  {
+   "fieldname": "section_boq",
+   "fieldtype": "Section Break",
+   "label": "Bill of Quantities (CON-02)"
+  },
+  {
+   "fieldname": "boq",
+   "fieldtype": "Table",
+   "label": "BOQ",
+   "options": "Sidra BOQ Line"
+  },
+  {
+   "fieldname": "boq_total",
+   "fieldtype": "Currency",
+   "label": "BOQ Total",
+   "options": "USD",
+   "read_only": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Construction",
+ "name": "Sidra Construction Job",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sidra Project Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sidra Inspector",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

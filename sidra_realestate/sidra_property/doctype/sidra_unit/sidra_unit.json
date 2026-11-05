@@ -1,0 +1,307 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "field:unit_code",
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "unit_code",
+  "scheme",
+  "company",
+  "block",
+  "unit_type",
+  "column_break_status",
+  "status",
+  "current_reservation",
+  "current_contract",
+  "cash_price",
+  "title_deed_ref",
+  "section_plot",
+  "plot_fraction",
+  "dimensions",
+  "area_sqm",
+  "column_break_location",
+  "district",
+  "neighbourhood",
+  "land_parcel",
+  "section_boundaries",
+  "boundary_east",
+  "boundary_north",
+  "column_break_boundaries",
+  "boundary_south",
+  "boundary_west",
+  "section_house",
+  "offplan_status",
+  "delivery_date",
+  "column_break_house",
+  "expansion_phase",
+  "bedrooms",
+  "floors"
+ ],
+ "fields": [
+  {
+   "fieldname": "unit_code",
+   "fieldtype": "Data",
+   "label": "Unit Code",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scheme",
+   "fieldtype": "Link",
+   "label": "Scheme",
+   "options": "Sidra Scheme",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1,
+   "fetch_from": "scheme.company"
+  },
+  {
+   "fieldname": "block",
+   "fieldtype": "Data",
+   "label": "Block / Phase"
+  },
+  {
+   "fieldname": "unit_type",
+   "fieldtype": "Select",
+   "label": "Unit Type",
+   "options": "Plot\nHouse\nApartment",
+   "default": "Plot",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Available\nReserved\nUnder Contract\nSold\nBlocked",
+   "default": "Available",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "no_copy": 1,
+   "description": "Set by reservations and contracts. Only Available and Blocked can be switched by hand."
+  },
+  {
+   "fieldname": "current_reservation",
+   "fieldtype": "Link",
+   "label": "Current Reservation",
+   "options": "Sidra Reservation",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "current_contract",
+   "fieldtype": "Link",
+   "label": "Current Contract",
+   "options": "Sidra Sale Contract",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cash_price",
+   "fieldtype": "Currency",
+   "label": "Cash Price",
+   "options": "USD",
+   "description": "Current price from the price history. Set it when creating or importing a unit; change it later with a Unit Price History entry.",
+   "read_only_depends_on": "eval:!doc.__islocal"
+  },
+  {
+   "fieldname": "title_deed_ref",
+   "fieldtype": "Data",
+   "label": "Title Deed Reference"
+  },
+  {
+   "fieldname": "section_plot",
+   "fieldtype": "Section Break",
+   "label": "Plot (SAL-12)"
+  },
+  {
+   "fieldname": "plot_fraction",
+   "fieldtype": "Select",
+   "label": "Plot Fraction",
+   "options": "\nFull\nHalf"
+  },
+  {
+   "fieldname": "dimensions",
+   "fieldtype": "Data",
+   "label": "Dimensions",
+   "description": "e.g. 18×24 m"
+  },
+  {
+   "fieldname": "area_sqm",
+   "fieldtype": "Float",
+   "label": "Area (m²)"
+  },
+  {
+   "fieldname": "column_break_location",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "district",
+   "fieldtype": "Data",
+   "label": "District (Degmada)"
+  },
+  {
+   "fieldname": "neighbourhood",
+   "fieldtype": "Data",
+   "label": "Neighbourhood (Xaafada)"
+  },
+  {
+   "fieldname": "land_parcel",
+   "fieldtype": "Data",
+   "label": "Original Land Parcel (Beerta)"
+  },
+  {
+   "fieldname": "section_boundaries",
+   "fieldtype": "Section Break",
+   "label": "Boundaries"
+  },
+  {
+   "fieldname": "boundary_east",
+   "fieldtype": "Data",
+   "label": "East (Bari)"
+  },
+  {
+   "fieldname": "boundary_north",
+   "fieldtype": "Data",
+   "label": "North (Waqooyi)"
+  },
+  {
+   "fieldname": "column_break_boundaries",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "boundary_south",
+   "fieldtype": "Data",
+   "label": "South (Koonfur)"
+  },
+  {
+   "fieldname": "boundary_west",
+   "fieldtype": "Data",
+   "label": "West (Galbeed)"
+  },
+  {
+   "fieldname": "section_house",
+   "fieldtype": "Section Break",
+   "label": "House / Off-plan (SAL-14)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "offplan_status",
+   "fieldtype": "Select",
+   "label": "Off-plan Status",
+   "options": "\nReady\nOff-plan"
+  },
+  {
+   "fieldname": "delivery_date",
+   "fieldtype": "Date",
+   "label": "Estimated Delivery Date"
+  },
+  {
+   "fieldname": "column_break_house",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "expansion_phase",
+   "fieldtype": "Data",
+   "label": "Expansion Phase"
+  },
+  {
+   "fieldname": "bedrooms",
+   "fieldtype": "Int",
+   "label": "Bedrooms"
+  },
+  {
+   "fieldname": "floors",
+   "fieldtype": "Int",
+   "label": "Floors"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [
+  {
+   "link_doctype": "Sidra Unit Price History",
+   "link_fieldname": "unit",
+   "group": "Price"
+  }
+ ],
+ "modified": "2026-11-06 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Property",
+ "name": "Sidra Unit",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sidra Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "import": 1
+  },
+  {
+   "role": "Sidra Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "scheme,unit_type,status",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

@@ -1,0 +1,59 @@
+{
+ "actions": [],
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "editable_grid": 1,
+ "engine": "InnoDB",
+ "field_order": [
+  "unit",
+  "unit_type",
+  "scheme",
+  "allocated_price"
+ ],
+ "fields": [
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Sidra Unit",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "unit_type",
+   "fieldtype": "Data",
+   "label": "Unit Type",
+   "fetch_from": "unit.unit_type",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "scheme",
+   "fieldtype": "Data",
+   "label": "Scheme",
+   "fetch_from": "unit.scheme",
+   "read_only": 1
+  },
+  {
+   "fieldname": "allocated_price",
+   "fieldtype": "Currency",
+   "label": "Allocated Price",
+   "options": "USD",
+   "reqd": 1,
+   "in_list_view": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Sales",
+ "name": "Sidra Contract Unit",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

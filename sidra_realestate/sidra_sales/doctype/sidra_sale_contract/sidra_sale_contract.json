@@ -1,0 +1,333 @@
+{
+ "actions": [],
+ "autoname": "naming_series:",
+ "creation": "2026-11-05 12:00:00.000000",
+ "default_print_format": "Sidra Sale Contract",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "contract_type",
+  "customer",
+  "company",
+  "column_break_main",
+  "signed_on",
+  "contract_profile",
+  "amended_from",
+  "section_units",
+  "units",
+  "section_price",
+  "agreed_price",
+  "cash_offer_price",
+  "column_break_price",
+  "down_payment",
+  "balance",
+  "installments",
+  "due_day",
+  "grace_months",
+  "section_parties",
+  "buyer_agent_name",
+  "buyer_agent_phone",
+  "column_break_parties",
+  "notary_name",
+  "notary_reference",
+  "signed_copy",
+  "section_party_rows",
+  "parties",
+  "section_terms",
+  "terms_snapshot",
+  "section_clauses",
+  "clauses",
+  "section_schedule",
+  "schedule"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SSC-.YYYY.-",
+   "default": "SSC-.YYYY.-",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "contract_type",
+   "fieldtype": "Select",
+   "label": "Contract Type",
+   "options": "Installment\nCash",
+   "default": "Installment",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_main",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "signed_on",
+   "fieldtype": "Date",
+   "label": "Contract / Signing Date",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "contract_profile",
+   "fieldtype": "Link",
+   "label": "Contract Profile",
+   "options": "Sidra Contract Profile",
+   "set_only_once": 1,
+   "depends_on": "eval:doc.contract_type=='Installment'",
+   "mandatory_depends_on": "eval:doc.contract_type=='Installment'"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Sidra Sale Contract",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  },
+  {
+   "fieldname": "section_units",
+   "fieldtype": "Section Break",
+   "label": "Units (SAL-13)"
+  },
+  {
+   "fieldname": "units",
+   "fieldtype": "Table",
+   "label": "Units",
+   "options": "Sidra Contract Unit",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_price",
+   "fieldtype": "Section Break",
+   "label": "Price"
+  },
+  {
+   "fieldname": "agreed_price",
+   "fieldtype": "Currency",
+   "label": "Agreed Price",
+   "options": "USD",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "cash_offer_price",
+   "fieldtype": "Currency",
+   "label": "Cash Offer Price",
+   "options": "USD",
+   "description": "Reference only; not the property's asset cost."
+  },
+  {
+   "fieldname": "column_break_price",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "down_payment",
+   "fieldtype": "Currency",
+   "label": "Down Payment",
+   "options": "USD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "balance",
+   "fieldtype": "Currency",
+   "label": "Balance in Installments",
+   "options": "USD",
+   "read_only": 1
+  },
+  {
+   "fieldname": "installments",
+   "fieldtype": "Int",
+   "label": "Installments",
+   "read_only": 1
+  },
+  {
+   "fieldname": "due_day",
+   "fieldtype": "Int",
+   "label": "Due Day",
+   "read_only": 1
+  },
+  {
+   "fieldname": "grace_months",
+   "fieldtype": "Int",
+   "label": "Grace Months",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_parties",
+   "fieldtype": "Section Break",
+   "label": "Agent and Notary (SAL-13, SAL-19)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "buyer_agent_name",
+   "fieldtype": "Data",
+   "label": "Buyer Agent (Wakiil)"
+  },
+  {
+   "fieldname": "buyer_agent_phone",
+   "fieldtype": "Data",
+   "label": "Buyer Agent Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "column_break_parties",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "notary_name",
+   "fieldtype": "Data",
+   "label": "Notary"
+  },
+  {
+   "fieldname": "notary_reference",
+   "fieldtype": "Data",
+   "label": "Notary Reference",
+   "description": "Format IPN/HL/NNN/YYYY"
+  },
+  {
+   "fieldname": "signed_copy",
+   "fieldtype": "Attach",
+   "label": "Signed Copy",
+   "description": "Scan of the signed, notarised contract. Must be a private file; required to submit."
+  },
+  {
+   "fieldname": "section_party_rows",
+   "fieldtype": "Section Break",
+   "label": "Seller, Guarantor and Witnesses (SAL-19)"
+  },
+  {
+   "fieldname": "parties",
+   "fieldtype": "Table",
+   "label": "Parties",
+   "options": "Sidra Contract Party"
+  },
+  {
+   "fieldname": "section_terms",
+   "fieldtype": "Section Break",
+   "label": "Frozen Terms (INS-20)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "terms_snapshot",
+   "fieldtype": "JSON",
+   "label": "Terms Snapshot",
+   "read_only": 1,
+   "no_copy": 0
+  },
+  {
+   "fieldname": "section_clauses",
+   "fieldtype": "Section Break",
+   "label": "Clauses (SAL-20, INS-21)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "clauses",
+   "fieldtype": "Table",
+   "label": "Clauses",
+   "options": "Sidra Contract Clause Line",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_schedule",
+   "fieldtype": "Section Break",
+   "label": "Installment Schedule (INS-02, INS-14)"
+  },
+  {
+   "fieldname": "schedule",
+   "fieldtype": "Table",
+   "label": "Schedule",
+   "options": "Sidra Installment Line",
+   "read_only": 1,
+   "no_copy": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-06 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Sales",
+ "name": "Sidra Sale Contract",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1
+  },
+  {
+   "role": "Sidra Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

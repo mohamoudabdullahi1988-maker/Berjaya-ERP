@@ -1,0 +1,56 @@
+[
+ {
+  "doctype": "Role",
+  "name": "Sidra Sales User",
+  "role_name": "Sidra Sales User",
+  "desk_access": 1,
+  "disabled": 0,
+  "two_factor_auth": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Sidra Sales Manager",
+  "role_name": "Sidra Sales Manager",
+  "desk_access": 1,
+  "disabled": 0,
+  "two_factor_auth": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Sidra Project Manager",
+  "role_name": "Sidra Project Manager",
+  "desk_access": 1,
+  "disabled": 0,
+  "two_factor_auth": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Sidra Inspector",
+  "role_name": "Sidra Inspector",
+  "desk_access": 1,
+  "disabled": 0,
+  "two_factor_auth": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Sidra Finance Reviewer",
+  "role_name": "Sidra Finance Reviewer",
+  "desk_access": 1,
+  "disabled": 0,
+  "two_factor_auth": 0,
+  "is_custom": 0
+ },
+ {
+  "doctype": "Role",
+  "name": "Sidra General Manager",
+  "role_name": "Sidra General Manager",
+  "desk_access": 1,
+  "disabled": 0,
+  "two_factor_auth": 0,
+  "is_custom": 0
+ }
+]

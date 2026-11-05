@@ -12,3 +12,4 @@ dist/
 site_config.json
 sidra_realestate/public/dist/
 sidra_realestate/docs/current
+dump.rdb
