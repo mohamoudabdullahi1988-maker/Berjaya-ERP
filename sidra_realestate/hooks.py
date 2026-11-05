@@ -12,33 +12,21 @@ app_license = "proprietary"
 required_apps = ["erpnext"]
 
 # ------------------------------------------------------------------
-# Fixtures: exported with `bench --site <site> export-fixtures`
-# Filled in Phase 0-1 (roles, accounts, custom fields, print formats).
+# Fixtures: roles from SRS v2.0 section 5. Contract profiles are created
+# by install.py (only when missing), never overwritten on migrate.
 # ------------------------------------------------------------------
 fixtures = [
-	# {"dt": "Role", "filters": [["role_name", "like", "Sidra %"]]},
-	# {"dt": "Custom Field", "filters": [["module", "like", "Sidra %"]]},
-	# {"dt": "Property Setter", "filters": [["module", "like", "Sidra %"]]},
-	# {"dt": "Print Format", "filters": [["module", "like", "Sidra %"]]},
-	# {"dt": "Workflow", "filters": [["name", "like", "Sidra %"]]},
+	{"dt": "Role", "filters": [["role_name", "like", "Sidra %"]]},
 ]
 
-# ------------------------------------------------------------------
-# Document events (added as features are built)
-# ------------------------------------------------------------------
-# doc_events = {
-# 	"Customer": {"validate": "sidra_realestate.sidra_sales.customer.check_duplicates"},
-# 	"Sidra Sale Contract": {"on_submit": "sidra_realestate.sidra_installments.schedule.create_invoice"},
-# }
+after_install = "sidra_realestate.install.after_install"
+after_migrate = "sidra_realestate.install.after_migrate"
 
 # ------------------------------------------------------------------
-# Scheduled jobs (spec: reservation expiry, reminders, default check,
-# title deadline alerts)
+# Scheduled jobs
 # ------------------------------------------------------------------
-# scheduler_events = {
-# 	"daily": [
-# 		"sidra_realestate.sidra_property.tasks.expire_reservations",
-# 		"sidra_realestate.sidra_installments.tasks.flag_defaults",
-# 		"sidra_realestate.sidra_property.tasks.title_deadline_alerts",
-# 	],
-# }
+scheduler_events = {
+	"daily": [
+		"sidra_realestate.services.reservations.expire_reservations",
+	],
+}

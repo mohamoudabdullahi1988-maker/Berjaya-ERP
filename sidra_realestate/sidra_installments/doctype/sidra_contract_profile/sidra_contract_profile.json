@@ -1,0 +1,336 @@
+{
+ "actions": [],
+ "autoname": "field:profile_name",
+ "creation": "2026-11-05 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "profile_name",
+  "is_default",
+  "active",
+  "column_break_hold",
+  "legal_hold",
+  "legal_hold_reason",
+  "section_plan",
+  "installments",
+  "due_day",
+  "grace_months",
+  "column_break_plan",
+  "down_payment_type",
+  "down_payment_value",
+  "markup_rate",
+  "early_payment",
+  "section_penalty",
+  "penalty_type",
+  "penalty_per_day",
+  "penalty_monthly_cap",
+  "column_break_penalty",
+  "penalty_fixed_amount",
+  "notice_days",
+  "penalty_destination",
+  "section_default",
+  "default_trigger_missed",
+  "column_break_default",
+  "refund_retention_type",
+  "refund_retention_value",
+  "section_title",
+  "title_deadline_days",
+  "title_deadline_note",
+  "column_break_title",
+  "title_penalty_type",
+  "title_penalty_amount",
+  "title_refund_after_days",
+  "title_refund_compensation_pct"
+ ],
+ "fields": [
+  {
+   "fieldname": "profile_name",
+   "fieldtype": "Data",
+   "label": "Profile Name",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "is_default",
+   "fieldtype": "Check",
+   "label": "Default Profile",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "active",
+   "fieldtype": "Check",
+   "label": "Active",
+   "default": "1",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_hold",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "legal_hold",
+   "fieldtype": "Check",
+   "label": "Legal Hold",
+   "in_list_view": 1,
+   "description": "Contracts on a profile under legal hold can be drafted but not submitted."
+  },
+  {
+   "fieldname": "legal_hold_reason",
+   "fieldtype": "Small Text",
+   "label": "Legal Hold Reason",
+   "depends_on": "legal_hold",
+   "mandatory_depends_on": "legal_hold"
+  },
+  {
+   "fieldname": "section_plan",
+   "fieldtype": "Section Break",
+   "label": "Payment Plan (INS-14)"
+  },
+  {
+   "fieldname": "installments",
+   "fieldtype": "Int",
+   "label": "Number of Installments",
+   "reqd": 1
+  },
+  {
+   "fieldname": "due_day",
+   "fieldtype": "Int",
+   "label": "Due Day of Month",
+   "reqd": 1,
+   "default": "5",
+   "description": "1 to 28"
+  },
+  {
+   "fieldname": "grace_months",
+   "fieldtype": "Int",
+   "label": "Grace Months Before First Installment",
+   "default": "0"
+  },
+  {
+   "fieldname": "column_break_plan",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "down_payment_type",
+   "fieldtype": "Select",
+   "label": "Down Payment",
+   "options": "None\nFixed\nPercent",
+   "default": "None"
+  },
+  {
+   "fieldname": "down_payment_value",
+   "fieldtype": "Float",
+   "label": "Down Payment Amount or %",
+   "depends_on": "eval:doc.down_payment_type!='None'"
+  },
+  {
+   "fieldname": "markup_rate",
+   "fieldtype": "Percent",
+   "label": "Annual Markup Rate",
+   "default": "0",
+   "description": "P0 supports 0% only (single agreed price)."
+  },
+  {
+   "fieldname": "early_payment",
+   "fieldtype": "Select",
+   "label": "Early Payment",
+   "options": "Reduce Last Installments",
+   "default": "Reduce Last Installments"
+  },
+  {
+   "fieldname": "section_penalty",
+   "fieldtype": "Section Break",
+   "label": "Buyer Late Penalty (INS-15) — stored only, not applied in P0",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "penalty_type",
+   "fieldtype": "Select",
+   "label": "Penalty Type",
+   "options": "None\nPer Day Capped\nFixed After Notice",
+   "default": "None"
+  },
+  {
+   "fieldname": "penalty_per_day",
+   "fieldtype": "Currency",
+   "label": "Amount per Day",
+   "options": "USD",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'"
+  },
+  {
+   "fieldname": "penalty_monthly_cap",
+   "fieldtype": "Currency",
+   "label": "Monthly Cap",
+   "options": "USD",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'"
+  },
+  {
+   "fieldname": "column_break_penalty",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "penalty_fixed_amount",
+   "fieldtype": "Currency",
+   "label": "Fixed Amount",
+   "options": "USD",
+   "depends_on": "eval:doc.penalty_type=='Fixed After Notice'"
+  },
+  {
+   "fieldname": "notice_days",
+   "fieldtype": "Int",
+   "label": "Written Notice Days",
+   "depends_on": "eval:doc.penalty_type=='Fixed After Notice'"
+  },
+  {
+   "fieldname": "penalty_destination",
+   "fieldtype": "Select",
+   "label": "Penalty Goes To",
+   "options": "Pending Policy Sign-off",
+   "default": "Pending Policy Sign-off",
+   "read_only": 1,
+   "description": "SRS v2.0 §1.6: no destination until Legal / Sharia / Finance approve."
+  },
+  {
+   "fieldname": "section_default",
+   "fieldtype": "Section Break",
+   "label": "Default and Refund (INS-16) — stored only, not applied in P0",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "default_trigger_missed",
+   "fieldtype": "Int",
+   "label": "Consecutive Missed Installments for Review",
+   "description": "0 = off"
+  },
+  {
+   "fieldname": "column_break_default",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "refund_retention_type",
+   "fieldtype": "Select",
+   "label": "Refund Retention",
+   "options": "None\nOne Installment\nFixed\nPercent",
+   "default": "None"
+  },
+  {
+   "fieldname": "refund_retention_value",
+   "fieldtype": "Float",
+   "label": "Retention Amount or %",
+   "depends_on": "eval:in_list(['Fixed','Percent'], doc.refund_retention_type)"
+  },
+  {
+   "fieldname": "section_title",
+   "fieldtype": "Section Break",
+   "label": "Title Deadline (SAL-18) — stored only, not applied in P0",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "title_deadline_days",
+   "fieldtype": "Int",
+   "label": "Title Deadline (days after final payment)",
+   "description": "0 = not set; required unless the profile is on legal hold."
+  },
+  {
+   "fieldname": "title_deadline_note",
+   "fieldtype": "Small Text",
+   "label": "Title Deadline Note"
+  },
+  {
+   "fieldname": "column_break_title",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "title_penalty_type",
+   "fieldtype": "Select",
+   "label": "Sidra Title Delay Penalty",
+   "options": "None\nPer Day\nPer Month",
+   "default": "None"
+  },
+  {
+   "fieldname": "title_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Title Delay Amount",
+   "options": "USD",
+   "depends_on": "eval:doc.title_penalty_type!='None'"
+  },
+  {
+   "fieldname": "title_refund_after_days",
+   "fieldtype": "Int",
+   "label": "Buyer Refund Right After (days)",
+   "description": "0 = off"
+  },
+  {
+   "fieldname": "title_refund_compensation_pct",
+   "fieldtype": "Percent",
+   "label": "Refund Compensation %",
+   "depends_on": "title_refund_after_days"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-05 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Installments",
+ "name": "Sidra Contract Profile",
+ "naming_rule": "By fieldname",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sidra Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
