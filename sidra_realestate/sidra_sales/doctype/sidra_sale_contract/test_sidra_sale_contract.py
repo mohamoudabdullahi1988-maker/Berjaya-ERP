@@ -22,6 +22,7 @@ from sidra_realestate.tests.helpers import (
 	ensure_base_records,
 	make_scheme,
 	make_unit,
+	signing_values,
 	unique,
 )
 
@@ -53,6 +54,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 				"contract_profile": profile,
 				"agreed_price": sum(price for _, price in units),
 				"units": [{"unit": unit, "allocated_price": price} for unit, price in units],
+				**signing_values(),
 				**values,
 			}
 		)
@@ -182,7 +184,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 	def test_notary_reference_format(self):
 		with self.assertRaises(frappe.ValidationError):
 			self.contract([(self.unit(), 5500)], notary_reference="IPN-123")
-		self.assertTrue(self.contract([(self.unit(), 5500)], notary_reference="IPN/HL/042/2026"))
+		self.assertTrue(self.contract([(self.unit(), 5500)], notary_reference="IPN/HL/042/1999"))
 
 	# ------------------------------------------------------------ reservations
 	def test_unit_reserved_for_another_customer_rejected(self):
@@ -243,6 +245,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 					"signed_on": day,
 					"agreed_price": 5500,
 					"units": [{"unit": self.unit(), "allocated_price": 5500}],
+					**signing_values(),
 				}
 			).insert(ignore_permissions=True)
 			doc.submit()
@@ -267,6 +270,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 	# ------------------------------------------------------------ permissions
 	def test_sales_user_drafts_sales_manager_submits(self):
 		unit = self.unit()
+		signing = signing_values()
 		with as_user(SALES_USER):
 			doc = frappe.get_doc(
 				{
@@ -277,6 +281,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 					"contract_profile": "Profile A",
 					"agreed_price": 5500,
 					"units": [{"unit": unit, "allocated_price": 5500}],
+					**signing,
 				}
 			).insert()
 			with self.assertRaises(frappe.PermissionError):

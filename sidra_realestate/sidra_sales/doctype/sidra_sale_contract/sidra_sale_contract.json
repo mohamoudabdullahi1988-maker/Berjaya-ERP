@@ -2,6 +2,7 @@
  "actions": [],
  "autoname": "naming_series:",
  "creation": "2026-11-05 12:00:00.000000",
+ "default_print_format": "Sidra Sale Contract",
  "doctype": "DocType",
  "engine": "InnoDB",
  "field_order": [
@@ -31,8 +32,12 @@
   "notary_name",
   "notary_reference",
   "signed_copy",
+  "section_party_rows",
+  "parties",
   "section_terms",
   "terms_snapshot",
+  "section_clauses",
+  "clauses",
   "section_schedule",
   "schedule"
  ],
@@ -80,7 +85,7 @@
   {
    "fieldname": "signed_on",
    "fieldtype": "Date",
-   "label": "Contract Date",
+   "label": "Contract / Signing Date",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -173,7 +178,7 @@
   {
    "fieldname": "section_parties",
    "fieldtype": "Section Break",
-   "label": "Parties and Notary (SAL-13, SAL-19 partial)",
+   "label": "Agent and Notary (SAL-13, SAL-19)",
    "collapsible": 1
   },
   {
@@ -205,7 +210,19 @@
   {
    "fieldname": "signed_copy",
    "fieldtype": "Attach",
-   "label": "Signed Copy"
+   "label": "Signed Copy",
+   "description": "Scan of the signed, notarised contract. Must be a private file; required to submit."
+  },
+  {
+   "fieldname": "section_party_rows",
+   "fieldtype": "Section Break",
+   "label": "Seller, Guarantor and Witnesses (SAL-19)"
+  },
+  {
+   "fieldname": "parties",
+   "fieldtype": "Table",
+   "label": "Parties",
+   "options": "Sidra Contract Party"
   },
   {
    "fieldname": "section_terms",
@@ -219,6 +236,19 @@
    "label": "Terms Snapshot",
    "read_only": 1,
    "no_copy": 0
+  },
+  {
+   "fieldname": "section_clauses",
+   "fieldtype": "Section Break",
+   "label": "Clauses (SAL-20, INS-21)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "clauses",
+   "fieldtype": "Table",
+   "label": "Clauses",
+   "options": "Sidra Contract Clause Line",
+   "read_only": 1
   },
   {
    "fieldname": "section_schedule",
@@ -237,7 +267,7 @@
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "modified": "2026-11-06 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Sales",
  "name": "Sidra Sale Contract",

@@ -40,7 +40,9 @@
   "title_penalty_type",
   "title_penalty_amount",
   "title_refund_after_days",
-  "title_refund_compensation_pct"
+  "title_refund_compensation_pct",
+  "section_clauses",
+  "clauses"
  ],
  "fields": [
   {
@@ -266,11 +268,23 @@
    "fieldtype": "Percent",
    "label": "Refund Compensation %",
    "depends_on": "title_refund_after_days"
+  },
+  {
+   "fieldname": "section_clauses",
+   "fieldtype": "Section Break",
+   "label": "Clauses (SAL-20, INS-21)",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "clauses",
+   "fieldtype": "Table",
+   "label": "Clauses",
+   "options": "Sidra Profile Clause"
   }
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "modified": "2026-11-06 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Installments",
  "name": "Sidra Contract Profile",

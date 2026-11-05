@@ -65,12 +65,33 @@ PROFILES = [
 ]
 
 
+# SAL-20 and SRS v1.6 §5.5. Wording is supplied and approved by Sidra (issue #8); none is invented here.
+CLAUSES = [
+	("RESTRICTIONS", "Neighbourhood restrictions"),
+	("INSOLVENCY", "Insolvency protection for the buyer"),
+	("TITLE-COSTS", "Title costs paid by the buyer"),
+	("BEACON", "Beacon / foundation at the lowest of three quotes"),
+	("FIRST-RIGHT", "Sidra's first right to design and build"),
+]
+
+
 def after_install():
 	ensure_contract_profiles()
+	ensure_contract_clauses()
 
 
 def after_migrate():
 	ensure_contract_profiles()
+	ensure_contract_clauses()
+
+
+def ensure_contract_clauses():
+	"""Create the clause records (no wording, not approved) when missing. Never overwrites."""
+	for code, title in CLAUSES:
+		if not frappe.db.exists("Sidra Contract Clause", code):
+			frappe.get_doc(
+				{"doctype": "Sidra Contract Clause", "clause_code": code, "title": title, "active": 1}
+			).insert(ignore_permissions=True)
 
 
 def ensure_contract_profiles():

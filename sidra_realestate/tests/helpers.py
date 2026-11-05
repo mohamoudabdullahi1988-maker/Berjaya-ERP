@@ -4,6 +4,8 @@ Records are created idempotently and committed, so concurrency tests on a second
 connection can see them. Everything carries a `_Test` prefix.
 """
 
+import itertools
+import random
 from contextlib import contextmanager
 
 import frappe
@@ -151,3 +153,54 @@ def as_user(user):
 		yield
 	finally:
 		frappe.set_user(previous)
+
+
+_notary_counter = itertools.count(random.randrange(1000, 90000))
+
+
+def _blank_pdf() -> bytes:
+	"""A valid one-page blank PDF; Frappe parses uploaded PDFs."""
+	from io import BytesIO
+
+	from pypdf import PdfWriter
+
+	writer = PdfWriter()
+	writer.add_blank_page(width=595, height=842)
+	buffer = BytesIO()
+	writer.write(buffer)
+	return buffer.getvalue()
+
+
+def private_file(name="signed-contract.pdf"):
+	"""A private File, as when a signed scan is attached; returns its URL."""
+	doc = frappe.get_doc(
+		{
+			"doctype": "File",
+			"file_name": f"{frappe.generate_hash(length=8)}-{name}",
+			"content": _blank_pdf(),
+			"is_private": 1,
+		}
+	).insert(ignore_permissions=True)
+	return doc.file_url
+
+
+def signing_values():
+	"""What a contract needs before submit (SAL-19): signed copy, notary, parties. Synthetic names."""
+	n = next(_notary_counter)
+	return {
+		"signed_copy": private_file(),
+		"notary_name": "_Test Notary",
+		"notary_reference": f"IPN/HL/{n % 1000:03d}/{2000 + n // 1000}",
+		"parties": [
+			{"role": "Seller", "full_name": "_Test Seller Owner", "phone": "+252 63 000 0001"},
+			{
+				"role": "Seller Guarantor",
+				"full_name": "_Test Guarantor",
+				"phone": "+252 63 000 0002",
+				"id_number": "TEST-0002",
+				"pledged_property": "_Test pledged plot 1",
+			},
+			{"role": "Witness", "full_name": "_Test Witness One", "phone": "+252 63 000 0003"},
+			{"role": "Witness", "full_name": "_Test Witness Two", "phone": "+252 63 000 0004"},
+		],
+	}

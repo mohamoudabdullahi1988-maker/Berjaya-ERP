@@ -8,6 +8,10 @@ P0 behaviour:
   It creates no invoice, payment or ledger entry (SRS v2.0 §3.4).
 - A profile on legal hold (Profile B) can be drafted but not submitted.
 - Cancelling a submitted contract is refused until the cancellation workflow exists.
+- The profile's clauses are frozen with the terms (SAL-20, INS-21).
+- Submit means signed and notarised: it needs a private signed copy, notary name and
+  reference, one Seller, a Seller Guarantor with pledged property, two Witnesses with
+  phones, and approved wording for every clause (SAL-19; issue #8).
 """
 
 import json
@@ -29,6 +33,7 @@ class SidraSaleContract(Document):
 		self.validate_units()
 		self.validate_price_allocation()
 		self.validate_notary_reference()
+		self.validate_parties()
 		if self.contract_type == "Installment":
 			self.freeze_terms()
 			self.set_plan_from_terms()
@@ -92,11 +97,31 @@ class SidraSaleContract(Document):
 			if not profile.active:
 				frappe.throw(_("Profile {0} is retired").format(profile.name))
 			self.terms_snapshot = json.dumps(profile.terms(), sort_keys=True, default=str)
+			self.freeze_clauses(profile)
 			return
-		if before.contract_profile != self.contract_profile or _parse(before.terms_snapshot) != _parse(
-			self.terms_snapshot
+		if (
+			before.contract_profile != self.contract_profile
+			or _parse(before.terms_snapshot) != _parse(self.terms_snapshot)
+			or _clause_rows(before.clauses) != _clause_rows(self.clauses)
 		):
-			frappe.throw(_("The profile and frozen terms of a saved contract cannot be changed"))
+			frappe.throw(_("The profile, frozen terms and clauses of a saved contract cannot be changed"))
+
+	def freeze_clauses(self, profile):
+		self.set("clauses", [])
+		for row in profile.clauses:
+			clause = frappe.get_doc("Sidra Contract Clause", row.clause)
+			if not clause.active:
+				frappe.throw(_("Clause {0} on profile {1} is inactive").format(clause.name, profile.name))
+			self.append(
+				"clauses",
+				{
+					"clause": clause.name,
+					"title": clause.title,
+					"text_so": clause.text_so,
+					"text_en": clause.text_en,
+					"approved": clause.approved,
+				},
+			)
 
 	def terms(self) -> dict:
 		return _parse(self.terms_snapshot)
@@ -118,14 +143,57 @@ class SidraSaleContract(Document):
 		self.grace_months = terms["grace_months"]
 
 	def validate_cash_contract(self):
-		if self.contract_profile or self.terms_snapshot:
-			frappe.throw(_("A cash contract has no contract profile"))
+		if self.contract_profile or self.terms_snapshot or self.clauses:
+			frappe.throw(_("A cash contract has no contract profile or profile clauses (issue #8)"))
 		self.down_payment = 0
 		self.balance = 0
 		self.installments = self.due_day = self.grace_months = 0
 
+	def validate_parties(self):
+		for row in self.parties:
+			row.full_name = (row.full_name or "").strip()
+			if row.role != "Seller Guarantor" and row.pledged_property:
+				frappe.throw(_("Parties row {0}: only a Seller Guarantor pledges property").format(row.idx))
+
 	# ------------------------------------------------------------ submit
+	def check_signing_gate(self):
+		"""Submit means signed and notarised (SAL-19; SRS v2.0 §9 item 6; issue #8)."""
+		missing = []
+		if not self.signed_copy:
+			missing.append(_("the signed copy"))
+		elif not frappe.db.get_value("File", {"file_url": self.signed_copy}, "is_private"):
+			missing.append(_("the signed copy as a private file"))
+		if not (self.notary_name or "").strip():
+			missing.append(_("the notary"))
+		if not (self.notary_reference or "").strip():
+			missing.append(_("the notary reference"))
+
+		roles = [row.role for row in self.parties]
+		if roles.count("Seller") != 1:
+			missing.append(_("exactly one Seller"))
+		guarantors = [row for row in self.parties if row.role == "Seller Guarantor"]
+		if not guarantors or any(not (row.pledged_property or "").strip() for row in guarantors):
+			missing.append(_("a Seller Guarantor with the pledged property"))
+		witnesses = [row for row in self.parties if row.role == "Witness"]
+		if len(witnesses) < 2 or any(not (row.phone or "").strip() for row in witnesses):
+			missing.append(_("two Witnesses with phone numbers"))
+
+		unapproved = [row.clause for row in self.clauses if not row.approved]
+		if unapproved:
+			missing.append(_("approved wording for clause(s) {0}").format(", ".join(unapproved)))
+
+		if missing:
+			frappe.throw(_("Before submitting, add: {0}").format("; ".join(missing)), title=_("Not signed yet"))
+
+		duplicate = frappe.db.exists(
+			"Sidra Sale Contract",
+			{"notary_reference": self.notary_reference.strip(), "docstatus": 1, "name": ("!=", self.name)},
+		)
+		if duplicate:
+			frappe.throw(_("Notary reference {0} is already used by {1}").format(self.notary_reference, duplicate))
+
 	def before_submit(self):
+		self.check_signing_gate()
 		if self.contract_type == "Installment":
 			self.check_legal_hold()
 		self.lock_units()
@@ -182,6 +250,12 @@ class SidraSaleContract(Document):
 				"need the approved workflow (SAL-09, INS-16)"
 			)
 		)
+
+
+def _clause_rows(rows):
+	return [
+		(row.clause, row.title, row.text_so or "", row.text_en or "", int(row.approved or 0)) for row in rows or []
+	]
 
 
 def _parse(value):
