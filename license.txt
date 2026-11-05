@@ -1,0 +1,8 @@
+Copyright (c) 2026 Mohamoud Abdullahi Sheikh. All rights reserved.
+
+This software is proprietary and was developed for Sidra Homes (Sidra Real Estate),
+Hargeisa, Somaliland. No part of it may be copied, modified or distributed without
+written permission from the copyright holder.
+
+ERPNext and Frappe Framework are separate works licensed under the GNU GPL v3;
+this app only extends them and does not include their source code.

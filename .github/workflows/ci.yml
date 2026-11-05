@@ -1,0 +1,29 @@
+name: CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+
+jobs:
+  lint:
+    name: Lint and syntax check
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.14"
+
+      - name: Install ruff
+        run: pip install ruff
+
+      - name: Ruff lint
+        run: ruff check sidra_realestate
+
+      - name: Python syntax check
+        run: python -m compileall -q sidra_realestate
+
+  # Full bench tests (install ERPNext v16 + this app and run `bench run-tests`)
+  # are added in Phase 1, when the first DocTypes and their tests exist.
