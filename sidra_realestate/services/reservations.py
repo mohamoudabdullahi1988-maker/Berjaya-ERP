@@ -26,6 +26,7 @@ def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict
 		frappe.throw(_("Unknown customer {0}").format(customer), frappe.DoesNotExistError)
 
 	unit = lock_unit(unit_name)
+	unit.check_permission("read")  # per-Company user permissions; the insert below skips them
 	if unit.status != "Available":
 		frappe.throw(
 			_("Unit {0} is {1} and cannot be reserved").format(unit.name, unit.status), UnitNotAvailable
@@ -54,6 +55,7 @@ def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict
 def cancel_reservation(reservation: str) -> None:
 	frappe.only_for(RESERVE_ROLES)
 	doc = frappe.get_doc("Sidra Reservation", reservation, for_update=True)
+	doc.check_permission("read")
 	if doc.status != "Active":
 		frappe.throw(_("Only an active reservation can be cancelled"))
 	_close(doc, "Cancelled")

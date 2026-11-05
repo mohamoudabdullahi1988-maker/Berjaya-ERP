@@ -1,5 +1,6 @@
 {
  "actions": [],
+ "allow_import": 1,
  "autoname": "field:unit_code",
  "creation": "2026-11-05 12:00:00.000000",
  "doctype": "DocType",
@@ -114,7 +115,9 @@
    "fieldname": "cash_price",
    "fieldtype": "Currency",
    "label": "Cash Price",
-   "options": "USD"
+   "options": "USD",
+   "description": "Current price from the price history. Set it when creating or importing a unit; change it later with a Unit Price History entry.",
+   "read_only_depends_on": "eval:!doc.__islocal"
   },
   {
    "fieldname": "title_deed_ref",
@@ -229,8 +232,14 @@
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "links": [
+  {
+   "link_doctype": "Sidra Unit Price History",
+   "link_fieldname": "unit",
+   "group": "Price"
+  }
+ ],
+ "modified": "2026-11-06 09:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Property",
  "name": "Sidra Unit",
@@ -258,7 +267,8 @@
    "email": 1,
    "share": 1,
    "write": 1,
-   "create": 1
+   "create": 1,
+   "import": 1
   },
   {
    "role": "Sidra Sales User",

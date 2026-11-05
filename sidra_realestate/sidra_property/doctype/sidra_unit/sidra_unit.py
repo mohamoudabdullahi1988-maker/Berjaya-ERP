@@ -3,6 +3,9 @@
 import frappe
 from frappe import _
 from frappe.model.document import Document
+from frappe.utils import flt
+
+from sidra_realestate.services.prices import create_initial_price
 
 # A person may switch a unit only between these two (SRS v1.6 §4.2: Blocked is set by management).
 MANUAL_STATUSES = {"Available", "Blocked"}
@@ -13,9 +16,21 @@ class SidraUnit(Document):
 	def validate(self):
 		self.company = frappe.db.get_value("Sidra Scheme", self.scheme, "company")
 		self.validate_status_change()
+		self.validate_price_change()
 		for field in ("area_sqm", "cash_price", "bedrooms", "floors"):
 			if (self.get(field) or 0) < 0:
 				frappe.throw(_("{0} cannot be negative").format(self.meta.get_label(field)))
+
+	def validate_price_change(self):
+		before = self.get_doc_before_save()
+		if before is None or self.flags.price_by_service:
+			return
+		if flt(before.cash_price, 2) != flt(self.cash_price, 2):
+			frappe.throw(_("Change a unit's price with a Unit Price History entry (SAL-02)"))
+
+	def after_insert(self):
+		if flt(self.cash_price, 2) > 0:
+			create_initial_price(self)
 
 	def validate_status_change(self):
 		if self.flags.status_by_service:

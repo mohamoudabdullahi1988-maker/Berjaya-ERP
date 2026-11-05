@@ -28,5 +28,6 @@ after_migrate = "sidra_realestate.install.after_migrate"
 scheduler_events = {
 	"daily": [
 		"sidra_realestate.services.reservations.expire_reservations",
+		"sidra_realestate.services.prices.refresh_current_prices",
 	],
 }

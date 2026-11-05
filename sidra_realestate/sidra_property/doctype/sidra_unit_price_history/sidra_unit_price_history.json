@@ -1,0 +1,172 @@
+{
+ "actions": [],
+ "allow_import": 1,
+ "autoname": "naming_series:",
+ "creation": "2026-11-06 09:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "naming_series",
+  "unit",
+  "scheme",
+  "company",
+  "column_break_price",
+  "effective_from",
+  "price",
+  "previous_price",
+  "section_reason",
+  "reason",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SUPH-.YYYY.-",
+   "default": "SUPH-.YYYY.-",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Sidra Unit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "scheme",
+   "fieldtype": "Link",
+   "label": "Scheme",
+   "options": "Sidra Scheme",
+   "read_only": 1,
+   "fetch_from": "unit.scheme",
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1,
+   "fetch_from": "unit.company"
+  },
+  {
+   "fieldname": "column_break_price",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "effective_from",
+   "fieldtype": "Date",
+   "label": "Effective From",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "price",
+   "fieldtype": "Currency",
+   "label": "Cash Price",
+   "options": "USD",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "previous_price",
+   "fieldtype": "Currency",
+   "label": "Previous Price",
+   "options": "USD",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "The unit's latest submitted price before this entry."
+  },
+  {
+   "fieldname": "section_reason",
+   "fieldtype": "Section Break"
+  },
+  {
+   "fieldname": "reason",
+   "fieldtype": "Small Text",
+   "label": "Reason",
+   "reqd": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Sidra Unit Price History",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-06 09:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Property",
+ "name": "Sidra Unit Price History",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "import": 1
+  },
+  {
+   "role": "Sidra Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "effective_from",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

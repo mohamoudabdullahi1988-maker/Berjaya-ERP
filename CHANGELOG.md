@@ -19,7 +19,12 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 - Integration tests for every DocType, including concurrent reservation; pure tests for the schedule (AT-01 to AT-04)
 - CI job that builds an ERPNext v16 bench (Frappe v16.55.2, ERPNext v16.53.0, MariaDB 11.8), installs, migrates, builds and runs the tests
 
+- Unit price history (SAL-02): submittable `Sidra Unit Price History`; new prices must take effect after the latest one; only future-dated entries can be cancelled; `Sidra Unit.cash_price` mirrors today's price and is refreshed daily; a unit created or imported with a price gets an "Initial price" entry
+- Bulk import (SAL-01): Data Import enabled for Sidra Scheme, Sidra Unit and Sidra Unit Price History (Sales Manager)
+- Patch `v0_2.create_initial_unit_prices`: back-fills history for units priced before this change
+
 ### Changed
+- `reserve_unit`, `cancel_reservation` and price entries now enforce per-Company user permissions on the unit
 - `CLAUDE.md` points at SRS v2.0-DRAFT and adds the P0 prototype boundary (no postings, refunds, penalties, title transfer or overrides; Profile B legal hold)
 
 ## [0.1.1] — 2026-11-05
