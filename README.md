@@ -2,12 +2,14 @@
 
 Custom Frappe app that runs Sidra Homes' business on **ERPNext v16**: land and house sales, Murabaha / installment contracts with configurable contract profiles, title transfer tracking, construction projects (full build, design, inspection) and land brokerage.
 
-Current version: **v0.1.0** (Phase 0 skeleton — no DocTypes yet).
+Current version: **v0.1.1** (Phase 0 skeleton and handover — no DocTypes yet).
 
 ## Documents
 
 | File | What it is |
 | --- | --- |
+| [CLAUDE.md](CLAUDE.md) | Standing instructions for Claude Code |
+| [docs/HANDOVER_v1.0.md](docs/HANDOVER_v1.0.md) | Handover to Claude Code: roles, rules, decisions, plan, acceptance cases, first tasks |
 | [docs/SREMS-SRS_v1.6.md](docs/SREMS-SRS_v1.6.md) | Requirements specification v1.6 (business rules, contract profiles, decisions) |
 | [docs/ERPNEXT-MAPPING_v0.1.md](docs/ERPNEXT-MAPPING_v0.1.md) | Which ERPNext feature covers each requirement, and what this app adds |
 | [CHANGELOG.md](CHANGELOG.md) | Release history |
@@ -80,11 +82,16 @@ sidra-erp/
 
 ## Roadmap
 
+Phase order agreed 5 Nov 2026 (see handover section 5).
+
 | Release | Phase | Scope |
 | --- | --- | --- |
-| v0.1.0 | 0 | Skeleton, roles, chart of accounts additions, Modes of Payment (Cash, Bank, ZAAD, eDahab) |
-| v0.2.0 | 1 | Property units, sale contracts, contract profiles, installment schedules, Somali contract print format |
-| v0.3.0 | 2 | Construction on Project / Task: inspections, variation orders, milestone billing, retention |
-| v0.4.0 | 3 | Reports, workspace, dashboards |
-| v0.5.0 | 4 | Customer portal, WhatsApp reminders and receipts |
-| v1.0.0 | 5 | Import of live contracts from Excel, UAT, go-live |
+| v0.1.x | 0. Foundation | Skeleton, environment, roles, accounts, Modes of Payment (Cash, Bank, ZAAD, eDahab) |
+| v0.2.0 | 1. Property | Schemes, property units, reservations, price history |
+| v0.3.0 | 2. Sales | Contract profiles A / B, sale contracts, clauses, terms snapshot, Somali / English print format |
+| v0.4.0 | 3. Collections | Installment schedules, receipts, penalties, customer statements |
+| v0.5.0 | 4. Construction | Projects, stages, BOQ, variations, project costs |
+| v0.6.0 | 5. Finance | Approved ERPNext financial integrations |
+| v1.0.0 | 6. Release | Gap assessment, fixes, deployment |
+
+Roles: ChatGPT owns architecture, specifications and review; Claude Code owns implementation and tests; Mohamoud / Sidra management approve.

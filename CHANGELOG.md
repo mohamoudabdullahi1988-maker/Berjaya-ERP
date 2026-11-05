@@ -2,6 +2,15 @@
 
 All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; each release is tagged in Git.
 
+## [0.1.1] — 2026-11-05
+
+### Added
+- `docs/HANDOVER_v1.0.md` — handover to Claude Code: roles (ChatGPT architecture / QA, Claude Code implementation), rules, fixed decisions, contract profiles A / B, phase plan, acceptance cases AT-01 to AT-13, first tasks
+- `CLAUDE.md` — standing instructions loaded by Claude Code
+
+### Changed
+- Roadmap follows the agreed phase order: Foundation, Property, Sales, Collections, Construction, Finance, Release
+
 ## [0.1.0] — 2026-11-05
 
 ### Added
