@@ -97,6 +97,8 @@ jobs:
         env:
           CI: "Yes"
         run: |
+          # The contract print format uses the Chrome PDF generator; the runner image ships Chrome.
+          bench set-config -g chromium_path "$(command -v google-chrome || command -v chromium || command -v chromium-browser)"
           bench new-site --db-root-password root --admin-password admin --db-host 127.0.0.1 test_site
           bench --site test_site install-app erpnext
           bench --site test_site install-app sidra_realestate

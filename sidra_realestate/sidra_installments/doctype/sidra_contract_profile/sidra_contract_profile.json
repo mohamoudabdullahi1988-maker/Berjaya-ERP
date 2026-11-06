@@ -157,14 +157,12 @@
    "fieldname": "penalty_per_day",
    "fieldtype": "Currency",
    "label": "Amount per Day",
-   "options": "USD",
    "depends_on": "eval:doc.penalty_type=='Per Day Capped'"
   },
   {
    "fieldname": "penalty_monthly_cap",
    "fieldtype": "Currency",
    "label": "Monthly Cap",
-   "options": "USD",
    "depends_on": "eval:doc.penalty_type=='Per Day Capped'"
   },
   {
@@ -175,7 +173,6 @@
    "fieldname": "penalty_fixed_amount",
    "fieldtype": "Currency",
    "label": "Fixed Amount",
-   "options": "USD",
    "depends_on": "eval:doc.penalty_type=='Fixed After Notice'"
   },
   {
@@ -254,7 +251,6 @@
    "fieldname": "title_penalty_amount",
    "fieldtype": "Currency",
    "label": "Title Delay Amount",
-   "options": "USD",
    "depends_on": "eval:doc.title_penalty_type!='None'"
   },
   {
@@ -284,7 +280,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-06 12:00:00.000000",
+ "modified": "2026-11-06 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Installments",
  "name": "Sidra Contract Profile",

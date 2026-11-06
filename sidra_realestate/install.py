@@ -75,14 +75,39 @@ CLAUSES = [
 ]
 
 
+# Each Sidra role paired with the ERPNext role its screens need (Customer / Project lookups).
+# Finance posting roles are not bundled: Finance assigns them (SRS v2.0 §5).
+# Created only when missing: re-saving a Role Profile on every migrate queues a background job
+# that keeps it locked until a worker runs, which breaks the next migrate.
+ROLE_PROFILES = {
+	"Sidra Sales Staff": ["Sidra Sales User", "Sales User"],
+	"Sidra Sales Management": ["Sidra Sales Manager", "Sales User"],
+	"Sidra Project Staff": ["Sidra Project Manager", "Projects User"],
+	"Sidra Inspection": ["Sidra Inspector", "Projects User"],
+	"Sidra General Management": ["Sidra General Manager", "Sales User"],
+	"Sidra Finance Review": ["Sidra Finance Reviewer"],
+}
+
+
 def after_install():
 	ensure_contract_profiles()
 	ensure_contract_clauses()
+	ensure_role_profiles()
 
 
 def after_migrate():
 	ensure_contract_profiles()
 	ensure_contract_clauses()
+	ensure_role_profiles()
+
+
+def ensure_role_profiles():
+	for name, roles in ROLE_PROFILES.items():
+		if frappe.db.exists("Role Profile", name):
+			continue
+		frappe.get_doc(
+			{"doctype": "Role Profile", "role_profile": name, "roles": [{"role": role} for role in roles]}
+		).insert(ignore_permissions=True)
 
 
 def ensure_contract_clauses():

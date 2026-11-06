@@ -115,7 +115,7 @@
    "fieldname": "cash_price",
    "fieldtype": "Currency",
    "label": "Cash Price",
-   "options": "USD",
+   "options": "Company:company:default_currency",
    "description": "Current price from the price history. Set it when creating or importing a unit; change it later with a Unit Price History entry.",
    "read_only_depends_on": "eval:!doc.__islocal"
   },
@@ -239,7 +239,7 @@
    "group": "Price"
   }
  ],
- "modified": "2026-11-06 09:00:00.000000",
+ "modified": "2026-11-06 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Property",
  "name": "Sidra Unit",

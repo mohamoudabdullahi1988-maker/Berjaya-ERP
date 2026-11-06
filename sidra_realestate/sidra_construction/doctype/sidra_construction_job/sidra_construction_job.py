@@ -34,6 +34,7 @@ class SidraConstructionJob(Document):
 				self.append("stages", {"stage_name": stage})
 
 	def validate(self):
+		self.currency = frappe.get_cached_value("Company", self.company, "default_currency")
 		self.validate_project()
 		self.validate_stages()
 		self.set_boq_amounts()

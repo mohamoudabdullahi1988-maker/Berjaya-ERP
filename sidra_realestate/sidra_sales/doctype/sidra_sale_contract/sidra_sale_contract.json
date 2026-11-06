@@ -10,6 +10,7 @@
   "contract_type",
   "customer",
   "company",
+  "currency",
   "column_break_main",
   "signed_on",
   "contract_profile",
@@ -31,6 +32,7 @@
   "column_break_parties",
   "notary_name",
   "notary_reference",
+  "notary_reference_key",
   "signed_copy",
   "section_party_rows",
   "parties",
@@ -77,6 +79,16 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "fetch_from": "company.default_currency",
+   "read_only": 1,
+   "print_hide": 1,
+   "description": "The company's default currency (NFR-10: USD)."
   },
   {
    "fieldname": "column_break_main",
@@ -128,7 +140,7 @@
    "fieldname": "agreed_price",
    "fieldtype": "Currency",
    "label": "Agreed Price",
-   "options": "USD",
+   "options": "currency",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -136,7 +148,7 @@
    "fieldname": "cash_offer_price",
    "fieldtype": "Currency",
    "label": "Cash Offer Price",
-   "options": "USD",
+   "options": "currency",
    "description": "Reference only; not the property's asset cost."
   },
   {
@@ -147,14 +159,14 @@
    "fieldname": "down_payment",
    "fieldtype": "Currency",
    "label": "Down Payment",
-   "options": "USD",
+   "options": "currency",
    "read_only": 1
   },
   {
    "fieldname": "balance",
    "fieldtype": "Currency",
    "label": "Balance in Installments",
-   "options": "USD",
+   "options": "currency",
    "read_only": 1
   },
   {
@@ -206,6 +218,17 @@
    "fieldtype": "Data",
    "label": "Notary Reference",
    "description": "Format IPN/HL/NNN/YYYY"
+  },
+  {
+   "fieldname": "notary_reference_key",
+   "fieldtype": "Data",
+   "label": "Notary Reference (signed)",
+   "read_only": 1,
+   "hidden": 1,
+   "unique": 1,
+   "no_copy": 1,
+   "print_hide": 1,
+   "description": "Set at submit; unique across signed contracts (database index)."
   },
   {
    "fieldname": "signed_copy",
@@ -267,7 +290,7 @@
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-06 12:00:00.000000",
+ "modified": "2026-11-06 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Sales",
  "name": "Sidra Sale Contract",

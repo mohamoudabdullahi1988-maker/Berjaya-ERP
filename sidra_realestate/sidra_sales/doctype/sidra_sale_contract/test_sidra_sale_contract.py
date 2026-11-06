@@ -19,6 +19,7 @@ from sidra_realestate.tests.helpers import (
 	SALES_MANAGER,
 	SALES_USER,
 	as_user,
+	attach_signed_copy,
 	ensure_base_records,
 	make_scheme,
 	make_unit,
@@ -58,7 +59,8 @@ class TestSidraSaleContract(IntegrationTestCase):
 				**values,
 			}
 		)
-		return doc.insert(ignore_permissions=True)
+		doc.insert(ignore_permissions=True)
+		return attach_signed_copy(doc)
 
 	# ------------------------------------------------------------ schedules
 	def test_hagbad_two_plots_profile_a(self):
@@ -248,7 +250,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 					**signing_values(),
 				}
 			).insert(ignore_permissions=True)
-			doc.submit()
+			attach_signed_copy(doc).submit()
 			self.assertEqual(doc.schedule, [])
 			self.assertEqual((doc.down_payment, doc.balance, doc.installments), (0, 0, 0))
 
@@ -284,6 +286,7 @@ class TestSidraSaleContract(IntegrationTestCase):
 					**signing,
 				}
 			).insert()
+			attach_signed_copy(doc)
 			with self.assertRaises(frappe.PermissionError):
 				doc.submit()
 		with as_user(SALES_MANAGER):
