@@ -159,36 +159,50 @@ _notary_counter = itertools.count(random.randrange(1000, 90000))
 
 
 def _blank_pdf() -> bytes:
-	"""A valid one-page blank PDF; Frappe parses uploaded PDFs."""
+	"""A valid one-page blank PDF with unique metadata (Frappe de-duplicates identical files)."""
 	from io import BytesIO
 
 	from pypdf import PdfWriter
 
 	writer = PdfWriter()
 	writer.add_blank_page(width=595, height=842)
+	writer.add_metadata({"/Title": f"_Test signed scan {frappe.generate_hash(length=12)}"})
 	buffer = BytesIO()
 	writer.write(buffer)
 	return buffer.getvalue()
 
 
-def private_file(name="signed-contract.pdf"):
-	"""A private File, as when a signed scan is attached; returns its URL."""
-	doc = frappe.get_doc(
-		{
-			"doctype": "File",
-			"file_name": f"{frappe.generate_hash(length=8)}-{name}",
-			"content": _blank_pdf(),
-			"is_private": 1,
-		}
-	).insert(ignore_permissions=True)
-	return doc.file_url
+def private_file(name="signed-contract.pdf", attached_to=None, is_private=1):
+	"""A File as uploaded through a form; attached to `attached_to`'s Signed Copy field if given."""
+	values = {
+		"doctype": "File",
+		"file_name": f"{frappe.generate_hash(length=8)}-{name}",
+		"content": _blank_pdf(),
+		"is_private": is_private,
+	}
+	if attached_to is not None:
+		values.update(
+			attached_to_doctype=attached_to.doctype,
+			attached_to_name=attached_to.name,
+			attached_to_field="signed_copy",
+		)
+	return frappe.get_doc(values).insert(ignore_permissions=True).file_url
+
+
+def attach_signed_copy(contract, **file_values):
+	"""Upload a signed scan to the saved contract's Signed Copy field and save, as staff do."""
+	contract.signed_copy = private_file(attached_to=contract, **file_values)
+	contract.save()
+	return contract
 
 
 def signing_values():
-	"""What a contract needs before submit (SAL-19): signed copy, notary, parties. Synthetic names."""
+	"""Notary and parties a contract needs before submit (SAL-19). Synthetic names.
+
+	The signed copy is attached separately with `attach_signed_copy`, once the contract has a name.
+	"""
 	n = next(_notary_counter)
 	return {
-		"signed_copy": private_file(),
 		"notary_name": "_Test Notary",
 		"notary_reference": f"IPN/HL/{n % 1000:03d}/{2000 + n // 1000}",
 		"parties": [

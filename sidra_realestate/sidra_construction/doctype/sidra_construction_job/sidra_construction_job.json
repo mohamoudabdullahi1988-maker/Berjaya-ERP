@@ -8,6 +8,7 @@
   "naming_series",
   "customer",
   "company",
+  "currency",
   "project",
   "column_break_main",
   "service_type",
@@ -50,6 +51,16 @@
    "label": "Company",
    "options": "Company",
    "reqd": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "fetch_from": "company.default_currency",
+   "read_only": 1,
+   "print_hide": 1,
+   "description": "The company's default currency (NFR-10: USD)."
   },
   {
    "fieldname": "project",
@@ -140,13 +151,13 @@
    "fieldname": "boq_total",
    "fieldtype": "Currency",
    "label": "BOQ Total",
-   "options": "USD",
+   "options": "currency",
    "read_only": 1
   }
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "modified": "2026-11-06 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Construction Job",

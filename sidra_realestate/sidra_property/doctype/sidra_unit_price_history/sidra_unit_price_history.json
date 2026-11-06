@@ -70,7 +70,7 @@
    "fieldname": "price",
    "fieldtype": "Currency",
    "label": "Cash Price",
-   "options": "USD",
+   "options": "Company:company:default_currency",
    "reqd": 1,
    "in_list_view": 1
   },
@@ -78,7 +78,7 @@
    "fieldname": "previous_price",
    "fieldtype": "Currency",
    "label": "Previous Price",
-   "options": "USD",
+   "options": "Company:company:default_currency",
    "read_only": 1,
    "no_copy": 1,
    "description": "The unit's latest submitted price before this entry."
@@ -106,7 +106,7 @@
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-06 09:00:00.000000",
+ "modified": "2026-11-06 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Property",
  "name": "Sidra Unit Price History",

@@ -70,6 +70,30 @@ class TestReservationService(IntegrationTestCase):
 			result = reserve_unit(unit.name, BUYER)
 		self.assertTrue(frappe.db.exists("Sidra Reservation", result["reservation"]))
 
+	def test_sales_staff_profile_can_pick_a_customer(self):
+		"""The Reserve dialog's Customer field searches ERPNext Customers (finding from staging rehearsal)."""
+		from frappe.desk.search import search_link
+
+		from sidra_realestate.tests.helpers import ensure_user
+
+		bare = ensure_user("sidra.sales.bare@example.com", ["Sidra Sales User"])
+		staff = "sidra.sales.staff@example.com"
+		if not frappe.db.exists("User", staff):
+			user = frappe.get_doc(
+				{"doctype": "User", "email": staff, "first_name": "staff", "send_welcome_email": 0}
+			)
+			user.append("role_profiles", {"role_profile": "Sidra Sales Staff"})
+			user.insert(ignore_permissions=True)
+		self.assertIn("Sidra Sales User", frappe.get_roles(staff))
+		self.assertIn("Sales User", frappe.get_roles(staff))
+
+		with as_user(bare), self.assertRaises(frappe.PermissionError):
+			search_link("Customer", BUYER, reference_doctype="Sidra Unit")
+		with as_user(staff):
+			found = [row["value"] for row in search_link("Customer", BUYER, reference_doctype="Sidra Unit")]
+			self.assertIn(BUYER, found)
+			self.assertTrue(reserve_unit(self.new_unit().name, BUYER)["reservation"])
+
 	def test_unrelated_user_is_rejected(self):
 		unit = self.new_unit()
 		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):

@@ -54,11 +54,11 @@ def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict
 @frappe.whitelist(methods=["POST"])
 def cancel_reservation(reservation: str) -> None:
 	frappe.only_for(RESERVE_ROLES)
-	doc = frappe.get_doc("Sidra Reservation", reservation, for_update=True)
-	doc.check_permission("read")
-	if doc.status != "Active":
+	if not reservation or not frappe.db.exists("Sidra Reservation", reservation):
+		frappe.throw(_("Unknown reservation {0}").format(reservation), frappe.DoesNotExistError)
+	frappe.get_doc("Sidra Reservation", reservation).check_permission("read")
+	if not _close(reservation, "Cancelled"):
 		frappe.throw(_("Only an active reservation can be cancelled"))
-	_close(doc, "Cancelled")
 
 
 def expire_reservations() -> None:
@@ -70,16 +70,23 @@ def expire_reservations() -> None:
 		order_by="expires_on asc",
 	)
 	for name in stale:
-		doc = frappe.get_doc("Sidra Reservation", name, for_update=True)
-		if doc.status == "Active":
-			_close(doc, "Expired")
+		_close(name, "Expired")
 
 
-def _close(reservation, status: str) -> None:
-	"""Close a reservation; release the unit only if this reservation still holds it."""
-	unit = lock_unit(reservation.unit)
+def _close(name: str, status: str) -> bool:
+	"""Close an active reservation; release the unit only if this reservation still holds it.
+
+	Locks the unit, then the reservation (see services/units.py), and re-reads the
+	reservation under the lock: a contract may have converted it meanwhile.
+	Returns False if it was no longer active.
+	"""
+	unit = lock_unit(frappe.db.get_value("Sidra Reservation", name, "unit"))
+	reservation = frappe.get_doc("Sidra Reservation", name, for_update=True)
+	if reservation.status != "Active":
+		return False
 	reservation.status = status
 	reservation.flags.via_service = True
 	reservation.save(ignore_permissions=True)
 	if unit.status == "Reserved" and unit.current_reservation == reservation.name:
 		set_unit_status(unit, "Available", current_reservation=None)
+	return True

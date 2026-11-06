@@ -17,6 +17,7 @@ class SidraUnit(Document):
 		self.company = frappe.db.get_value("Sidra Scheme", self.scheme, "company")
 		self.validate_status_change()
 		self.validate_price_change()
+		self.validate_scheme_change()
 		for field in ("area_sqm", "cash_price", "bedrooms", "floors"):
 			if (self.get(field) or 0) < 0:
 				frappe.throw(_("{0} cannot be negative").format(self.meta.get_label(field)))
@@ -27,6 +28,38 @@ class SidraUnit(Document):
 			return
 		if flt(before.cash_price, 2) != flt(self.cash_price, 2):
 			frappe.throw(_("Change a unit's price with a Unit Price History entry (SAL-02)"))
+
+	def validate_scheme_change(self):
+		"""Review finding 4: a scheme move must not invalidate records that point at this unit.
+
+		- Any move is refused once the unit is on a submitted contract (the signed contract
+			describes the unit in its scheme).
+		- A move into another Company's scheme is refused if the unit has any reservation,
+			any contract (draft included) or any price history, because those records carry
+			the old Company.
+		"""
+		before = self.get_doc_before_save()
+		if before is None or before.scheme == self.scheme:
+			return
+		if frappe.db.exists("Sidra Contract Unit", {"unit": self.name, "docstatus": 1}):
+			frappe.throw(_("Unit {0} is on a signed contract; its scheme cannot change").format(self.name))
+		if before.company == self.company:
+			return
+		blockers = [
+			label
+			for doctype, label in (
+				("Sidra Reservation", _("reservations")),
+				("Sidra Contract Unit", _("contracts")),
+				("Sidra Unit Price History", _("price history")),
+			)
+			if frappe.db.exists(doctype, {"unit": self.name})
+		]
+		if blockers:
+			frappe.throw(
+				_("Unit {0} cannot move from {1} to {2}: it has {3} under {1}").format(
+					self.name, before.company, self.company, ", ".join(blockers)
+				)
+			)
 
 	def after_insert(self):
 		if flt(self.cash_price, 2) > 0:
