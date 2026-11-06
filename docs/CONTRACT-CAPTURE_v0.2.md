@@ -1,6 +1,8 @@
-# Sidra ERP — Contract Capture: Reuse Assessment and Implementation Brief v0.1
+# Sidra ERP — Contract Capture: Reuse Assessment and Implementation Brief v0.2
 
 6 Nov 2026 · prepared by Claude (analysis and review) for Codex (implementation), under the Sidra Handover of 6 Nov 2026. Decisions: issue #13.
+
+**v0.2:** D1–D4 decided by Mohamoud (issue #13); sections 5–7 updated. v0.1 used interim rules for them.
 
 **Confirmed direction (handover):** the main purpose is to **register contracts prepared outside the system** and capture their variables, individual terms and installment schedules. Generating a contract is an optional extra and must not be a prerequisite for registration.
 
@@ -75,15 +77,22 @@ No candidate supports registering an externally prepared sale contract with its 
 
 ## 5. Decisions (issue #13)
 
-D1 down payment in the schedule or separate · D2 fees · D3 rounding tolerance · D4 Profile B hold for already-signed contracts · D5 signing data for external contracts · D6 structured penalty, default and title terms · D7 confirmation = INS-19 approval · D8 paid-to-date for live contracts.
-
-Phase A below uses the **interim rules** in issue #13. They are the conservative options: anything that depends on D1 or D2 can be saved but not confirmed.
+| # | Decision (Mohamoud, 6 Nov 2026) | Rule for Phase A |
+| --- | --- | --- |
+| D1 | **Both options, chosen per contract** | The down payment is either *included in the schedule* (one or more `Down payment` rows) or *recorded separately* (a down-payment amount with no `Down payment` rows). Either way, down payment + schedule must reconcile with the agreed price. |
+| D2 | **Fees are part of the contract value** | `Fee` rows count toward the agreed price like any other row. |
+| D3 | **Accept a small difference up to a set limit, and show it; limit $5.00** | Confirmation allowed when the absolute difference is ≤ the limit (setting, default $5.00). The difference stays visible on the record and in the snapshot. |
+| D4 | **The 14-day title deadline in Contract B is a typo; the deadline is 20 days** | Profile B: title deadline 20 days, legal hold lifted. Contract B-type contracts register like any other. |
+| D5 | Open | Interim: the PR #12 signing gate applies to External contracts |
+| D6 | Open | Interim: free-text terms summary plus the attachment; no structured penalty, default or title fields |
+| D7 | Open | Interim: confirmation = submit by Sidra Sales Manager |
+| D8 | Open | Interim: schedule only; paid-to-date out of scope (P2 import) |
 
 ## 6. Implementation brief for Codex — Phase A
 
-**Branch:** `feature/sales-contract-capture` from `develop`, after PR #12 is merged. PR into `develop`; CI must pass. Keep every CLAUDE.md rule: no ERPNext or Frappe core edits; synthetic data only; no vouchers, payments, penalties, refunds or title transfer; no change to profile values, pricing rules or legal wording; Profile B stays on legal hold; the first-due-date rule is not changed (#1).
+**Branch:** `feature/sales-contract-capture` from `develop`, after PR #12 is merged. PR into `develop`; CI must pass. Keep every CLAUDE.md rule: no ERPNext or Frappe core edits; synthetic data only; no vouchers, payments, penalties, refunds or title transfer; no change to pricing rules or legal wording; the first-due-date rule is not changed (#1). The only profile change allowed is D4 (section 6.3).
 
-**Task 0:** record the role change in the repository's agent instructions (`CLAUDE.md`, and `AGENTS.md` if Codex uses one): "Codex implements code changes and runs tests; Claude analyses requirements and reviews; Mohamoud / Sidra approve." Keep all other rules.
+**Task 0:** record the role change in the repository's agent instructions (`CLAUDE.md`, and `AGENTS.md` if Codex uses one): "Codex implements code changes and runs tests; Claude analyses requirements and reviews; Mohamoud / Sidra approve." Keep all other rules, except replace "never clear Profile B's legal hold" with "Profile B's hold was resolved by decision D4 (issue #13)".
 
 ### 6.1 Data model (DocType JSON in `sidra_realestate/sidra_sales` and `sidra_installments`)
 
@@ -93,26 +102,32 @@ Phase A below uses the **interim rules** in issue #13. They are the conservative
 | `Sidra Sale Contract.external_reference` | Data. Required for External at confirmation. Unique among confirmed External contracts per Company: use the transaction-safe pattern from `notary_reference_key` in PR #12 (hidden key with a unique index, set at submit). |
 | `signed_copy` | Relabel "Original signed contract". The rules from PR #12 stay (private, attached to this contract's field, readable, not shared). |
 | `contract_profile` | Mandatory only when `source = Generated from profile`. Optional for External, where it only pre-fills. |
-| Captured terms (External) | Editable while draft: `down_payment` (Currency, editable for External; read-only and profile-derived for Generated), `installments`, `due_day` (1–28), `grace_months` (0–12) as optional entries that drive the helper, and `terms_summary` (Text, "captured summary; the attached document governs", D6 interim). Section title: "Captured terms (summary of the attached contract)". |
+| Captured terms (External) | Editable while draft: `down_payment_mode` (Select `None` / `Included in schedule` / `Recorded separately`, D1); `down_payment` (Currency: entered when Recorded separately, read-only sum of `Down payment` rows when Included, 0 when None; read-only and profile-derived for Generated); `installments`, `due_day` (1–28) and `grace_months` (0–12) as optional entries that drive the helper; and `terms_summary` (Text, "captured summary; the attached document governs", D6 interim). Section title: "Captured terms (summary of the attached contract)". |
 | `Sidra Installment Line` | Add `row_type` Select `Installment` / `Down payment` / `Fee` (default `Installment`) and `description` (Data). Editable while the parent is a draft External contract; read-only otherwise. |
 | `terms_snapshot` | For External, built at **confirmation** from the captured fields (`source`, `external_reference`, down payment, terms summary and helper inputs) so INS-20 holds. For Generated, unchanged. |
-| Schedule totals (read-only) | `schedule_total`, `amount_due`, `schedule_difference`: shown on the form and recomputed in `validate`. |
+| Schedule totals (read-only) | `schedule_total` (all rows), `amount_due`, `schedule_difference`: shown on the form and recomputed in `validate`. |
+| `Sidra Contract Settings` (new Single, Sidra Sales) | `schedule_tolerance` (Currency, default 5.00, ≥ 0; D3). Write: Sidra General Manager and System Manager; read: Sidra sales roles. Changing it never affects confirmed contracts, because the tolerance used is stored in their snapshot. |
 
 ### 6.2 Behaviour
 
 1. **Generated path (unchanged):** every current rule and test stays as it is when `source = Generated from profile`. That covers profile snapshot, plan fields, schedule generated at submit, clause gate, legal hold, signing gate and revision (PR #12).
 2. **External draft:** `validate` must **not** clear or regenerate the schedule. It renumbers `seq` by row order and checks each row: due date set, amount > 0 (exact cents), `row_type` set. Duplicate due dates are **allowed**. Dates may be in the past (historical contracts). Rows don't need to be in date order, but the form sorts on request.
-3. **Fill schedule (helper):** a form button and whitelisted POST method, `propose_schedule(contract)`. It uses `services/schedule.generate_installments` with the captured agreed price, down payment, installments, due day and grace. If rows exist, the client asks "Replace the N existing rows?", and the server refuses to replace unless `replace=1` is passed. It never runs during `validate` or `submit`, and the rows stay editable afterwards. If the contract has a down payment, the helper adds a `Down payment` row dated on the signing date (the D1 interim still blocks confirmation).
-4. **Reconciliation on save:** `schedule_total` = sum of rows; `amount_due` = `agreed_price` (D1 and D2 interim); `schedule_difference` = `amount_due − schedule_total`. If the difference isn't zero, add a form indicator and a non-blocking `msgprint` on save.
+3. **Fill schedule (helper):** a form button and whitelisted POST method, `propose_schedule(contract)`. It uses `services/schedule.generate_installments` with the captured agreed price, down payment, installments, due day and grace. If rows exist, the client asks "Replace the N existing rows?", and the server refuses to replace unless `replace=1` is passed. It never runs during `validate` or `submit`, and the rows stay editable afterwards. With `Included in schedule`, it asks for the down-payment amount and adds a `Down payment` row dated on the signing date, then installments for the rest. With `Recorded separately`, it builds installments for agreed price minus down payment and adds no down-payment row.
+4. **Reconciliation on save** (D1, D2):
+   - `schedule_total` = sum of all rows (installments, down-payment rows and fee rows).
+   - `amount_due` = `agreed_price` when `down_payment_mode` is `None` or `Included in schedule`, and `agreed_price − down_payment` when it is `Recorded separately`.
+   - `schedule_difference` = `amount_due − schedule_total`.
+   - Row rules: `Recorded separately` refuses `Down payment` rows; `Included in schedule` needs at least one; `None` refuses them.
+   - If the difference isn't zero, add a form indicator and a non-blocking `msgprint` on save, saying whether it is within the limit.
 5. **Confirmation (submit) for External**, in this order:
-   - (a) legal hold if a held profile is linked (D4 interim);
+   - (a) legal hold if a held profile is linked (no seeded profile is held after D4, but the mechanism stays for future holds);
    - (b) signing gate from PR #12 (D5 interim);
    - (c) `external_reference` set and unique, using the transaction-safe key;
-   - (d) **D1/D2 interim:** refuse if `down_payment > 0` or any `Down payment` / `Fee` row exists, saying "awaiting decision D1/D2 (issue #13)";
-   - (e) refuse unless `schedule_difference == 0` exactly (D3 interim);
+   - (d) down-payment rules from step 4;
+   - (e) refuse if `abs(schedule_difference) > schedule_tolerance` (D3). Within the limit, require the confirming user to acknowledge it (a confirm dialog on the client; on the server, store the difference and the tolerance in the snapshot);
    - (f) at least one row;
    - (g) lock the units in name order and mark them Under Contract, converting a matching reservation (PR #12 lock order);
-   - (h) build `terms_snapshot`.
+   - (h) build `terms_snapshot`, including `down_payment_mode`, `down_payment`, `schedule_difference` and the `schedule_tolerance` used.
    
    No generated document, print, invoice, Sales Order or payment is created.
 6. **After confirmation:** the schedule, captured terms, attachment and snapshot are immutable (submitted document). Cancellation stays refused (P0).
@@ -121,7 +136,9 @@ Phase A below uses the **interim rules** in issue #13. They are the conservative
 
 ### 6.3 Migration
 
-- Patch `v0_3.set_contract_source`: every existing contract becomes `source = Generated from profile`, and its schedule rows become `row_type = Installment`. No amounts or dates change.
+- Patch `v0_3.set_contract_source`: every existing contract becomes `source = Generated from profile`, and its schedule rows become `row_type = Installment`. Existing contracts get `down_payment_mode` = `Recorded separately` when `down_payment > 0`, otherwise `None`. No amounts or dates change.
+- **D4, Profile B:** update the seed in `install.py` for new sites (`title_deadline_days` 20, `legal_hold` 0, `legal_hold_reason` cleared, note "Title deadline 20 days; the 14 in Contract B is a typo (D4, issue #13)"). Add patch `v0_3.resolve_profile_b_title_deadline`. It changes Profile B **only if it still has the seeded hold values** (`legal_hold` 1 and `title_deadline_days` 0), sets 20 days, lifts the hold, and adds a Comment on the profile citing issue #13. Otherwise it leaves the profile alone and logs that management has already changed it. Contracts already saved keep their own frozen terms (INS-20).
+- Create `Sidra Contract Settings` with `schedule_tolerance` 5.00 if it isn't set.
 - Back-fill `schedule_total`, `amount_due` and `schedule_difference` for existing contracts.
 - Run `migrate` at least twice in a row (the role-profile lesson from PR #12).
 
@@ -134,10 +151,14 @@ Phase A below uses the **interim rules** in issue #13. They are the conservative
   - Confirm as Sales Manager.
   - Assert no Print Format output, Sales Order, Sales Invoice, Payment Entry, Journal Entry or GL Entry was created; units Under Contract; snapshot contains the captured values.
 - `propose_schedule` on an empty table, on a filled table without `replace` (refused), and with `replace=1`. Proposed rows stay editable, and saving doesn't change them.
-- Difference ≠ 0: saving works and shows the difference; confirmation is refused. Exact cents (`0.01` off is refused).
-- Down payment > 0, or a `Fee` row: saves; confirmation refused with the D1/D2 message.
+- Difference above the limit: saving works and shows the difference; confirmation is refused.
+- D1: `Included in schedule` with a $3,000 `Down payment` row plus 24 × $250, against $9,000, confirms; `Recorded separately` with $3,000 and 24 × $250 rows confirms; mixing the modes (a down-payment row while `Recorded separately`) is refused.
+- D2: a `Fee` row counts toward the total, so a contract only reconciles when the fee is included in the agreed price.
+- D3: a difference of $4.00 confirms after acknowledgement and is stored in the snapshot; $5.00 confirms; $5.01 is refused; changing the setting afterwards doesn't change the confirmed snapshot.
+- D4: on a fresh install, Profile B has 20 days and no hold. The patch changes a seeded held Profile B, leaves a manually edited one alone, and is safe to run twice. A Contract B-type registration ($9,000, $3,000 down, 24 × $250 from the 10th, 3 months' grace) confirms.
 - External reference: required at confirmation; normalised; duplicate refused, including a two-connection concurrent test (pattern in `tests/test_concurrency.py`); drafts may share one.
-- Profile optional for External; Profile B linked → legal hold message.
+- Profile optional for External; a test profile created on legal hold still blocks confirmation (the mechanism remains).
+- Existing tests that relied on Profile B being on hold must switch to a test-created held profile. Their intent is kept, not deleted.
 - Generated path regression: the whole existing contract suite passes unchanged.
 - Rows read-only after confirmation; editing via `save` raises.
 - Migration patch: existing contracts become Generated, with rows typed `Installment`.
@@ -149,28 +170,31 @@ On a fresh site, following `docs/DEPLOYMENT_v0.1.md`, with fictional data (compa
 
 1. Register an external contract with the original PDF attached and an **irregular** schedule, including two rows on the same date. Save.
 2. Reopen it: screenshot of the captured terms, schedule (types, amounts, dates), totals and attachment.
-3. Show a contract where the schedule doesn't reconcile: the difference is shown and confirmation is refused.
-4. Confirm the reconciling contract as Sales Manager: screenshot of the submitted record. **Don't open Print** before or during confirmation.
-5. Query output (or a report screenshot) showing no Sales Order, Sales Invoice, Payment Entry, Journal Entry or GL Entry for the contract.
+3. Show a contract where the schedule doesn't reconcile: a difference over $5 is refused, and one within $5 is shown and confirmed after acknowledgement.
+4. Register a Contract B-type contract with the down payment recorded separately, and another with the down payment included in the schedule.
+5. Confirm the reconciling contract as Sales Manager: screenshot of the submitted record. **Don't open Print** before or during confirmation.
+6. Query output (or a report screenshot) showing no Sales Order, Sales Invoice, Payment Entry, Journal Entry or GL Entry for the contract.
 
 ### 6.6 Out of scope for Phase A
 
-Paid-to-date import (D8); structured penalty, default or title terms (D6); copying the schedule into an ERPNext Sales Order or Invoice Payment Schedule (P2, Finance gate); Profile B registration (D4); relaxing the signing gate (D5); any accounting; BuildSuite; a snapshot of unit details on the printed contract (known limitation from PR #12).
+Paid-to-date import (D8); structured penalty, default or title terms (D6); copying the schedule into an ERPNext Sales Order or Invoice Payment Schedule (P2, Finance gate); relaxing the signing gate (D5); any accounting; BuildSuite; a snapshot of unit details on the printed contract (known limitation from PR #12).
 
 ### 6.7 What Codex returns for review
 
 The PR diff, with requirement IDs (CC-01 to CC-10 plus spec IDs), migration notes and the decisions it relied on. The output of `ruff check`, the pure tests, `bench run-tests --app sidra_realestate`, `migrate` twice and `bench build`. The demonstration screenshots and the saved record (`frappe.get_doc(...).as_dict()` of the demo contract, without file contents). Any gap reported explicitly.
 
-## 7. Phase B (after issue #13 is answered)
+## 7. Phase B (after D5–D8 are answered)
 
-Apply D1–D3 to `amount_due` and to the rules for down-payment and fee rows. Apply D4 to registering B-type contracts, D5 to the signing gate for External contracts, D6 to structured terms, D7 to approval wording and audit, and D8 to the import design. Claude will turn the answers into a short Phase B brief.
+Apply D5 to the signing gate for External contracts, D6 to structured terms, D7 to approval wording and audit, and D8 to the import design. D1–D4 are in Phase A. Claude will turn the answers into a short Phase B brief.
 
 ## 8. Review checklist (Claude)
 
 - Does every acceptance check 1–6 pass on the **saved and reopened** record, not only in code?
 - Do the schedule rows survive save, reopen, propose without replace, and confirm unchanged?
 - Is there no implicit regeneration anywhere (`validate`, `before_submit`, client scripts)?
-- Can D1/D2 contracts be saved but not confirmed? Is the difference shown?
+- Do both down-payment modes reconcile correctly, and is mixing them refused? Do fee rows count?
+- Is the $5.00 limit applied as an absolute value, stored in the snapshot, and unaffected by later setting changes?
+- Did the Profile B patch change only the seeded held profile? Are existing contracts' frozen terms untouched?
 - Does the Generated path still pass its whole suite?
 - Do the external-reference uniqueness and lock order hold under two connections?
 - Is nothing created in Accounts? Is there no print or generation on the registration path?
