@@ -4,6 +4,11 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Changed (decision D4, issue #13: code)
+- Profile B is seeded with a 20-day title deadline and no legal hold (`install.py`); the 14 days in Contract B is a typo
+- Patch `v0_3.resolve_profile_b_title_deadline`: on existing sites, changes Profile B only while it still has the seeded hold values (legal hold on, deadline 0), sets 20 days, lifts the hold and adds a Comment citing issue #13; a profile already edited by management is left alone. Saved contracts keep their frozen terms (INS-20)
+- Tests: the legal-hold mechanism is now tested on a held copy of Profile B (`tests.helpers.make_held_profile`); new tests for the D4 seed, the patch (seeded, edited, run twice) and a Profile B contract submitting with the AT-03 schedule
+
 ### Changed (decision D4, issue #13)
 - `CLAUDE.md` rule 3 and `docs/SREMS-SRS_v2.0-DRAFT.md` (§1.4, §3.3 Profile B, §9 item 1) record that Contract B's title deadline is 20 days and that Profile B's legal hold is lifted only through the D4 seed / patch; rule 3 also records D7 for registered contracts
 - Roles: Claude Code implements, including the contract capture brief; the Codex role and Task 0 in `docs/CONTRACT-CAPTURE_v0.3.md` are superseded (Mohamoud, 7 Nov 2026) Docs only: the seed and patch in `docs/CONTRACT-CAPTURE_v0.3.md` are not part of this change

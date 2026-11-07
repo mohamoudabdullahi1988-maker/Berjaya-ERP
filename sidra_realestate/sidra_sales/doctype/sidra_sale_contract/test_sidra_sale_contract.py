@@ -21,6 +21,7 @@ from sidra_realestate.tests.helpers import (
 	as_user,
 	attach_signed_copy,
 	ensure_base_records,
+	make_held_profile,
 	make_scheme,
 	make_unit,
 	signing_values,
@@ -90,10 +91,22 @@ class TestSidraSaleContract(IntegrationTestCase):
 		self.assertEqual(getdate(doc.schedule[0].due_date), date(2025, 9, 5))
 		self.assertEqual(getdate(doc.schedule[-1].due_date), date(2026, 10, 5))
 
-	# ------------------------------------------------------------ Profile B legal hold
-	def test_profile_b_draft_allowed_but_submit_blocked(self):
+	# ------------------------------------------------------------ Profile B (D4) and legal hold
+	def test_profile_b_submits_after_d4(self):
+		"""D4 (issue #13): Profile B has no hold; AT-03 terms, 24 x $250 from the 10th after 3 months' grace."""
 		unit = self.unit()
 		doc = self.contract([(unit, 9000)], profile="Profile B", signed_on="2026-01-15")
+		doc.submit()
+		self.assertEqual((doc.down_payment, doc.balance, doc.installments, doc.grace_months), (3000, 6000, 24, 3))
+		self.assertEqual(json.loads(doc.terms_snapshot)["title_deadline_days"], 20)
+		self.assertEqual([row.amount for row in doc.schedule], [250] * 24)
+		self.assertEqual(getdate(doc.schedule[0].due_date), date(2026, 4, 10))
+		self.assertEqual(getdate(doc.schedule[-1].due_date), date(2028, 3, 10))
+		self.assertEqual(frappe.db.get_value("Sidra Unit", unit, "status"), "Under Contract")
+
+	def test_held_profile_draft_allowed_but_submit_blocked(self):
+		unit = self.unit()
+		doc = self.contract([(unit, 9000)], profile=make_held_profile().name, signed_on="2026-01-15")
 		self.assertEqual((doc.down_payment, doc.balance, doc.installments, doc.grace_months), (3000, 6000, 24, 3))
 
 		with self.assertRaises(frappe.ValidationError) as caught:

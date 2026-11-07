@@ -218,3 +218,16 @@ def signing_values():
 			{"role": "Witness", "full_name": "_Test Witness Two", "phone": "+252 63 000 0004"},
 		],
 	}
+
+
+def make_held_profile():
+	"""A copy of Profile B that is on legal hold, to test the hold mechanism.
+
+	Profile B itself has no hold since decision D4 (issue #13); the mechanism stays (SRS v2.0 §3.3).
+	"""
+	doc = frappe.copy_doc(frappe.get_doc("Sidra Contract Profile", "Profile B"))
+	doc.profile_name = unique("_Test Held Profile")
+	doc.is_default = 0
+	doc.legal_hold = 1
+	doc.legal_hold_reason = "_Test legal hold"
+	return doc.insert(ignore_permissions=True)

@@ -6,8 +6,8 @@
 
 Refuses to run unless the site sets `sidra_allow_demo_data`, so it cannot touch production by
 accident. Every name is synthetic. The one demo clause is marked as a placeholder: it is not
-Sidra legal wording (issue #8). Profile A and Profile B are used as they are; Profile B stays on
-legal hold and its demo contract stays a draft. Nothing is posted to the ledger.
+Sidra legal wording (issue #8). Profile A and Profile B are used as they are; Profile B's demo
+contract stays a draft. Nothing is posted to the ledger.
 """
 
 import os

@@ -7,11 +7,12 @@ signed contract keeps its own frozen copy (INS-20).
 
 import frappe
 
-PROFILE_B_HOLD_REASON = (
-	"SRS v2.0 §1.4 and §9.1: Contract B gives the title deadline as 20 days in clause 4 and "
-	"14 days in clause 6. Contracts on this profile can be drafted but not submitted until "
-	"Sidra resolves the conflict and sets the deadline."
-)
+# Decision D4 (Mohamoud, 6 Nov 2026, issue #13; docs/CONTRACT-CAPTURE_v0.3.md §6.3): Contract B's
+# title deadline is 20 days; the 14 days in its clause 6 is a typo. This resolves SRS v2.0 §1.4 and
+# §9.1, so Profile B is seeded without a legal hold. Existing sites: patch
+# v0_3.resolve_profile_b_title_deadline.
+PROFILE_B_TITLE_DEADLINE_DAYS = 20
+PROFILE_B_TITLE_DEADLINE_NOTE = "Title deadline 20 days; the 14 in Contract B is a typo (D4, issue #13)."
 
 PROFILES = [
 	{
@@ -41,8 +42,7 @@ PROFILES = [
 		"profile_name": "Profile B",
 		"is_default": 0,
 		"active": 1,
-		"legal_hold": 1,
-		"legal_hold_reason": PROFILE_B_HOLD_REASON,
+		"legal_hold": 0,
 		"installments": 24,
 		"due_day": 10,
 		"grace_months": 3,
@@ -55,8 +55,8 @@ PROFILES = [
 		"notice_days": 15,
 		"default_trigger_missed": 0,
 		"refund_retention_type": "None",
-		"title_deadline_days": 0,
-		"title_deadline_note": "Unresolved: 20 days (clause 4) or 14 days (clause 6).",
+		"title_deadline_days": PROFILE_B_TITLE_DEADLINE_DAYS,
+		"title_deadline_note": PROFILE_B_TITLE_DEADLINE_NOTE,
 		"title_penalty_type": "Per Month",
 		"title_penalty_amount": 220,
 		"title_refund_after_days": 90,

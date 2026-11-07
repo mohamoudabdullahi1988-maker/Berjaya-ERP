@@ -15,6 +15,7 @@ from sidra_realestate.tests.helpers import (
 	as_user,
 	attach_signed_copy,
 	ensure_base_records,
+	make_held_profile,
 	make_scheme,
 	make_unit,
 	private_file,
@@ -130,7 +131,7 @@ class TestContractSigning(IntegrationTestCase):
 		self.assert_submit_refused(second, first.name)
 
 	def test_legal_hold_is_reported_before_missing_signatures(self):
-		doc = self.contract(profile="Profile B", attach=False, parties=[])
+		doc = self.contract(profile=make_held_profile().name, attach=False, parties=[])
 		self.assert_submit_refused(doc, "legal hold")
 
 	def test_cash_contract_has_the_same_gate(self):
