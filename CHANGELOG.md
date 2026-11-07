@@ -4,6 +4,9 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Changed (docs)
+- `docs/DEPLOYMENT_v0.1.md`: test VPS status, lessons from the first deployment (IPv6, private home folders and nginx, default site, tmux, deploy key), D4 and contract capture patches, Module Profile for staff
+
 ### Added (import capability, decision G5)
 - **Sidra Contract Import** (Real Estate → Contract Import): upload a CSV or XLSX of live contracts, one row per schedule line; **Validate** runs every contract check and keeps nothing; **Import** creates draft registered contracts, all or nothing; references already registered for the Company are skipped; optional creation of missing customers. Template: `public/templates/sidra_contract_import_template.csv`. Payments to date are not imported (D8)
 - `services/contract_import.py` (pure reader: DD/MM/YYYY and ISO dates, row-numbered errors) with pure tests
