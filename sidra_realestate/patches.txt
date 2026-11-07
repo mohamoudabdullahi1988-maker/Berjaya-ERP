@@ -6,3 +6,4 @@
 sidra_realestate.patches.v0_2.create_initial_unit_prices
 sidra_realestate.patches.v0_2.set_notary_reference_keys
 sidra_realestate.patches.v0_2.set_document_currency
+sidra_realestate.patches.v0_3.resolve_profile_b_title_deadline
