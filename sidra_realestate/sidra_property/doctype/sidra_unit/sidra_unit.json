@@ -17,6 +17,7 @@
   "current_contract",
   "cash_price",
   "title_deed_ref",
+  "sidra_location",
   "section_plot",
   "plot_fraction",
   "dimensions",
@@ -123,6 +124,12 @@
    "fieldname": "title_deed_ref",
    "fieldtype": "Data",
    "label": "Title Deed Reference"
+  },
+  {
+   "fieldname": "sidra_location",
+   "fieldtype": "Geolocation",
+   "label": "Plot / Site Location",
+   "description": "Shared location pin (one point, WGS84). Not a surveyed boundary; existing GPS text is kept."
   },
   {
    "fieldname": "section_plot",
@@ -239,7 +246,7 @@
    "group": "Price"
   }
  ],
- "modified": "2026-11-06 16:00:00.000000",
+ "modified": "2026-11-07 15:30:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Property",
  "name": "Sidra Unit",
