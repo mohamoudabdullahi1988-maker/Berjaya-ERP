@@ -308,8 +308,12 @@ def _ensure_users():
 	for email, profile in USERS.items():
 		if frappe.db.exists("User", email):
 			user = frappe.get_doc("User", email)
-			if profile and profile not in [row.role_profile for row in user.role_profiles]:
-				user.append("role_profiles", {"role_profile": profile})
+			if profile and (
+				profile not in [row.role_profile for row in user.role_profiles] or not user.module_profile
+			):
+				if profile not in [row.role_profile for row in user.role_profiles]:
+					user.append("role_profiles", {"role_profile": profile})
+				user.module_profile = "Sidra Staff"
 				user.save(ignore_permissions=True)
 			continue
 		user = frappe.get_doc(
@@ -324,6 +328,7 @@ def _ensure_users():
 		)
 		if profile:
 			user.append("role_profiles", {"role_profile": profile})
+			user.module_profile = "Sidra Staff"  # hides unused ERPNext modules (branding.py)
 		user.insert(ignore_permissions=True)
 
 

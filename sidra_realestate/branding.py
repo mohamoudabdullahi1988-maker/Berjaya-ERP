@@ -1,0 +1,82 @@
+"""Sidra Homes branding and navigation (white-label; no Frappe or ERPNext core edits).
+
+- Logo, favicon and system name: Navbar Settings, Website Settings and System Settings get the
+  Sidra Homes name and logo on install and migrate. A value an administrator has changed to
+  something other than a Frappe / ERPNext default is left alone.
+- Navigation: the app ships a Dock (`dock/`) and two Sidebars (`sidebar/`): Real Estate and
+  Construction. ERPNext modules Sidra does not use are hidden for staff through the Module Profile
+  "Sidra Staff" (hidden, not deleted; administrators still see them).
+"""
+
+import frappe
+
+BRAND_NAME = "Sidra Homes"
+LOGO = "/assets/sidra_realestate/images/sidra-logo.png"
+ICON = "/assets/sidra_realestate/images/favicon.png"
+
+MODULE_PROFILE = "Sidra Staff"
+# Decision of 7 Nov 2026 (Mohamoud): hidden for Sidra staff. Accounts, Selling and CRM stay.
+HIDDEN_MODULES = (
+	"Manufacturing",
+	"Stock",
+	"Projects",
+	"Buying",
+	"Quality Management",
+	"Support",
+	"Assets",
+	"Subcontracting",
+	"Maintenance",
+)
+
+_DEFAULT_MARKERS = ("frappe", "erpnext")
+
+
+def _replaceable(value) -> bool:
+	return not value or any(marker in str(value).lower() for marker in _DEFAULT_MARKERS)
+
+
+def _set_single(doctype, values):
+	meta = frappe.get_meta(doctype)
+	for field, value in values.items():
+		if not meta.has_field(field):
+			continue
+		if _replaceable(frappe.db.get_single_value(doctype, field)):
+			frappe.db.set_single_value(doctype, field, value)
+
+
+def apply_branding():
+	_set_single("System Settings", {"app_name": BRAND_NAME})
+	_set_single("Navbar Settings", {"app_logo": LOGO})
+	_set_single(
+		"Website Settings",
+		{"app_name": BRAND_NAME, "app_logo": LOGO, "favicon": ICON, "footer_powered": BRAND_NAME},
+	)
+	ensure_module_profile()
+	frappe.clear_cache()
+
+
+def ensure_module_profile():
+	modules = [m for m in HIDDEN_MODULES if frappe.db.exists("Module Def", m)]
+	if frappe.db.exists("Module Profile", MODULE_PROFILE):
+		profile = frappe.get_doc("Module Profile", MODULE_PROFILE)
+		present = {row.module for row in profile.block_modules}
+		missing = [m for m in modules if m not in present]
+		if not missing:
+			return
+		for module in missing:
+			profile.append("block_modules", {"module": module})
+		profile.save(ignore_permissions=True)
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Module Profile",
+			"module_profile_name": MODULE_PROFILE,
+			"block_modules": [{"module": m} for m in modules],
+		}
+	).insert(ignore_permissions=True)
+
+
+def has_app_permission() -> bool:
+	"""Show the Sidra icon to Sidra staff and system managers."""
+	roles = set(frappe.get_roles())
+	return "System Manager" in roles or any(role.startswith("Sidra ") for role in roles)

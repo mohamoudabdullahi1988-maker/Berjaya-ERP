@@ -1,5 +1,6 @@
 app_name = "sidra_realestate"
-app_title = "Sidra Real Estate"
+app_title = "Sidra Homes"
+app_logo_url = "/assets/sidra_realestate/images/sidra-logo.png"
 app_publisher = "Mohamoud Abdullahi Sheikh"
 app_description = (
 	"Sidra Real Estate on ERPNext: land and house sales, Murabaha / installment "
@@ -18,6 +19,23 @@ required_apps = ["erpnext"]
 fixtures = [
 	{"dt": "Role", "filters": [["role_name", "like", "Sidra %"]]},
 ]
+
+# White-label (sidra_realestate/branding.py): the Sidra Homes icon on the apps screen and rail,
+# with the Real Estate and Construction sections from dock/ and sidebar/.
+add_to_apps_screen = [
+	{
+		"name": app_name,
+		"logo": "/assets/sidra_realestate/images/sidra-icon.png",
+		"title": "Sidra Homes",
+		"has_permission": "sidra_realestate.branding.has_app_permission",
+		"sequence_id": 0,
+	}
+]
+
+website_context = {
+	"favicon": "/assets/sidra_realestate/images/favicon.png",
+	"splash_image": "/assets/sidra_realestate/images/sidra-logo.png",
+}
 
 after_install = "sidra_realestate.install.after_install"
 after_migrate = "sidra_realestate.install.after_migrate"
