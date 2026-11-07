@@ -23,7 +23,7 @@ from sidra_realestate.tests.helpers import (
 	unique,
 )
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Sidra Unit", "Customer", "Company", "Sidra Contract Profile"]
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Sidra Unit", "Customer", "Company", "Sidra Contract Profile", "User"]
 
 
 class TestContractSigning(IntegrationTestCase):
