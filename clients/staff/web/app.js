@@ -1,9 +1,10 @@
 import {coordinates,mapLinks,money,compactMoney,date,recordPath,requireDashboard,request} from './core.js';
+import {renderExecutive} from './executive.js';
 const $ = id => document.getElementById(id);
 const preview = new URLSearchParams(location.search).get('demo') === '1';
 const config = window.SIDRA_CONFIG;
-let data, active = 'overview', selectedLocation, aborter;
-const names = {overview:'Overview',sales:'Sales pipeline',payments:'Payments',jobs:'Construction jobs',contracts:'Contracts',schedule:'Installment schedule',locations:'Plots & site locations'};
+let data, active = 'overview', selectedLocation, aborter, loadGeneration = 0;
+const names = {overview:'Executive overview',sales:'Sales pipeline',payments:'Payments',jobs:'Construction jobs',contracts:'Contracts',schedule:'Installment schedule',locations:'Plots & site locations'};
 function el(tag, attrs={}, children=[]) {
  const n=document.createElement(tag);
  for(const [k,v] of Object.entries(attrs)) {
@@ -22,9 +23,9 @@ function go(view) {
  for(const s of document.querySelectorAll('.view'))s.hidden=s.id!=='view-'+view;
  for(const b of document.querySelectorAll('.nav'))b.classList.toggle('active',b.dataset.view===view);
  $('breadcrumb').replaceChildren('Workspace ',el('span',{},'/'),names[view]);
- $('page-title').textContent=({overview:'A clear view of every property.',sales:'From first enquiry to agreement.',payments:'Know what’s paid. See what’s due.',jobs:'Every milestone in view.',contracts:'Agreements, kept together.',schedule:'The dates you agreed.',locations:'A place for every property.'})[view];
- $('eyebrow').textContent=view==='overview'?'YOUR WORKSPACE, AT A GLANCE':names[view].toUpperCase();
- $('subtitle').textContent=view==='locations'?'One saved location, shared across web, Android and Mac.':'Server-controlled information for your permitted company and reporting period.';
+ $('page-title').textContent=({overview:'Sales. Cash. Delivery.',sales:'From first enquiry to agreement.',payments:'Know what’s paid. See what’s due.',jobs:'Every milestone in view.',contracts:'Agreements, kept together.',schedule:'The dates you agreed.',locations:'A place for every property.'})[view];
+ $('eyebrow').textContent=view==='overview'?'THE MANAGEMENT VIEW':names[view].toUpperCase();
+ $('subtitle').textContent=view==='overview'?'Performance, exposure and the decisions that need you.':view==='locations'?'One saved location, shared across web, Android and Mac.':'Server-controlled information for your permitted company and reporting period.';
 }
 for(const b of document.querySelectorAll('[data-view]'))b.addEventListener('click',()=>go(b.dataset.view));
 function arrow() {const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('width','15');s.setAttribute('height','15');s.setAttribute('aria-hidden','true');const p=document.createElementNS(s.namespaceURI,'path');p.setAttribute('d','M6 18 18 6M6 6h12v12');p.setAttribute('fill','none');p.setAttribute('stroke','currentColor');p.setAttribute('stroke-width','1.4');s.append(p);return s;}
@@ -45,13 +46,11 @@ function render() {
  $('role').textContent=data.scope.role_label||'Staff workspace';
  $('updated').textContent='As of '+new Intl.DateTimeFormat('en-GB',{hour:'2-digit',minute:'2-digit',timeZone:'Africa/Mogadishu'}).format(new Date(data.as_of))+' EAT';
  $('company').replaceChildren(...data.companies.map(c=>el('option',{value:c.id,selected:c.id===data.scope.company_id},c.name)));
- $('metrics').replaceChildren(metric('New leads',data.sales?.available?data.summary.new_leads:'Not connected','Selected reporting period',true,!data.sales?.available),metric('Confirmed contracts',data.summary.confirmed_contracts,'Commercial agreements · not revenue'),financialMetric('Payments received',data.payments,'received','Posted receipts in the selected period'),financialMetric('Overdue unpaid',data.payments,'overdue','Based on posted payment allocation'));
- const max=Math.max(1,...data.schedule.buckets.map(b=>Number(b.amount)));
- $('chart').replaceChildren(...data.schedule.buckets.map(b=>el('div',{class:'bar-column'},[el('div',{class:'bar',style:`height:${Math.max(2,Number(b.amount)/max*145)}px`},el('small',{class:'bar-amount'},money(b.amount,data.currency))),el('span',{},b.label)])));
- const colors=['#b9c9a9','#e0c899','#365f46','#d8dfd4'];
- const counts=data.property.counts;
- $('availability').replaceChildren(el('div',{class:'inventory-total'},[data.property.total??'—',el('small',{},'registered units')]),el('div',{class:'inventory-track'},counts.map((r,i)=>el('span',{style:`flex:${Math.max(0,Number(r.count))};background:${colors[i%colors.length]}`,'aria-label':r.status+': '+r.count}))),...counts.map((r,i)=>el('div',{class:'inventory-row'},[el('span',{},[el('i',{class:'dot',style:'background:'+colors[i%colors.length]}),r.status]),el('b',{},r.count)])));
- $('recent-contracts').replaceChildren(contracts(data.contracts.slice(0,5)));renderContracts();
+ const projects = data.projects || [];
+ $('project').replaceChildren(el('option',{value:''},'All permitted projects'),...projects.map(p=>el('option',{value:p.id,selected:p.id===data.scope.project_id},p.name)));
+ $('project').disabled=!projects.length;
+ renderExecutive(data,{el,empty,preview});
+ renderContracts();
  $('upcoming').replaceChildren(table(['Contract / buyer','Due date','Type','Agreed amount'],data.schedule.upcoming.map(r=>[el('div',{},[record('Sidra Sale Contract',r.contract_id,r.external_reference||r.contract_id),el('small',{},r.customer_display)]),date(r.due_date),r.row_type,money(r.amount,r.currency)])));
  $('sales-metrics').replaceChildren(metric('New leads',data.sales?.available?data.summary.new_leads:'Not connected','Selected period'),metric('Qualified opportunities',data.sales?.available?data.sales.qualified_opportunities:'—','Server qualification status'),metric('Lead conversion',data.sales?.available?`${data.sales.conversion_rate}%`:'—','Server-linked lead cohort'),metric('Agreed contract value',compactMoney(data.summary.agreed_contract_value,data.currency),'Commercial value · not recognized revenue',true));
  if(data.sales?.available)pipeline('pipeline',data.sales.pipeline);else $('pipeline').replaceChildren(empty(data.sales?.reason||'Lead integration is not connected yet.'));
@@ -101,18 +100,27 @@ function showLocation(item) {
  content.push(form);box.replaceChildren(...content);
 }
 async function load() {
- const company=$('company').value==='Loading company…'?null:$('company').value;
- aborter?.abort();aborter=new AbortController();$('refresh').disabled=true;message('');data=null;
- for(const id of ['recent-contracts','contracts-table','upcoming','locations','chart','availability','sales-metrics','pipeline','payment-metrics','aging','job-metrics','jobs-table']) $(id).replaceChildren();
- $('location-detail').replaceChildren(empty('Loading the selected company…'));
- $('metrics').replaceChildren(...['New leads','Confirmed contracts','Payments received','Overdue unpaid'].map(label=>metric(label,'—','Loading server data')));
- try {let result;if(preview){result=structuredClone((await import('./demo.js')).default);$('demo-banner').hidden=false;}else result=await request(config.dashboardMethod,{period:$('period').value,company},{signal:aborter.signal});
+ const generation=++loadGeneration;
+ const company=$('company').value||null, project=$('project').value||null;
+ aborter?.abort();aborter=new AbortController();$('refresh').disabled=true;$('project').disabled=true;message('');data=null;
+ $('connection').textContent='Connecting to server';$('updated').textContent='Awaiting server data';
+ for(const id of ['contracts-table','upcoming','locations','sales-metrics','pipeline','payment-metrics','aging','job-metrics','jobs-table']) $(id).replaceChildren();
+ $('location-detail').replaceChildren(empty('Loading the selected scope…'));
+ renderExecutive(null,{el,empty,preview});
+ try {
+  let result;
+  if(preview){result=structuredClone((await import('./demo.js')).default);result.scope.project_id=project;$('demo-banner').hidden=false;}
+  else result=await request(config.dashboardMethod,{period:$('period').value,company,project},{signal:aborter.signal});
+  if(generation!==loadGeneration)return;
   data=requireDashboard(result);selectedLocation=null;$('location-detail').replaceChildren(empty('Select a plot or construction site to view its saved location.'));render();
- }catch(error){if(error.name==='AbortError')return;$('connection').textContent='Server not connected';message(error.message+' Demo preview is available separately at ?demo=1.');if(!data)$('metrics').replaceChildren(...['New leads','Confirmed contracts','Payments received','Overdue unpaid'].map(label=>metric(label,'—','Server data unavailable')));}
- finally{$('refresh').disabled=false;}
+ }catch(error){
+  if(error.name==='AbortError'||generation!==loadGeneration)return;
+  data=null;$('connection').textContent='Server not connected';message(error.message+' Demo preview is available separately at ?demo=1.');
+  renderExecutive(null,{el,empty,preview});
+ }finally{if(generation===loadGeneration)$('refresh').disabled=false;}
 }
 $('signout').addEventListener('click',async()=>{try{await request('logout',{}, {write:true});location.assign('/login');}catch(error){message(error.message);}});
 $('period').addEventListener('change',()=>{load();if(preview)message('Preview uses one fixed fictional reporting period. The live server applies the selected period.');});
-$('refresh').addEventListener('click',load);$('company').addEventListener('change',load);$('contract-search').addEventListener('input',renderContracts);$('location-search').addEventListener('input',renderLocations);$('location-kind').addEventListener('change',renderLocations);
+$('refresh').addEventListener('click',load);$('company').addEventListener('change',()=>{$('project').value='';load();});$('project').addEventListener('change',load);$('contract-search').addEventListener('input',renderContracts);$('location-search').addEventListener('input',renderLocations);$('location-kind').addEventListener('change',renderLocations);
 $('today').textContent=new Intl.DateTimeFormat('en-GB',{day:'numeric',month:'long',year:'numeric',timeZone:'Africa/Mogadishu'}).format(new Date());
 load();

@@ -1,6 +1,7 @@
 // Fictional preview only. Never used as a live-network fallback.
+import executive from './executive-demo.js';
 export default {
- schema_version:1,as_of:'2026-11-07T09:30:00Z',scope:{company_id:'demo',company_name:'Sidra Demo Homes',role_label:'Sales management'},companies:[{id:'demo',name:'Sidra Demo Homes'}],currency:'USD',
+ schema_version:1,as_of:'2026-11-07T09:30:00Z',scope:{company_id:'demo',company_name:'Sidra Demo Homes',role_label:'General management',project_id:null},companies:[{id:'demo',name:'Sidra Demo Homes'}],projects:[{id:'DEMO-PROJECT-001',name:'Demo East Masalaha'}],currency:'USD',executive,
  summary:{new_leads:18,units_available:42,active_reservations:8,confirmed_contracts:26,agreed_contract_value:'286000'},
  sales:{available:true,qualified_opportunities:11,conversion_rate:38.9,pipeline:[{label:'New leads',value:18},{label:'Qualified opportunities',value:11},{label:'Reservations',value:8},{label:'Confirmed contracts',value:7}]},
  payments:{available:true,received:'38500',overdue:'9250',collection_rate:82,overdue_contracts:6,aging:[{label:'1–30 days',amount:'4250'},{label:'31–60 days',amount:'3000'},{label:'61–90 days',amount:'1500'},{label:'90+ days',amount:'500'}]},
