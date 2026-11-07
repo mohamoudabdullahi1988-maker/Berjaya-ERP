@@ -12,7 +12,9 @@
 
 **Confirmed direction (handover):** the main purpose is to **register contracts prepared outside the system** and capture their variables, individual terms and installment schedules. Generating a contract is an optional extra and must not be a prerequisite for registration.
 
-**Roles (handover):** Codex implements code and runs the tests. Claude analyses requirements and reviews diffs, tests and demonstrations. Mohamoud / Sidra management approve.
+> **Roles note (7 Nov 2026, Mohamoud):** Claude Code implements this brief, including D4; where the text below says Codex, read Claude Code. Task 0's role change is withdrawn; its legal-hold wording is recorded in `CLAUDE.md` rule 3 (PR #15).
+
+**Roles (handover, superseded on 7 Nov 2026 by the note above):** Codex implements code and runs the tests. Claude analyses requirements and reviews diffs, tests and demonstrations. Mohamoud / Sidra management approve.
 
 ## 1. Baseline
 
