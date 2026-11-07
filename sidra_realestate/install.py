@@ -7,6 +7,10 @@ signed contract keeps its own frozen copy (INS-20).
 
 import frappe
 
+from sidra_realestate.sidra_sales.doctype.sidra_contract_settings.sidra_contract_settings import (
+	ensure_contract_settings,
+)
+
 # Decision D4 (Mohamoud, 6 Nov 2026, issue #13; docs/CONTRACT-CAPTURE_v0.3.md §6.3): Contract B's
 # title deadline is 20 days; the 14 days in its clause 6 is a typo. This resolves SRS v2.0 §1.4 and
 # §9.1, so Profile B is seeded without a legal hold. Existing sites: patch
@@ -93,12 +97,14 @@ def after_install():
 	ensure_contract_profiles()
 	ensure_contract_clauses()
 	ensure_role_profiles()
+	ensure_contract_settings()
 
 
 def after_migrate():
 	ensure_contract_profiles()
 	ensure_contract_clauses()
 	ensure_role_profiles()
+	ensure_contract_settings()
 
 
 def ensure_role_profiles():

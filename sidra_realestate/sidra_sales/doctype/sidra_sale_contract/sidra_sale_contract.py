@@ -24,6 +24,19 @@ Review fixes (develop @ cbce4f3):
   later unblocks an existing draft, but only if its wording is unchanged since the
   draft froze it. Changed wording needs a revised draft (`revise_draft`). The signed
   snapshot never changes. Policy in docs/CONTRACT-REVISION_v0.1.md, issue #11.
+
+Contract capture (docs/CONTRACT-CAPTURE_v0.3.md, decisions D1-D7 in issue #13; CC-01 to CC-10):
+- `source` "External (registered)" (the default) registers a contract prepared outside the
+  system: its own terms and its actual schedule are entered, a profile only pre-fills, and the
+  attached original governs. "Generated from profile" keeps every rule above unchanged.
+- External drafts keep their schedule rows: nothing regenerates them. `propose_schedule` fills
+  rows only when asked, and replaces existing rows only with `replace=1`.
+- The schedule reconciles with the amount due (D1 down payment mode, D2 fee rows count); a
+  difference up to the Contract Settings tolerance (D3, $5.00) can be confirmed and is stored.
+- Confirmation of an External contract needs the original signed contract and a unique
+  external reference; signing data is validated only where present (D5).
+- Penalty, default and title terms are recorded only, never applied (D6). Confirmation
+  records who approved the terms and when (D7) in the contract and in its snapshot.
 """
 
 import json
@@ -32,12 +45,26 @@ import re
 import frappe
 from frappe import _
 from frappe.model.document import Document
-from frappe.utils import flt, getdate
+from frappe.utils import cint, flt, getdate, now_datetime
 
 from sidra_realestate.services.schedule import ScheduleError, down_payment_amount, generate_installments
 from sidra_realestate.services.units import UnitNotAvailable, lock_units, set_unit_status
+from sidra_realestate.sidra_installments.doctype.sidra_contract_profile.sidra_contract_profile import (
+	PENALTY_AND_TITLE_FIELDS,
+	check_range,
+	validate_penalty_and_title_terms,
+)
+from sidra_realestate.sidra_sales.doctype.sidra_contract_settings.sidra_contract_settings import (
+	schedule_tolerance,
+)
 
 NOTARY_REFERENCE = re.compile(r"^IPN/HL/\d{3}/\d{4}$")  # SAL-19
+
+EXTERNAL = "External (registered)"
+GENERATED = "Generated from profile"
+ROW_TYPES = ("Installment", "Down payment", "Fee")
+INCLUDED = "Included in schedule"
+SEPARATE = "Recorded separately"
 
 
 class SidraSaleContract(Document):
@@ -48,13 +75,25 @@ class SidraSaleContract(Document):
 		self.validate_notary_reference()
 		self.validate_parties()
 		if self.contract_type == "Installment":
-			self.freeze_terms()
-			self.set_plan_from_terms()
+			self.source = self.source or EXTERNAL
+			if self.is_external():
+				self.validate_external_draft()
+			else:
+				self.freeze_terms()
+				self.set_plan_from_terms()
+				self.set_captured_terms_from_snapshot()
 		else:
 			self.validate_cash_contract()
 		if self.docstatus == 0:
-			self.set("schedule", [])  # generated at submit only
+			if not self.is_external():
+				self.set("schedule", [])  # generated at submit only
 			self.notary_reference_key = None  # set at submit only
+			self.external_reference_key = None  # set at confirmation only
+		if self.is_external():
+			self.set_schedule_totals(notify=self.docstatus == 0)
+
+	def is_external(self):
+		return self.contract_type == "Installment" and self.source == EXTERNAL
 
 	# ------------------------------------------------------------ units and price
 	def validate_units(self):
@@ -71,7 +110,9 @@ class SidraSaleContract(Document):
 			if not unit:
 				frappe.throw(_("Unknown unit {0}").format(row.unit), frappe.DoesNotExistError)
 			if unit.company != self.company:
-				frappe.throw(_("Unit {0} belongs to {1}, not {2}").format(row.unit, unit.company, self.company))
+				frappe.throw(
+					_("Unit {0} belongs to {1}, not {2}").format(row.unit, unit.company, self.company)
+				)
 			if self.docstatus == 0:
 				self.check_unit_available(row.unit, unit)
 
@@ -94,7 +135,9 @@ class SidraSaleContract(Document):
 		total = flt(sum(flt(row.allocated_price, 2) for row in self.units), 2)
 		if total != flt(self.agreed_price, 2):
 			frappe.throw(
-				_("Unit prices add up to {0} but the agreed price is {1}").format(total, flt(self.agreed_price, 2))
+				_("Unit prices add up to {0} but the agreed price is {1}").format(
+					total, flt(self.agreed_price, 2)
+				)
 			)
 
 	def validate_notary_reference(self):
@@ -157,9 +200,185 @@ class SidraSaleContract(Document):
 		self.due_day = terms["due_day"]
 		self.grace_months = terms["grace_months"]
 
+	def set_captured_terms_from_snapshot(self):
+		"""Generated contracts show the profile's frozen penalty and title terms (D6), read-only."""
+		terms = self.terms()
+		for field in PENALTY_AND_TITLE_FIELDS:
+			self.set(field, terms.get(field))
+		self.down_payment_mode = SEPARATE if flt(self.down_payment) else "None"
+
+	# ------------------------------------------------------------ external (registered) contracts
+	def validate_external_draft(self):
+		"""CC-01 to CC-07: captured terms and the actual schedule; nothing is regenerated."""
+		self.terms_snapshot = None if self.docstatus == 0 else self.terms_snapshot
+		self.set("clauses", [])  # the attached original governs; profile clauses are not frozen
+		self.prefill_from_profile()
+		self.external_reference = normalize_external_reference(self.external_reference)
+		check_range(self, "installments", 0, 60)
+		check_range(self, "due_day", 0, 28)
+		check_range(self, "grace_months", 0, 12)
+		validate_penalty_and_title_terms(self)
+		self.validate_schedule_rows()
+		self.set_down_payment()
+
+	def prefill_from_profile(self):
+		"""A profile chosen on an External contract fills blank captured values only (CC-03)."""
+		before = self.get_doc_before_save()
+		if not self.contract_profile or (before and before.contract_profile == self.contract_profile):
+			return
+		profile = frappe.get_doc("Sidra Contract Profile", self.contract_profile)
+		if not profile.active:
+			frappe.throw(_("Profile {0} is retired").format(profile.name))
+		for field in (*PENALTY_AND_TITLE_FIELDS, "installments", "due_day", "grace_months"):
+			if not self.get(field):
+				self.set(field, profile.get(field))
+		if (self.down_payment_mode or "None") == "None" and profile.down_payment_type != "None":
+			try:
+				down = down_payment_amount(
+					flt(self.agreed_price, 2), profile.down_payment_type, flt(profile.down_payment_value, 2)
+				)
+			except ScheduleError as e:
+				frappe.throw(str(e))
+			self.down_payment_mode = SEPARATE
+			self.down_payment = flt(down, 2)
+
+	def validate_schedule_rows(self):
+		for seq, row in enumerate(self.schedule, start=1):
+			row.seq = seq
+			row.row_type = row.row_type or "Installment"
+			if row.row_type not in ROW_TYPES:
+				frappe.throw(_("Schedule row {0}: unknown type {1}").format(seq, row.row_type))
+			if not row.due_date:
+				frappe.throw(_("Schedule row {0}: enter the due date").format(seq))
+			row.amount = flt(row.amount, 2)
+			if row.amount <= 0:
+				frappe.throw(_("Schedule row {0}: the amount must be greater than zero").format(seq))
+
+	def set_down_payment(self):
+		"""Decision D1: the down payment is in the schedule, recorded separately, or there is none."""
+		mode = self.down_payment_mode = self.down_payment_mode or "None"
+		down_rows = [row for row in self.schedule if row.row_type == "Down payment"]
+		if mode == INCLUDED:
+			self.down_payment = flt(sum(row.amount for row in down_rows), 2)
+		elif down_rows:
+			frappe.throw(
+				_("Down payment rows need the down payment mode '{0}', not '{1}'").format(
+					_(INCLUDED), _(mode)
+				)
+			)
+		elif mode == SEPARATE:
+			self.down_payment = flt(self.down_payment, 2)
+			if self.down_payment < 0 or self.down_payment > flt(self.agreed_price, 2):
+				frappe.throw(_("The down payment must be from zero to the agreed price"))
+		else:
+			self.down_payment = 0
+		self.balance = flt(self.agreed_price, 2) - flt(self.down_payment, 2)
+
+	def set_schedule_totals(self, notify=False):
+		"""CC-07: schedule total, amount due and the difference, recomputed on every save (D1, D2)."""
+		self.schedule_total = flt(sum(flt(row.amount, 2) for row in self.schedule), 2)
+		self.amount_due = flt(self.agreed_price, 2)
+		if self.down_payment_mode == SEPARATE:
+			self.amount_due = flt(self.amount_due - flt(self.down_payment, 2), 2)
+		self.schedule_difference = flt(self.amount_due - self.schedule_total, 2)
+		if notify and self.schedule and self.schedule_difference:
+			limit = schedule_tolerance()
+			within = abs(self.schedule_difference) <= limit
+			frappe.msgprint(
+				_("The schedule differs from the amount due by {0}; the limit is {1}. {2}").format(
+					self.schedule_difference,
+					limit,
+					_("It can be confirmed after acknowledgement.")
+					if within
+					else _("It cannot be confirmed until it reconciles."),
+				),
+				indicator="orange" if within else "red",
+				alert=True,
+			)
+
+	def check_external_confirmation(self):
+		"""Confirmation of a registered contract (brief §6.2 step 5, b to f)."""
+		if not self.signed_copy:
+			frappe.throw(
+				_("Attach the original signed contract before confirming"), title=_("Not signed yet")
+			)
+		self.check_signed_copy()
+		for row in self.parties:
+			if not row.full_name:
+				frappe.throw(_("Parties row {0}: enter the name").format(row.idx))
+			if row.role == "Seller Guarantor" and not (row.pledged_property or "").strip():
+				frappe.throw(_("Parties row {0}: enter the guarantor's pledged property").format(row.idx))
+		if self.notary_reference:
+			self.reserve_notary_reference()
+		self.reserve_external_reference()
+
+		mode = self.down_payment_mode
+		if mode == INCLUDED and not any(row.row_type == "Down payment" for row in self.schedule):
+			frappe.throw(_("Add the Down payment row(s), or change the down payment mode"))
+		if mode == SEPARATE and flt(self.down_payment, 2) <= 0:
+			frappe.throw(_("Enter the down payment recorded separately, or change the down payment mode"))
+		if not self.schedule:
+			frappe.throw(_("Enter the schedule: at least one row"))
+		self._tolerance = schedule_tolerance()
+		if abs(flt(self.schedule_difference, 2)) > self._tolerance:
+			frappe.throw(
+				_("The schedule differs from the amount due by {0}, more than the limit of {1}").format(
+					self.schedule_difference, self._tolerance
+				),
+				title=_("Schedule does not reconcile"),
+			)
+
+	def reserve_external_reference(self):
+		"""Unique per Company among confirmed contracts; the unique index decides any race."""
+		if not self.external_reference:
+			frappe.throw(_("Enter the external reference (the contract's own number) before confirming"))
+		key = f"{self.company}::{self.external_reference}"
+		duplicate = frappe.db.get_value(
+			"Sidra Sale Contract", {"external_reference_key": key, "name": ("!=", self.name)}, "name"
+		)
+		if duplicate:
+			frappe.throw(
+				_("External reference {0} is already used by {1}").format(self.external_reference, duplicate)
+			)
+		self.external_reference_key = key
+
+	def record_confirmation(self):
+		"""D7 approval record, and the frozen snapshot of what was confirmed (INS-20)."""
+		self.terms_approved_by = frappe.session.user
+		self.terms_approved_on = now_datetime()
+		approval = {
+			"terms_approved_by": self.terms_approved_by,
+			"terms_approved_on": str(self.terms_approved_on),
+		}
+		if self.is_external():
+			terms = {
+				field: self.get(field)
+				for field in (
+					"source",
+					"external_reference",
+					"contract_profile",
+					"down_payment_mode",
+					"down_payment",
+					"terms_summary",
+					"installments",
+					"due_day",
+					"grace_months",
+					"schedule_total",
+					"amount_due",
+					"schedule_difference",
+					*PENALTY_AND_TITLE_FIELDS,
+				)
+			}
+			terms["schedule_tolerance"] = self._tolerance
+		else:
+			terms = {**self.terms(), "source": self.source}
+		self.terms_snapshot = json.dumps({**terms, **approval}, sort_keys=True, default=str)
+
 	def validate_cash_contract(self):
 		if self.contract_profile or self.terms_snapshot or self.clauses:
 			frappe.throw(_("A cash contract has no contract profile or profile clauses (issue #8)"))
+		self.source = None
+		self.external_reference = None
 		self.down_payment = 0
 		self.balance = 0
 		self.installments = self.due_day = self.grace_months = 0
@@ -198,7 +417,9 @@ class SidraSaleContract(Document):
 			missing.append(_("approved wording for clause(s) {0}").format(", ".join(unapproved)))
 
 		if missing:
-			frappe.throw(_("Before submitting, add: {0}").format("; ".join(missing)), title=_("Not signed yet"))
+			frappe.throw(
+				_("Before submitting, add: {0}").format("; ".join(missing)), title=_("Not signed yet")
+			)
 		if changed:
 			frappe.throw(
 				_(
@@ -262,19 +483,32 @@ class SidraSaleContract(Document):
 			"name",
 		)
 		if duplicate:
-			frappe.throw(_("Notary reference {0} is already used by {1}").format(self.notary_reference, duplicate))
+			frappe.throw(
+				_("Notary reference {0} is already used by {1}").format(self.notary_reference, duplicate)
+			)
 		self.notary_reference_key = self.notary_reference
 
 	def before_submit(self):
-		if self.contract_type == "Installment":
+		if self.contract_type == "Installment" and self.contract_profile:
 			self.check_legal_hold()  # first: a held profile must not be signed at all
-		self.check_signing_gate()
-		self.reserve_notary_reference()
+		if self.is_external():
+			self.check_external_confirmation()
+		else:
+			self.check_signing_gate()
+			self.reserve_notary_reference()
 		for row in self.clauses:
 			row.approved = 1  # approval as checked at signing; frozen from here on
 		self.lock_units()
-		if self.contract_type == "Installment":
+		if self.contract_type == "Installment" and not self.is_external():
 			self.make_schedule()
+			self.schedule_total = flt(sum(flt(row.amount, 2) for row in self.schedule), 2)
+			self.amount_due = self.balance
+			self.schedule_difference = flt(self.amount_due - self.schedule_total, 2)
+		if self.contract_type == "Installment":
+			self.record_confirmation()
+		else:
+			self.terms_approved_by = frappe.session.user
+			self.terms_approved_on = now_datetime()
 
 	def check_legal_hold(self):
 		live_hold = frappe.db.get_value("Sidra Contract Profile", self.contract_profile, "legal_hold")
@@ -304,7 +538,15 @@ class SidraSaleContract(Document):
 			frappe.throw(str(e))
 		self.set("schedule", [])
 		for line in lines:
-			self.append("schedule", {"seq": line.seq, "due_date": line.due_date, "amount": flt(line.amount, 2)})
+			self.append(
+				"schedule",
+				{
+					"seq": line.seq,
+					"row_type": "Installment",
+					"due_date": line.due_date,
+					"amount": flt(line.amount, 2),
+				},
+			)
 
 	def on_submit(self):
 		for unit in self._locked_units:
@@ -326,6 +568,61 @@ class SidraSaleContract(Document):
 		)
 
 
+def normalize_external_reference(value):
+	"""Trim, collapse inner spaces and upper-case: ' ext-demo  0001 ' -> 'EXT-DEMO 0001'."""
+	return re.sub(r"\s+", " ", (value or "").strip()).upper() or None
+
+
+@frappe.whitelist(methods=["POST"])
+def propose_schedule(contract: str, replace: int = 0, down_payment: float | None = None) -> int:
+	"""CC-06: fill an External draft's schedule from its captured terms, only when asked.
+
+	Existing rows are replaced only with `replace=1`. The rows stay editable afterwards and
+	are never regenerated on save or confirmation. Returns the number of rows.
+	"""
+	doc = frappe.get_doc("Sidra Sale Contract", contract)
+	doc.check_permission("write")
+	if doc.docstatus != 0 or not doc.is_external():
+		frappe.throw(_("Only a draft External contract can have its schedule proposed"))
+	if doc.schedule and not cint(replace):
+		frappe.throw(
+			_("The schedule already has {0} rows; confirm to replace them").format(len(doc.schedule))
+		)
+	if not doc.installments or not doc.due_day:
+		frappe.throw(_("Enter the number of installments and the due day first"))
+
+	mode = doc.down_payment_mode or "None"
+	if mode == INCLUDED:
+		down = flt(doc.down_payment if down_payment is None else down_payment, 2)
+		if down <= 0:
+			frappe.throw(_("Enter the down payment amount to include in the schedule"))
+	elif mode == SEPARATE:
+		down = flt(doc.down_payment, 2)
+	else:
+		down = 0
+	try:
+		lines = generate_installments(
+			flt(doc.agreed_price, 2),
+			down,
+			cint(doc.installments),
+			getdate(doc.signed_on),
+			cint(doc.grace_months),
+			cint(doc.due_day),
+		)
+	except ScheduleError as e:
+		frappe.throw(str(e))
+
+	doc.set("schedule", [])
+	if mode == INCLUDED:
+		doc.append("schedule", {"row_type": "Down payment", "due_date": doc.signed_on, "amount": down})
+	for line in lines:
+		doc.append(
+			"schedule", {"row_type": "Installment", "due_date": line.due_date, "amount": flt(line.amount, 2)}
+		)
+	doc.save()
+	return len(doc.schedule)
+
+
 def normalize_notary_reference(value):
 	"""Remove all whitespace: ' IPN/HL/ 042 /2026 ' -> 'IPN/HL/042/2026'."""
 	return re.sub(r"\s+", "", value or "") or None
@@ -342,6 +639,8 @@ def revise_draft(contract: str) -> str:
 	old.check_permission("write")
 	if old.docstatus != 0:
 		frappe.throw(_("Only a draft can be revised; a signed contract keeps its terms"))
+	if old.is_external():
+		frappe.throw(_("A registered External contract is edited directly; Revise Draft is for generated contracts"))
 
 	new = frappe.copy_doc(old)
 	new.terms_snapshot = None
@@ -358,7 +657,8 @@ def revise_draft(contract: str) -> str:
 
 def _clause_rows(rows):
 	return [
-		(row.clause, row.title, row.text_so or "", row.text_en or "", int(row.approved or 0)) for row in rows or []
+		(row.clause, row.title, row.text_so or "", row.text_en or "", int(row.approved or 0))
+		for row in rows or []
 	]
 
 

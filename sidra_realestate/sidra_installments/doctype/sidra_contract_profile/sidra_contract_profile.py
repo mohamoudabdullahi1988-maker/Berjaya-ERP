@@ -41,25 +41,61 @@ TERM_FIELDS = (
 )
 
 
+# Penalty, default and title terms (decision D6, issue #13): also captured on registered contracts,
+# with the same field names and the same checks (validate_penalty_and_title_terms).
+PENALTY_AND_TITLE_FIELDS = (
+	"penalty_type",
+	"penalty_per_day",
+	"penalty_monthly_cap",
+	"penalty_fixed_amount",
+	"notice_days",
+	"default_trigger_missed",
+	"refund_retention_type",
+	"refund_retention_value",
+	"title_deadline_days",
+	"title_penalty_type",
+	"title_penalty_amount",
+	"title_refund_after_days",
+	"title_refund_compensation_pct",
+)
+
+
+def check_range(doc, field, low, high):
+	value = cint(doc.get(field))
+	if not low <= value <= high:
+		frappe.throw(_("{0} must be from {1} to {2}").format(doc.meta.get_label(field), low, high))
+
+
+def check_not_negative(doc, *fields):
+	for field in fields:
+		if (doc.get(field) or 0) < 0:
+			frappe.throw(_("{0} cannot be negative").format(doc.meta.get_label(field)))
+
+
+def validate_penalty_and_title_terms(doc):
+	"""Range checks shared by Sidra Contract Profile and Sidra Sale Contract (D6)."""
+	check_range(doc, "notice_days", 0, 60)
+	check_not_negative(
+		doc,
+		"penalty_per_day",
+		"penalty_monthly_cap",
+		"penalty_fixed_amount",
+		"default_trigger_missed",
+		"refund_retention_value",
+		"title_deadline_days",
+		"title_penalty_amount",
+		"title_refund_after_days",
+		"title_refund_compensation_pct",
+	)
+
+
 class SidraContractProfile(Document):
 	def validate(self):
 		self.check_range("installments", 1, 60)
 		self.check_range("due_day", 1, 28)
 		self.check_range("grace_months", 0, 12)
-		self.check_range("notice_days", 0, 60)
-		self.check_not_negative(
-			"down_payment_value",
-			"markup_rate",
-			"penalty_per_day",
-			"penalty_monthly_cap",
-			"penalty_fixed_amount",
-			"default_trigger_missed",
-			"refund_retention_value",
-			"title_deadline_days",
-			"title_penalty_amount",
-			"title_refund_after_days",
-			"title_refund_compensation_pct",
-		)
+		check_not_negative(self, "down_payment_value", "markup_rate")
+		validate_penalty_and_title_terms(self)
 		if self.down_payment_type in ("Fixed", "Percent") and not self.down_payment_value:
 			frappe.throw(_("Enter the down payment amount or percentage"))
 		if self.down_payment_type == "Percent" and self.down_payment_value > 100:
@@ -72,14 +108,7 @@ class SidraContractProfile(Document):
 		self.validate_legal_hold_change()
 
 	def check_range(self, field, low, high):
-		value = cint(self.get(field))
-		if not low <= value <= high:
-			frappe.throw(_("{0} must be from {1} to {2}").format(self.meta.get_label(field), low, high))
-
-	def check_not_negative(self, *fields):
-		for field in fields:
-			if (self.get(field) or 0) < 0:
-				frappe.throw(_("{0} cannot be negative").format(self.meta.get_label(field)))
+		check_range(self, field, low, high)
 
 	def validate_legal_hold_change(self):
 		before = self.get_doc_before_save()

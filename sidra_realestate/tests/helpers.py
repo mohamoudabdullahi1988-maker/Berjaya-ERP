@@ -203,6 +203,9 @@ def signing_values():
 	"""
 	n = next(_notary_counter)
 	return {
+		# The signing gate below is the Generated path's; registered (External) contracts are
+		# tested in test_sidra_contract_capture.py. Cash contracts ignore `source`.
+		"source": "Generated from profile",
 		"notary_name": "_Test Notary",
 		"notary_reference": f"IPN/HL/{n % 1000:03d}/{2000 + n // 1000}",
 		"parties": [

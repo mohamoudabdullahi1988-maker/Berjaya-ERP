@@ -68,11 +68,166 @@ def create_demo_data(company: str | None = None) -> dict:
 		submit=True,
 	)
 	summary["profile_b_draft"] = _contract(
-		"DEMO-PROFILE-B", company, BUYERS[1], "Profile B", [("DEMO-H-004", 9000)], "IPN/HL/903/2026", submit=False
+		"DEMO-PROFILE-B",
+		company,
+		BUYERS[1],
+		"Profile B",
+		[("DEMO-H-004", 9000)],
+		"IPN/HL/903/2026",
+		submit=False,
 	)
 	summary["construction_job"] = _construction_job(company)
+	summary["registered_contracts"] = _registered_contracts(company)
 	frappe.db.commit()
 	return summary
+
+
+# ---------------------------------------------------------------- contract capture (brief §6.5)
+def _months(n, amount, year, month, day):
+	rows = []
+	for i in range(n):
+		index = year * 12 + month - 1 + i
+		rows.append(("Installment", f"{index // 12}-{index % 12 + 1:02d}-{day:02d}", amount))
+	return rows
+
+
+def _registered_contracts(company) -> dict:
+	"""Registered (External) contracts for the contract capture demonstration (CONTRACT-CAPTURE_v0.3 §6.5).
+
+	Confirmed as the demo Sales Manager, so the approval record (D7) shows a real approver.
+	"""
+	b_terms = {
+		"penalty_type": "Fixed After Notice",
+		"penalty_fixed_amount": 100,
+		"notice_days": 15,
+		"title_deadline_days": 20,
+		"title_penalty_type": "Per Month",
+		"title_penalty_amount": 220,
+	}
+	irregular = [
+		("Installment", "2025-03-01", 2500),
+		("Installment", "2025-03-01", 2500),  # two rows on one date
+		("Installment", "2025-05-12", 1000),
+		("Installment", "2025-06-30", 1000),
+		("Installment", "2025-09-03", 1000),
+		("Installment", "2025-10-21", 1000),
+		("Installment", "2026-01-15", 1000),
+	]
+	specs = [
+		# reference, customer, units, price, signed_on, schedule, extra values, confirm
+		(
+			"EXT-DEMO-0001",
+			BUYERS[0],
+			[("DEMO-H-007", 5000), ("DEMO-H-008", 5000)],
+			10000,
+			"2025-03-01",
+			irregular,
+			{},
+			True,
+		),
+		(
+			"EXT-DEMO-0002",
+			BUYERS[1],
+			[("DEMO-H-009", 10000)],
+			10000,
+			"2025-04-01",
+			[("Installment", "2025-05-01", 9996)],
+			{},
+			True,
+		),
+		(
+			"EXT-DEMO-0003",
+			BUYERS[2],
+			[("DEMO-H-010", 10000)],
+			10000,
+			"2025-04-01",
+			[("Installment", "2025-05-01", 9990)],
+			{},
+			False,
+		),
+		(
+			"EXT-DEMO-0004",
+			BUYERS[0],
+			[("DEMO-H-011", 9000)],
+			9000,
+			"2026-01-15",
+			_months(24, 250, 2026, 4, 10),
+			{"down_payment_mode": "Recorded separately", "down_payment": 3000, **b_terms},
+			True,
+		),
+		(
+			"EXT-DEMO-0005",
+			BUYERS[1],
+			[("DEMO-H-012", 9000)],
+			9000,
+			"2026-01-15",
+			[("Down payment", "2026-01-15", 3000), *_months(24, 250, 2026, 4, 10)],
+			{"down_payment_mode": "Included in schedule", **b_terms},
+			True,
+		),
+	]
+	out = {}
+	manager = "demo.manager@example.com"
+	for reference, customer, units, price, signed_on, schedule, extra, confirm in specs:
+		out[reference] = _registered(
+			reference, company, customer, units, price, signed_on, schedule, extra, confirm, manager
+		)
+	# D5: an older contract with no witnesses or notary
+	out["EXT-DEMO-0006"] = _registered(
+		"EXT-DEMO-0006",
+		company,
+		BUYERS[2],
+		[("DEMO-H-006", 5500)],
+		5500,
+		"2024-06-01",
+		_months(11, 500, 2024, 7, 5),
+		{"terms_summary": "Older contract: no witnesses or notary recorded (D5)."},
+		True,
+		manager,
+	)
+	return out
+
+
+def _registered(reference, company, customer, units, price, signed_on, schedule, extra, confirm, manager):
+	existing = frappe.db.get_value("Sidra Sale Contract", {"external_reference": reference}, "name")
+	if existing:
+		return existing
+	doc = frappe.get_doc(
+		{
+			"doctype": "Sidra Sale Contract",
+			"contract_type": "Installment",
+			"source": "External (registered)",
+			"external_reference": reference,
+			"customer": customer,
+			"company": company,
+			"signed_on": signed_on,
+			"agreed_price": price,
+			"units": [{"unit": unit, "allocated_price": amount} for unit, amount in units],
+			"schedule": [{"row_type": t, "due_date": d, "amount": a} for t, d, a in schedule],
+			**extra,
+		}
+	).insert(ignore_permissions=True)
+	file_doc = frappe.get_doc(
+		{
+			"doctype": "File",
+			"file_name": f"{reference}-original.pdf",
+			"content": _placeholder_scan(reference),
+			"is_private": 1,
+			"attached_to_doctype": doc.doctype,
+			"attached_to_name": doc.name,
+			"attached_to_field": "signed_copy",
+		}
+	).insert(ignore_permissions=True)
+	doc.signed_copy = file_doc.file_url
+	doc.save(ignore_permissions=True)
+	if confirm:
+		previous = frappe.session.user
+		frappe.set_user(manager)
+		try:
+			frappe.get_doc("Sidra Sale Contract", doc.name).submit()
+		finally:
+			frappe.set_user(previous)
+	return doc.name
 
 
 def export_pdfs(folder: str) -> list[str]:
@@ -122,7 +277,13 @@ def _ensure_company() -> str:
 				frappe.get_doc(record).insert(ignore_permissions=True)
 		add_uom_data()
 	frappe.get_doc(
-		{"doctype": "Company", "company_name": COMPANY, "abbr": "SDH", "default_currency": "USD", "country": "Somalia"}
+		{
+			"doctype": "Company",
+			"company_name": COMPANY,
+			"abbr": "SDH",
+			"default_currency": "USD",
+			"country": "Somalia",
+		}
 	).insert(ignore_permissions=True)
 	return COMPANY
 
@@ -180,7 +341,7 @@ def _ensure_units(company) -> list[str]:
 			}
 		).insert(ignore_permissions=True)
 	names = []
-	for i in range(1, 7):
+	for i in range(1, 13):
 		code = f"DEMO-H-{i:03d}"
 		names.append(code)
 		if frappe.db.exists("Sidra Unit", code):
@@ -197,13 +358,15 @@ def _ensure_units(company) -> list[str]:
 				"neighbourhood": "Demo Neighbourhood",
 				"land_parcel": "Demo Parcel",
 				"boundary_east": "Road",
-				"boundary_north": f"DEMO-H-{i + 1:03d}" if i < 6 else "Road",
+				"boundary_north": f"DEMO-H-{i + 1:03d}" if i < 12 else "Road",
 				"boundary_south": f"DEMO-H-{i - 1:03d}" if i > 1 else "Road",
 				"boundary_west": "Open land",
 				"cash_price": 9000 if i == 4 else 5500,
 			}
 		).insert(ignore_permissions=True)
-	if not frappe.db.exists("Sidra Unit Price History", {"unit": "DEMO-H-006", "reason": "Demo price review"}):
+	if not frappe.db.exists(
+		"Sidra Unit Price History", {"unit": "DEMO-H-006", "reason": "Demo price review"}
+	):
 		entry = frappe.get_doc(
 			{
 				"doctype": "Sidra Unit Price History",
@@ -235,7 +398,18 @@ def _demo_profile() -> str:
 	values = {
 		k: v
 		for k, v in frappe.get_doc("Sidra Contract Profile", "Profile A").as_dict().items()
-		if k not in ("name", "profile_name", "is_default", "clauses", "creation", "modified", "owner", "modified_by", "idx")
+		if k
+		not in (
+			"name",
+			"profile_name",
+			"is_default",
+			"clauses",
+			"creation",
+			"modified",
+			"owner",
+			"modified_by",
+			"idx",
+		)
 		and not k.startswith("_")
 		and k not in ("doctype", "docstatus")
 	}
@@ -259,6 +433,7 @@ def _contract(marker, company, customer, profile, units, notary_reference, submi
 		{
 			"doctype": "Sidra Sale Contract",
 			"contract_type": "Installment",
+			"source": "Generated from profile",
 			"customer": customer,
 			"company": company,
 			"signed_on": today(),
@@ -301,7 +476,9 @@ def _contract(marker, company, customer, profile, units, notary_reference, submi
 
 
 def _construction_job(company) -> str:
-	existing = frappe.db.get_value("Sidra Construction Job", {"site_location": "Demo site, plot DEMO-H-001"}, "name")
+	existing = frappe.db.get_value(
+		"Sidra Construction Job", {"site_location": "Demo site, plot DEMO-H-001"}, "name"
+	)
 	if existing:
 		return existing
 	return (
@@ -316,7 +493,12 @@ def _construction_job(company) -> str:
 				"boq": [
 					{"cost_code": "01", "description": "Site clearing (demo)", "qty": 1, "rate": 350},
 					{"cost_code": "02", "description": "Excavation (demo)", "qty": 42.5, "rate": 8},
-					{"cost_code": "03", "description": "Foundation concrete (demo)", "qty": 18, "rate": 145.5},
+					{
+						"cost_code": "03",
+						"description": "Foundation concrete (demo)",
+						"qty": 18,
+						"rate": 145.5,
+					},
 				],
 			}
 		)

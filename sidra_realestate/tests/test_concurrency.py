@@ -270,3 +270,29 @@ class TestConcurrency(IntegrationTestCase):
 			frappe.get_all("Sidra Sale Contract", filters={"notary_reference_key": reference}, pluck="name"),
 			[first],
 		)
+
+	# ------------------------------------------------------------ contract capture: external reference
+	def test_concurrent_confirmations_with_one_external_reference(self):
+		reference = "EXT-CONC-" + frappe.generate_hash(length=6).upper()
+		external = {
+			"source": "External (registered)",
+			"external_reference": reference,
+			"schedule": [{"row_type": "Installment", "due_date": "2026-12-10", "amount": 1000}],
+		}
+		first = self.contract([self.unit()], **external)
+		second = self.contract([self.unit()], customer=OTHER_BUYER, **external)
+		frappe.db.commit()
+
+		with self.primary_connection():
+			self.submit(first)  # writes the unique key, not yet committed
+		self.in_secondary(lambda: self.submit(second), expect=frappe.QueryTimeoutError)
+		self.commit_primary()
+		self.in_secondary(lambda: self.submit(second), expect=frappe.ValidationError)
+
+		self.assertEqual(frappe.db.get_value("Sidra Sale Contract", second, "docstatus"), 0)
+		self.assertEqual(
+			frappe.get_all(
+				"Sidra Sale Contract", filters={"external_reference_key": f"{COMPANY}::{reference}"}, pluck="name"
+			),
+			[first],
+		)
