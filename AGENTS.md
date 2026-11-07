@@ -1,6 +1,6 @@
 # AGENTS.md — sidra-erp
 
-Instructions for Codex and any other coding agent. Codex continues the work when Claude Code's usage limit is reached (decision G7, `docs/DECISIONS-AND-GATES_v0.1.md`).
+Instructions for Codex and any other coding agent. Latest user allocation (7 Nov 2026): Claude implements the backend/test server; Codex implements the lightweight Android/macOS staff apps, shared web dashboards and their relevant tests. Codex also provides the explicitly requested plot/construction-site location API as an isolated adapter for Claude's backend integration. This task allocation supersedes older role allocations, including decision G7, for this work. Keep backend business logic on the server and preserve the remaining repository rules.
 
 Follow `CLAUDE.md` exactly: it is the single source of rules, commands and the current task. Read `docs/DECISIONS-AND-GATES_v0.1.md` before any work; its decisions win over older documents.
 
