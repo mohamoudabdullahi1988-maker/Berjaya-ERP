@@ -7,6 +7,7 @@ signed contract keeps its own frozen copy (INS-20).
 
 import frappe
 
+from sidra_realestate.branding import apply_branding
 from sidra_realestate.sidra_sales.doctype.sidra_contract_settings.sidra_contract_settings import (
 	ensure_contract_settings,
 )
@@ -98,6 +99,7 @@ def after_install():
 	ensure_contract_clauses()
 	ensure_role_profiles()
 	ensure_contract_settings()
+	apply_branding()
 
 
 def after_migrate():
@@ -105,6 +107,7 @@ def after_migrate():
 	ensure_contract_clauses()
 	ensure_role_profiles()
 	ensure_contract_settings()
+	apply_branding()
 
 
 def ensure_role_profiles():

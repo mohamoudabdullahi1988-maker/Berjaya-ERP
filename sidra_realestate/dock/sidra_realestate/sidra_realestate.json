@@ -1,0 +1,31 @@
+{
+ "app": "sidra_realestate",
+ "creation": "2026-11-07 12:00:00.000000",
+ "docstatus": 0,
+ "doctype": "Dock",
+ "idx": 0,
+ "items": [
+  {
+   "added": 0,
+   "hidden": 0,
+   "icon": "geo-pin-soft",
+   "link_to": "Sidra Real Estate",
+   "link_type": "Sidebar",
+   "title": "Real Estate"
+  },
+  {
+   "added": 0,
+   "hidden": 0,
+   "icon": "workflow-builder-soft",
+   "link_to": "Sidra Construction",
+   "link_type": "Sidebar",
+   "title": "Construction"
+  }
+ ],
+ "modified": "2026-11-07 12:00:00.000000",
+ "modified_by": "Administrator",
+ "name": "sidra_realestate",
+ "owner": "Administrator",
+ "standard": 1,
+ "user": ""
+}
