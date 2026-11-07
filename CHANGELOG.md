@@ -4,6 +4,10 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (import capability, decision G5)
+- **Sidra Contract Import** (Real Estate → Contract Import): upload a CSV or XLSX of live contracts, one row per schedule line; **Validate** runs every contract check and keeps nothing; **Import** creates draft registered contracts, all or nothing; references already registered for the Company are skipped; optional creation of missing customers. Template: `public/templates/sidra_contract_import_template.csv`. Payments to date are not imported (D8)
+- `services/contract_import.py` (pure reader: DD/MM/YYYY and ISO dates, row-numbered errors) with pure tests
+
 ### Added (white-label and navigation, Mohamoud 7 Nov 2026)
 - Sidra Homes branding: system and website name, navbar logo, favicon, login splash, website footer; contract print and README carry the official Sidra Homes logo (`sidra_realestate/branding.py`; `public/images/sidra-logo.png`, `sidra-icon.png`, `favicon.png`)
 - One "Sidra Homes" app on the apps screen and rail with two sections from shipped Dock / Sidebar records: **Real Estate** (schemes, plots, reservations, price history, sale contracts, profiles, clauses, contract settings, customers) and **Construction** (construction jobs, customers)
