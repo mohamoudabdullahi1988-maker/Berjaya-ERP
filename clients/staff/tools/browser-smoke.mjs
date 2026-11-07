@@ -1,17 +1,32 @@
+import {executiveBrowser} from './executive-browser.mjs';
 import {spawn} from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import assert from 'node:assert/strict';
 const profile=await fs.mkdtemp(path.join(os.tmpdir(),'sidra-ui-'));
-const chrome=spawn(process.env.CHROME_BIN||'/usr/bin/chromium',['--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking','--no-proxy-server','--disable-gpu','--remote-debugging-port=9226','--user-data-dir='+profile,'about:blank'],{stdio:'ignore'});
+const chrome=spawn(process.env.CHROME_BIN||'/usr/bin/chromium',['--headless','--no-sandbox','--disable-dev-shm-usage','--disable-background-networking','--no-proxy-server','--disable-gpu','--remote-debugging-port=0','--user-data-dir='+profile,'about:blank'],{stdio:['ignore','ignore','pipe']});
+let chromeError='', chromeLog='';
+chrome.on('error', error=>{chromeError=error.message;});
+chrome.stderr.on('data', chunk=>{chromeLog=(chromeLog+chunk.toString()).slice(-8000);});
 let socket, evaluate;
 try{
  for(let i=0;i<60;i++){try{const r=await fetch('http://127.0.0.1:4173/');if(r.ok)break;}catch{}if(i===59)throw Error('Preview server did not become ready');await new Promise(r=>setTimeout(r,150));}
- let pages;for(let i=0;i<60;i++){try{pages=await(await fetch('http://127.0.0.1:9226/json')).json();break;}catch{await new Promise(r=>setTimeout(r,150));}}
- if(!pages)throw Error('Chromium did not start');
+ let pages;
+ for(let i=0;i<150;i++){
+  if(chromeError || chrome.exitCode!==null || chrome.signalCode!==null) throw Error(`Chrome exited before readiness: ${chromeError || chrome.exitCode || chrome.signalCode}\n${chromeLog}`);
+  try {
+   const port=(await fs.readFile(path.join(profile,'DevToolsActivePort'),'utf8')).split('\n')[0];
+   const response=await fetch('http://127.0.0.1:'+port+'/json');
+   const targets=await response.json();
+   if(targets.some(page=>page.type==='page')){pages=targets;break;}
+  }catch{}
+  await new Promise(resolve=>setTimeout(resolve,200));
+ }
+ if(!pages)throw Error('Chrome did not become ready within 30 seconds.\n'+chromeLog);
  socket=new WebSocket(pages.find(p=>p.type==='page').webSocketDebuggerUrl);await new Promise((r,j)=>{socket.onopen=r;socket.onerror=j;});
- let id=0;const pending=new Map();socket.onmessage=e=>{const x=JSON.parse(e.data);if(x.id&&pending.has(x.id)){const [resolve,reject]=pending.get(x.id);pending.delete(x.id);x.error?reject(x.error):resolve(x.result);}};
+ const exceptions=[];
+ let id=0;const pending=new Map();socket.onmessage=e=>{const x=JSON.parse(e.data);if(x.method==='Runtime.exceptionThrown')exceptions.push(x.params.exceptionDetails);if(x.id&&pending.has(x.id)){const [resolve,reject]=pending.get(x.id);pending.delete(x.id);x.error?reject(x.error):resolve(x.result);}};
  const call=(method,params={})=>new Promise((r,j)=>{pending.set(++id,[r,j]);socket.send(JSON.stringify({id,method,params}));});
  const js=async expression=>(await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result;
  evaluate=js;
@@ -33,5 +48,7 @@ try{
  assert((await js('document.documentElement.scrollWidth <= innerWidth')).value,'Mobile page overflows horizontally');
  await call('Page.navigate',{url:'http://127.0.0.1:4173/'});await wait('document.querySelector("#alert") && !document.querySelector("#alert").hidden');
  assert((await js('document.querySelector("#demo-banner").hidden')).value,'Failed live request must not switch to fictional data');
- console.log('Browser smoke passed: dashboard, payments, web pin, invalid GPS, mobile width, explicit live failure.');
+ await executiveBrowser({call,js,wait,shot});
+ assert.deepEqual(exceptions, [], 'Unhandled browser exceptions');
+ console.log('Browser smoke passed: executive cards/evidence, trends, decisions, exposure, fixed preview, scope requests, stale/missing/restricted data, late responses, 320/390px layout; dashboard, payments, web pin, invalid GPS, mobile width, explicit live failure.');
 }catch(error){if(evaluate)console.error('Browser failure page:',(await evaluate('({url:location.href,state:document.readyState,text:document.body?.innerText,html:document.documentElement?.outerHTML.slice(0,1500)})')).value);throw error;}finally{socket?.close();chrome.kill();await fs.rm(profile,{recursive:true,force:true}).catch(()=>{});}
