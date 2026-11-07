@@ -231,7 +231,7 @@ class TestContractCapture(IntegrationTestCase):
 
 		fee_outside_price = self.external(10000, [*installments(10, 1000), ("Fee", "2026-01-15", 200)])
 		self.assertEqual(fee_outside_price.schedule_difference, -200)
-		self.assert_refused(fee_outside_price, "does not reconcile")
+		self.assert_refused(fee_outside_price, "more than the limit")
 
 	def test_d3_tolerance(self):
 		for difference, confirms in ((4, True), (5, True), (5.01, False), (-5.01, False), (-5, True)):
@@ -244,14 +244,14 @@ class TestContractCapture(IntegrationTestCase):
 						(snapshot["schedule_difference"], snapshot["schedule_tolerance"]), (difference, 5)
 					)
 				else:
-					self.assert_refused(doc, "does not reconcile")
+					self.assert_refused(doc, "more than the limit")
 
 	def test_d3_setting_change_does_not_touch_confirmed_snapshot(self):
 		confirmed = self.confirm(self.external(10000, [("Installment", "2026-02-10", 9996)]))
 		frappe.db.set_single_value("Sidra Contract Settings", "schedule_tolerance", 1)
 		snapshot = json.loads(frappe.db.get_value("Sidra Sale Contract", confirmed.name, "terms_snapshot"))
 		self.assertEqual(snapshot["schedule_tolerance"], 5)
-		self.assert_refused(self.external(10000, [("Installment", "2026-02-10", 9996)]), "does not reconcile")
+		self.assert_refused(self.external(10000, [("Installment", "2026-02-10", 9996)]), "more than the limit")
 
 	# ------------------------------------------------------------ D4 and holds
 	def test_contract_b_type_registration_confirms(self):
@@ -374,7 +374,7 @@ class TestContractCapture(IntegrationTestCase):
 
 	# ------------------------------------------------------------ migration
 	def test_migration_marks_existing_contracts_generated(self):
-		doc = self.external(installments(10, 1000))
+		doc = self.external(10000, installments(10, 1000))
 		frappe.db.set_value("Sidra Sale Contract", doc.name, "source", None)
 		frappe.db.sql(
 			"update `tabSidra Installment Line` set row_type=NULL where parent=%s",
