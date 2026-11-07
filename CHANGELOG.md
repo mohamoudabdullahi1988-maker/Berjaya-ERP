@@ -4,6 +4,10 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (sample migration data and brokerage spec)
+- `docs/samples/SAMPLE-LIVE-CONTRACTS_v0.1.csv` (also `/assets/sidra_realestate/templates/sample_live_contracts.csv`): 8 synthetic live contracts, 182 schedule rows (12 to 36 months, both down-payment modes, a fee row, a two-plot contract); the demo adds free plots DEMO-M-001 to 009 for it, and `tests/test_demo.py` imports it
+- `docs/BROKERAGE_v0.1.md`: draft spec for approval: Sidra as broker for owners' plots and agent commission on Sidra's sales, 2.5 % of the plot price, due in full on the buyer's first payment, recorded not posted; acceptance tests BR-01 to BR-10
+
 ### Changed (docs)
 - `docs/DEPLOYMENT_v0.1.md`: test VPS status, lessons from the first deployment (IPv6, private home folders and nginx, default site, tmux, deploy key), D4 and contract capture patches, Module Profile for staff
 
