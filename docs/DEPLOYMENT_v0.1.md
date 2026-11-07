@@ -79,11 +79,12 @@ done
 ```
 
 The demo data is synthetic and safe to run more than once. It never runs unless `sidra_allow_demo_data` is set, so never set that on production. It creates:
-- the company "Sidra Demo Homes", with six half plots in scheme DEMO-HAGBAD and a future price change;
+- the company "Sidra Demo Homes", with thirteen half plots in scheme DEMO-HAGBAD and a future price change;
 - a reservation;
 - a signed Profile A contract for two plots at $11,000 (13 × $786 + $782);
 - a signed contract on a demo profile with one clause marked **DEMO PLACEHOLDER** (not legal wording);
-- a Profile B draft, which can't be submitted (legal hold);
+- a Profile B draft without a signed copy (Profile B has no legal hold since decision D4);
+- six registered (External) contracts EXT-DEMO-0001 to 0006 on plots DEMO-H-007 to 013 for the contract capture demonstration (`docs/CONTRACT-CAPTURE_v0.3.md` §6.5), five confirmed by demo.manager and EXT-DEMO-0003 left as a draft because its schedule is $10 short;
 - a construction job with BOQ lines and the full-construction stages;
 - the users listed in the walkthrough below.
 
@@ -95,12 +96,19 @@ The demo data is synthetic and safe to run more than once. It never runs unless 
 | 2 | demo.sales | Reserve the same unit again | "Unit … is Reserved and cannot be reserved" |
 | 3 | demo.sales | **Cancel Reservation** | Unit Available again |
 | 4 | demo.manager | Open SSC for DEMO-HAGBAD-FULL | Signed; 14-line schedule, 13 × $786 and 1 × $782, due on the 5th |
-| 5 | demo.manager | Submit the Profile B draft | Refused: legal hold |
+| 5 | demo.manager | Submit the Profile B draft | Refused until the signed copy is uploaded (no legal hold since D4) |
 | 6 | demo.manager | Print / PDF the clause contract | PDF in USD and DD/MM/YYYY; units with boundaries; schedule; parties with signature lines; the demo clause in both languages; notary reference |
 | 7 | demo.manager | New draft → submit without uploading a signed copy, or with another contract's file URL | Refused |
 | 8 | demo.pm | Construction job | Nine stages; BOQ total $3,309.00 |
 | 9 | demo.outsider | Open a unit, call reserve via API | Not permitted (HTTP 403) |
 | 10 | demo.gm | Approve a draft-only clause, then submit a draft that uses it | Submit allowed once the wording matches (docs/CONTRACT-REVISION_v0.1.md) |
+| 11 | demo.manager | Open EXT-DEMO-0001 | Registered copy; 7 rows including two on 01/03/2025; total = amount due = $10,000; original attached; approved by demo.manager with date and time |
+| 12 | demo.manager | Open EXT-DEMO-0002 | Confirmed with a $4.00 difference, stored in the frozen terms with the $5.00 tolerance |
+| 13 | demo.manager | Submit EXT-DEMO-0003 | Refused: differs by $10.00, more than the limit of $5.00 |
+| 14 | demo.manager | Open EXT-DEMO-0004 and EXT-DEMO-0005 | Contract B terms: $3,000 down recorded separately vs a Down payment row; 24 × $250 from 10/04/2026; penalty $100 after 15 days; title 20 days, $220 a month; nothing calculated |
+| 15 | demo.manager | Open EXT-DEMO-0006 | Confirmed with no witnesses or notary (D5) |
+| 16 | demo.sales | New Sidra Sale Contract (Source External): units, price, reference, months / due day / grace → save → **Fill Schedule** → edit a row → save | Rows kept as edited; totals and difference update; Fill Schedule again asks before replacing |
+| 17 | demo.finance | Accounting reports for Sidra Demo Homes | No Sales Order, invoice, payment, journal or GL entry from any contract |
 
 Rehearsal result (6 Nov 2026, container, Frappe v16.55.2 / ERPNext v16.53.0, MariaDB 10.11): items 1, 2, 4, 5, 6, 8 and 9 passed through the browser as the named users. Items 3, 7 and 10 are covered by the automated tests (`test_cancel_releases_unit`, `test_*signed_copy*`, `test_approving_clause_later_unblocks_existing_draft`).
 

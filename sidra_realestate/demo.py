@@ -177,7 +177,7 @@ def _registered_contracts(company) -> dict:
 		"EXT-DEMO-0006",
 		company,
 		BUYERS[2],
-		[("DEMO-H-006", 5500)],
+		[("DEMO-H-013", 5500)],
 		5500,
 		"2024-06-01",
 		_months(11, 500, 2024, 7, 5),
@@ -341,7 +341,7 @@ def _ensure_units(company) -> list[str]:
 			}
 		).insert(ignore_permissions=True)
 	names = []
-	for i in range(1, 13):
+	for i in range(1, 14):
 		code = f"DEMO-H-{i:03d}"
 		names.append(code)
 		if frappe.db.exists("Sidra Unit", code):
@@ -358,7 +358,7 @@ def _ensure_units(company) -> list[str]:
 				"neighbourhood": "Demo Neighbourhood",
 				"land_parcel": "Demo Parcel",
 				"boundary_east": "Road",
-				"boundary_north": f"DEMO-H-{i + 1:03d}" if i < 12 else "Road",
+				"boundary_north": f"DEMO-H-{i + 1:03d}" if i < 13 else "Road",
 				"boundary_south": f"DEMO-H-{i - 1:03d}" if i > 1 else "Road",
 				"boundary_west": "Open land",
 				"cash_price": 9000 if i == 4 else 5500,
