@@ -30,5 +30,20 @@ class TestStaffPage(IntegrationTestCase):
 		self.assertNotIn("&lt;script", html)  # not escaped
 
 	def test_outsider_refused_and_guest_redirected(self):
-		self.assertNotEqual(self.render(OUTSIDER).status_code, 200)
-		self.assertIn(self.render("Guest").status_code, (301, 302, 303))
+		page = _page_module()
+		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
+			page.get_context(frappe._dict())
+		with as_user("Guest"), self.assertRaises(frappe.Redirect):
+			page.get_context(frappe._dict())
+		self.assertIn("redirect-to=%2Fsidra-staff%2F", frappe.local.flags.redirect_location)
+
+
+def _page_module():
+	"""The www page module (its folder name has a hyphen, so it is loaded by path)."""
+	import importlib.util
+
+	path = frappe.get_app_path("sidra_realestate", "www", "sidra-staff", "index.py")
+	spec = importlib.util.spec_from_file_location("sidra_staff_page", path)
+	module = importlib.util.module_from_spec(spec)
+	spec.loader.exec_module(module)
+	return module
