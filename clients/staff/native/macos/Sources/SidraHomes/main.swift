@@ -34,6 +34,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         guard let base = origin else { return false }
         return url.scheme?.lowercased() == "https" && url.user == nil && url.password == nil && url.host?.lowercased() == base.host?.lowercased() && (url.port ?? 443) == (base.port ?? 443)
     }
+    func mapFrame(_ url: URL) -> Bool {
+        return url.scheme == "https" && url.host == "www.google.com" && url.path.hasPrefix("/maps/embed/") && url.user == nil && url.password == nil
+    }
     @objc func configure() {
         let alert = NSAlert(); alert.messageText = "Connect to Sidra"
         alert.informativeText = "Enter the HTTPS test or production server address supplied by your administrator."
@@ -55,7 +58,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction, decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
         guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
         if url.absoluteString == "about:blank" { decisionHandler(.allow); return }
-        if sameOrigin(url) { decisionHandler(.allow); return }
+        if sameOrigin(url) || (navigationAction.targetFrame?.isMainFrame == false && mapFrame(url)) { decisionHandler(.allow); return }
         if navigationAction.navigationType == .linkActivated && url.scheme == "https" { NSWorkspace.shared.open(url) }
         decisionHandler(.cancel)
     }
@@ -66,7 +69,9 @@ final class AppDelegate: NSObject, NSApplicationDelegate, WKNavigationDelegate, 
         return nil
     }
     func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse, decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-        guard let url = navigationResponse.response.url, sameOrigin(url) else { decisionHandler(.cancel); return }
+        guard let url = navigationResponse.response.url else { decisionHandler(.cancel); return }
+        if !navigationResponse.isForMainFrame && mapFrame(url) { decisionHandler(.allow); return }
+        guard sameOrigin(url) else { decisionHandler(.cancel); return }
         let attachment = (navigationResponse.response as? HTTPURLResponse)?.value(forHTTPHeaderField: "Content-Disposition")?.lowercased().contains("attachment") ?? false
         decisionHandler(attachment || !navigationResponse.canShowMIMEType ? .download : .allow)
     }

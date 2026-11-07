@@ -46,6 +46,7 @@ public final class MainActivity extends Activity {
         web.setWebViewClient(new WebViewClient(){
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request){
                 Uri uri=request.getUrl();if(sameOrigin(uri.toString()))return false;
+                if(!request.isForMainFrame() && "https".equals(uri.getScheme()) && "www.google.com".equals(uri.getHost()) && uri.getPath()!=null && uri.getPath().startsWith("/maps/embed/"))return false;
                 if(request.hasGesture() && "https".equals(uri.getScheme()))startActivity(new Intent(Intent.ACTION_VIEW,uri));
                 return true;
             }

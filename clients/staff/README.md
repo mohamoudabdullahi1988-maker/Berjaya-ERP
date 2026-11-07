@@ -2,7 +2,7 @@
 
 A small server-hosted staff dashboard, an Android system-WebView app, and a macOS WKWebView app. Claude owns the ERPNext backend/test server; this component does not modify the backend checkout.
 
-**Status:** working fictional web preview and tested location geometry/API boundary. Server URL is not ready. Real dashboards require Claude's aggregate endpoint. The isolated location adapter is provided but not installed or integration-tested against a real Frappe site. Native builds must run on Android/macOS toolchains before distribution; source size is not an APK/app-size claim.
+**Status:** working fictional web preview and tested location geometry/API boundary. Server URL is not ready. Real dashboards require Claude's aggregate endpoint. The isolated location adapter is provided but not installed or integration-tested against a real Frappe site. Android debug assembly/lint and macOS packaging have passed CI; final universal build and actual device acceptance remain pending; source size is not an APK/app-size claim.
 
 ## Preview
 
@@ -24,8 +24,8 @@ The screens cover Sales/lead pipeline, posted Payments and overdue aging, existi
 ## Native apps
 
 - Android: `native/android`, Java using only platform APIs; no bundled Chromium, Flutter, Electron or JavaScript bridge. With JDK 21, Android SDK 35 and Gradle 8.11.1: `gradle -p native/android :app:assembleDebug :app:lintDebug`.
-- macOS 13+: `native/macos/package.sh` builds a local ad-hoc signed `.app` using Swift/AppKit/WebKit. Developer ID signing, notarization and installer distribution are separate release steps.
-- The included workflow defines both platform builds. It has not been run merely by adding it to this source tree.
+- macOS 13+: `native/macos/package.sh` builds a universal (Apple Silicon/Intel), local ad-hoc signed `.app` using Swift/AppKit/WebKit. Developer ID signing, notarization and installer distribution are separate release steps.
+- The repository workflow builds both platforms and runs the web/location tests. CI artifacts are test builds; signing/notarization and live-server/device acceptance are still required.
 
 At first launch, enter the administrator-provided HTTPS server origin. Both apps open `/sidra-staff/`; all sign-in and application logic remains there. Server changes need no app update unless the native capabilities change. Android includes explicit device-location permission and document upload/download via platform pickers. Mac uses WebKit's file panels and download delegate; device geolocation depends on OS/WebKit permission support, with coordinate entry always available. These native capabilities need actual device/macOS testing.
 
