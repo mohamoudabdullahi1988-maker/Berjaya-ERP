@@ -3,3 +3,5 @@
 
 @media(max-width:720px){.topbar{height:auto;min-height:65px;gap:7px;flex-wrap:wrap;padding-top:9px;padding-bottom:9px}.top-actions{flex-wrap:wrap;gap:5px}.top-actions #period{font-size:9px;max-width:110px;padding:6px}.topbar #breadcrumb{font-size:10px}.company-label select{max-width:135px}}
 .metric-label{font-size:11px;color:#65785e}.metric-sub{font-size:10px;color:#75846d}th{font-size:10px;color:#71836a}.eyebrow{color:#6e7d63}.metric-label svg{color:#7e9273;flex-shrink:0}.metric-value{font-size:clamp(24px,2.3vw,34px)}.metric-unavailable{font-size:14px}
+
+.brand-icon{width:45px;height:45px;object-fit:contain;background:white;border-radius:7px;padding:3px}@media(max-width:720px){.brand-icon{width:35px;height:35px}}
