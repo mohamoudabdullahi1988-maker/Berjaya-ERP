@@ -11,8 +11,8 @@
 import frappe
 
 BRAND_NAME = "Sidra Homes"
-LOGO = "/assets/sidra_realestate/images/sidra-logo.svg"
-ICON = "/assets/sidra_realestate/images/sidra-icon.svg"
+LOGO = "/assets/sidra_realestate/images/sidra-logo.png"
+ICON = "/assets/sidra_realestate/images/favicon.png"
 
 MODULE_PROFILE = "Sidra Staff"
 # Decision of 7 Nov 2026 (Mohamoud): hidden for Sidra staff. Accounts, Selling and CRM stay.

@@ -5,7 +5,7 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 ## [Unreleased]
 
 ### Added (white-label and navigation, Mohamoud 7 Nov 2026)
-- Sidra Homes branding: system and website name, navbar logo, favicon, login splash, website footer; contract print and README carry the logo (`sidra_realestate/branding.py`, `public/images/`). Interim mark in the brand colour until the official artwork file is added
+- Sidra Homes branding: system and website name, navbar logo, favicon, login splash, website footer; contract print and README carry the official Sidra Homes logo (`sidra_realestate/branding.py`; `public/images/sidra-logo.png`, `sidra-icon.png`, `favicon.png`)
 - One "Sidra Homes" app on the apps screen and rail with two sections from shipped Dock / Sidebar records: **Real Estate** (schemes, plots, reservations, price history, sale contracts, profiles, clauses, contract settings, customers) and **Construction** (construction jobs, customers)
 - Module Profile "Sidra Staff" hides Manufacturing, Stock, Projects, Buying, Quality, Support, Assets, Subcontracting and Maintenance for staff (hidden, not deleted); demo users get it
 

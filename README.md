@@ -1,4 +1,4 @@
-<p align="center"><img src="sidra_realestate/public/images/sidra-logo.svg" alt="Sidra Homes" width="320"></p>
+<p align="center"><img src="sidra_realestate/public/images/sidra-logo.png" alt="Sidra Homes" width="320"></p>
 
 # Sidra Real Estate — ERPNext app (`sidra_realestate`)
 

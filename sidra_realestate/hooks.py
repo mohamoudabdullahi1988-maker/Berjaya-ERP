@@ -1,6 +1,6 @@
 app_name = "sidra_realestate"
 app_title = "Sidra Homes"
-app_logo_url = "/assets/sidra_realestate/images/sidra-logo.svg"
+app_logo_url = "/assets/sidra_realestate/images/sidra-logo.png"
 app_publisher = "Mohamoud Abdullahi Sheikh"
 app_description = (
 	"Sidra Real Estate on ERPNext: land and house sales, Murabaha / installment "
@@ -25,7 +25,7 @@ fixtures = [
 add_to_apps_screen = [
 	{
 		"name": app_name,
-		"logo": "/assets/sidra_realestate/images/sidra-icon.svg",
+		"logo": "/assets/sidra_realestate/images/sidra-icon.png",
 		"title": "Sidra Homes",
 		"has_permission": "sidra_realestate.branding.has_app_permission",
 		"sequence_id": 0,
@@ -33,8 +33,8 @@ add_to_apps_screen = [
 ]
 
 website_context = {
-	"favicon": "/assets/sidra_realestate/images/sidra-icon.svg",
-	"splash_image": "/assets/sidra_realestate/images/sidra-logo.svg",
+	"favicon": "/assets/sidra_realestate/images/favicon.png",
+	"splash_image": "/assets/sidra_realestate/images/sidra-logo.png",
 }
 
 after_install = "sidra_realestate.install.after_install"
