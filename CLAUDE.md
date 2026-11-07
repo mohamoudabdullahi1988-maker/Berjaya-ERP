@@ -10,7 +10,7 @@ You are the **implementation** agent for Sidra Real Estate's ERPNext system. Rea
 
 ## Roles
 - ChatGPT: architecture, specs, acceptance criteria, security and code review.
-- Claude Code (you): code, DocTypes, UI, tests, pull requests.
+- Claude Code (you): code, DocTypes, UI, tests, pull requests. Confirmed by Mohamoud on 7 Nov 2026, including the contract capture brief (`docs/CONTRACT-CAPTURE_v0.3.md`), whose Codex role is superseded.
 - Mohamoud / Sidra management: final approval.
 
 ## Hard rules
