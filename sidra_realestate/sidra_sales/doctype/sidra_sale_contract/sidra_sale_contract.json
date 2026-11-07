@@ -8,6 +8,9 @@
  "field_order": [
   "naming_series",
   "contract_type",
+  "source",
+  "external_reference",
+  "external_reference_key",
   "customer",
   "company",
   "currency",
@@ -26,6 +29,24 @@
   "installments",
   "due_day",
   "grace_months",
+  "section_captured",
+  "down_payment_mode",
+  "terms_summary",
+  "section_d6",
+  "penalty_type",
+  "penalty_per_day",
+  "penalty_monthly_cap",
+  "penalty_fixed_amount",
+  "notice_days",
+  "default_trigger_missed",
+  "column_break_d6",
+  "refund_retention_type",
+  "refund_retention_value",
+  "title_deadline_days",
+  "title_penalty_type",
+  "title_penalty_amount",
+  "title_refund_after_days",
+  "title_refund_compensation_pct",
   "section_parties",
   "buyer_agent_name",
   "buyer_agent_phone",
@@ -41,7 +62,14 @@
   "section_clauses",
   "clauses",
   "section_schedule",
-  "schedule"
+  "schedule",
+  "schedule_total",
+  "amount_due",
+  "column_break_totals",
+  "schedule_difference",
+  "section_approval",
+  "terms_approved_by",
+  "terms_approved_on"
  ],
  "fields": [
   {
@@ -63,6 +91,33 @@
    "in_list_view": 1,
    "in_standard_filter": 1,
    "set_only_once": 1
+  },
+  {
+   "fieldname": "source",
+   "fieldtype": "Select",
+   "label": "Source",
+   "options": "External (registered)\nGenerated from profile",
+   "default": "External (registered)",
+   "set_only_once": 1,
+   "depends_on": "eval:doc.contract_type=='Installment'",
+   "mandatory_depends_on": "eval:doc.contract_type=='Installment'",
+   "description": "External: a contract prepared outside the system; the attached original governs (CC-01)."
+  },
+  {
+   "fieldname": "external_reference",
+   "fieldtype": "Data",
+   "label": "External Reference",
+   "depends_on": "eval:doc.contract_type=='Installment' && doc.source=='External (registered)'",
+   "description": "The contract's own number. Required to confirm; unique per Company among confirmed contracts."
+  },
+  {
+   "fieldname": "external_reference_key",
+   "fieldtype": "Data",
+   "label": "External Reference (confirmed)",
+   "read_only": 1,
+   "hidden": 1,
+   "unique": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "customer",
@@ -108,7 +163,8 @@
    "options": "Sidra Contract Profile",
    "set_only_once": 1,
    "depends_on": "eval:doc.contract_type=='Installment'",
-   "mandatory_depends_on": "eval:doc.contract_type=='Installment'"
+   "mandatory_depends_on": "eval:doc.contract_type=='Installment' && doc.source=='Generated from profile'",
+   "description": "Required for Generated contracts. For External contracts it is optional and only pre-fills the captured terms."
   },
   {
    "fieldname": "amended_from",
@@ -160,7 +216,7 @@
    "fieldtype": "Currency",
    "label": "Down Payment",
    "options": "currency",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.source!='External (registered)' || doc.down_payment_mode!='Recorded separately'"
   },
   {
    "fieldname": "balance",
@@ -173,19 +229,147 @@
    "fieldname": "installments",
    "fieldtype": "Int",
    "label": "Installments",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
    "fieldname": "due_day",
    "fieldtype": "Int",
    "label": "Due Day",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
    "fieldname": "grace_months",
    "fieldtype": "Int",
    "label": "Grace Months",
-   "read_only": 1
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "section_captured",
+   "fieldtype": "Section Break",
+   "label": "Captured terms (summary of the attached contract)",
+   "depends_on": "eval:doc.contract_type=='Installment' && doc.source=='External (registered)'"
+  },
+  {
+   "fieldname": "down_payment_mode",
+   "fieldtype": "Select",
+   "label": "Down Payment Mode",
+   "options": "None\nIncluded in schedule\nRecorded separately",
+   "default": "None",
+   "depends_on": "eval:doc.contract_type=='Installment' && doc.source=='External (registered)'",
+   "description": "Included: Down payment rows in the schedule. Recorded separately: an amount outside the schedule (D1)."
+  },
+  {
+   "fieldname": "terms_summary",
+   "fieldtype": "Text",
+   "label": "Terms Summary",
+   "depends_on": "eval:doc.contract_type=='Installment' && doc.source=='External (registered)'",
+   "description": "Captured summary; the attached document governs."
+  },
+  {
+   "fieldname": "section_d6",
+   "fieldtype": "Section Break",
+   "label": "Penalty, default and title terms — recorded only, not applied",
+   "depends_on": "eval:doc.contract_type=='Installment'",
+   "collapsible": 1
+  },
+  {
+   "fieldname": "penalty_type",
+   "fieldtype": "Select",
+   "label": "Penalty Type",
+   "options": "\nNone\nPer Day Capped\nFixed After Notice",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "penalty_per_day",
+   "fieldtype": "Currency",
+   "label": "Amount per Day",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'",
+   "options": "currency"
+  },
+  {
+   "fieldname": "penalty_monthly_cap",
+   "fieldtype": "Currency",
+   "label": "Monthly Cap",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'",
+   "options": "currency"
+  },
+  {
+   "fieldname": "penalty_fixed_amount",
+   "fieldtype": "Currency",
+   "label": "Fixed Amount",
+   "depends_on": "eval:doc.penalty_type=='Fixed After Notice'",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'",
+   "options": "currency"
+  },
+  {
+   "fieldname": "notice_days",
+   "fieldtype": "Int",
+   "label": "Written Notice Days",
+   "depends_on": "eval:doc.penalty_type=='Fixed After Notice'",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "default_trigger_missed",
+   "fieldtype": "Int",
+   "label": "Consecutive Missed Installments for Review",
+   "description": "0 = off",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "column_break_d6",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "refund_retention_type",
+   "fieldtype": "Select",
+   "label": "Refund Retention",
+   "options": "\nNone\nOne Installment\nFixed\nPercent",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "refund_retention_value",
+   "fieldtype": "Float",
+   "label": "Retention Amount or %",
+   "depends_on": "eval:in_list(['Fixed','Percent'], doc.refund_retention_type)",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "title_deadline_days",
+   "fieldtype": "Int",
+   "label": "Title Deadline (days after final payment)",
+   "description": "Blank or 0 = the contract does not say.",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "title_penalty_type",
+   "fieldtype": "Select",
+   "label": "Sidra Title Delay Penalty",
+   "options": "\nNone\nPer Day\nPer Month",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "title_penalty_amount",
+   "fieldtype": "Currency",
+   "label": "Title Delay Amount",
+   "depends_on": "eval:doc.title_penalty_type!='None'",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'",
+   "options": "currency"
+  },
+  {
+   "fieldname": "title_refund_after_days",
+   "fieldtype": "Int",
+   "label": "Buyer Refund Right After (days)",
+   "description": "0 = off",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "title_refund_compensation_pct",
+   "fieldtype": "Percent",
+   "label": "Refund Compensation %",
+   "depends_on": "title_refund_after_days",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
    "fieldname": "section_parties",
@@ -233,7 +417,7 @@
   {
    "fieldname": "signed_copy",
    "fieldtype": "Attach",
-   "label": "Signed Copy",
+   "label": "Original Signed Contract",
    "description": "Scan of the signed, notarised contract. Must be a private file; required to submit."
   },
   {
@@ -276,13 +460,61 @@
   {
    "fieldname": "section_schedule",
    "fieldtype": "Section Break",
-   "label": "Installment Schedule (INS-02, INS-14)"
+   "label": "Installment Schedule (INS-02, INS-14; CC-05)"
   },
   {
    "fieldname": "schedule",
    "fieldtype": "Table",
    "label": "Schedule",
    "options": "Sidra Installment Line",
+   "no_copy": 1,
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "schedule_total",
+   "fieldtype": "Currency",
+   "label": "Schedule Total",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "amount_due",
+   "fieldtype": "Currency",
+   "label": "Amount Due in Schedule",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_totals",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "schedule_difference",
+   "fieldtype": "Currency",
+   "label": "Difference (amount due − schedule)",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_approval",
+   "fieldtype": "Section Break",
+   "label": "Approval (INS-19, D7)"
+  },
+  {
+   "fieldname": "terms_approved_by",
+   "fieldtype": "Link",
+   "label": "Terms Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "terms_approved_on",
+   "fieldtype": "Datetime",
+   "label": "Terms Approved On",
    "read_only": 1,
    "no_copy": 1
   }
@@ -290,7 +522,7 @@
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-06 16:00:00.000000",
+ "modified": "2026-11-07 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Sales",
  "name": "Sidra Sale Contract",

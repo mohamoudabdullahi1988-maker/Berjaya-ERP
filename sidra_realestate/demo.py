@@ -259,6 +259,7 @@ def _contract(marker, company, customer, profile, units, notary_reference, submi
 		{
 			"doctype": "Sidra Sale Contract",
 			"contract_type": "Installment",
+			"source": "Generated from profile",
 			"customer": customer,
 			"company": company,
 			"signed_on": today(),

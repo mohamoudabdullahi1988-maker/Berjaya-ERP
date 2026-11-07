@@ -4,6 +4,16 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (contract capture: docs/CONTRACT-CAPTURE_v0.3.md, decisions D1–D7, issue #13)
+- Register contracts prepared outside the system: `Sidra Sale Contract.source` (External (registered), the default, or Generated from profile), external reference unique per Company among confirmed contracts (transaction-safe key), original signed contract attachment, captured terms, terms summary
+- Actual schedules entered row by row (Installment / Down payment / Fee, same-day and past dates allowed); Fill Schedule (`propose_schedule`) proposes rows only when asked and replaces only after confirmation
+- Reconciliation: schedule total, amount due and difference (D1 down payment mode, D2 fee rows); confirmation within the Contract Settings tolerance ($5.00, D3) after acknowledgement, stored in the snapshot
+- D5: External confirmation needs only the original document and validates signing data where present; Generated contracts keep the full gate
+- D6: penalty, default and title terms captured on the contract (profile range checks reused), frozen at confirmation, never applied
+- D7: `terms_approved_by` / `terms_approved_on` and the same in the snapshot
+- `Sidra Contract Settings` (schedule tolerance); print shows "Registered copy of an external contract" and row types
+- Patch `v0_3.set_contract_source`: existing installment contracts become Generated, rows typed Installment, totals back-filled
+
 ### Added (decisions of 7 Nov 2026)
 - `docs/DECISIONS-AND-GATES_v0.1.md`: G1 configurable installment terms (12–36 months and between), G2 penalties as a waiting period plus an amount, G3 no Murabaha, G4 ERPNext as the only ledger, G5 import capability now and migration later, G6 merge on green CI, G7 Codex continues when Claude Code's limit is reached, G8 zip removed
 - `AGENTS.md` for Codex, pointing to `CLAUDE.md`
