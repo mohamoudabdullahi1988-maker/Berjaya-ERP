@@ -2,11 +2,11 @@
 
 6 Nov 2026 · private staging from `develop`. Pinned versions: `docs/ENVIRONMENT_v0.1.md`.
 
-Status: **no staging server exists yet** (handover §8, open item owned by Mohamoud). Every step below was rehearsed end to end in a disposable container. That covered a fresh site, install, migrate, build, regional settings, demo data, real PDFs from the Chrome generator, and staff screens for each role, but it is not a hosted staging site. Section 6 lists what is still needed.
+Status (7 Nov 2026): a **test VPS** is running (Contabo, France, Ubuntu, 7.8 GB RAM, site `sidra.local`, bench at `/home/frappe/sidra/frappe-bench`, reached by IP over HTTP). It is a test server, not the final staging site: HTTPS, a DNS name, backups and access rules (section 6) are still open. The steps below were first rehearsed in a disposable container; section 1.1 records what the VPS needed on top.
 
 Boundaries on staging (CLAUDE.md, SRS v2.0 §3.4, §9):
 - synthetic data only;
-- Profile B stays on legal hold;
+- Profile B has no legal hold since decision D4 (issue #13); it is lifted only by the seed / patch;
 - no vouchers, payments, penalties, refunds or title transfer;
 - the first-due-date rule stays as built until Mohamoud decides (issue #1).
 
@@ -20,6 +20,16 @@ Boundaries on staging (CLAUDE.md, SRS v2.0 §3.4, §9):
 | Web | nginx + supervisor from `bench setup production`, HTTPS (Let's Encrypt) on a temporary subdomain until Sidra chooses a web address |
 | Users | A non-root Linux user (for example `frappe`); `bench` refuses to initialise as root |
 | Backups | `bench backup --with-files` daily, encrypted, with an off-server copy; a restore rehearsed before UAT (SRS v2.0 §2.2) |
+
+### 1.1 Lessons from the test VPS (7 Nov 2026)
+
+| Problem | Fix |
+| --- | --- |
+| Claude Code (and other tools) timed out reaching their servers: the VPS's IPv6 route was broken | Turn IPv6 off: `net.ipv6.conf.all.disable_ipv6=1` and `net.ipv6.conf.default.disable_ipv6=1` in `/etc/sysctl.d/99-disable-ipv6.conf`, then `sysctl --system` |
+| The login page loaded without styles and nobody could log in | Ubuntu 24.04 home folders are private (mode 750), so nginx could not read `sites/assets`. Make every folder above the bench readable, e.g. `chmod 755 /home/frappe /home/frappe/sidra`, then `bench build` and `systemctl reload nginx` |
+| The site did not answer on the server's IP | Make it the default site: `bench use sidra.local` (sets `default_site`) |
+| The provider shut the VPS down overnight (31 minutes) and the session was lost | Run long jobs inside `tmux`; check `last -x` after a restart |
+| Write access was given to the deploy key | Protect `main` and `develop` (pull request and green CI required) before letting the server push |
 
 ## 2. Install
 
@@ -44,13 +54,16 @@ Install the app **after** ERPNext, as the rehearsal did. A fresh install also ne
 
 Notes:
 - `bench get-app` resolves short names through the GitHub API; use full URLs behind proxies.
-- `install-app` and `migrate` create the Sidra roles (fixture), the Sidra role profiles, Profile A and Profile B (B on legal hold), and the five clause records (no wording). They also run the patches below.
+- `install-app` and `migrate` create the Sidra roles (fixture), the Sidra role profiles, Profile A and Profile B (20-day title deadline, no hold), the five clause records (no wording), the contract settings ($5.00 tolerance), the Sidra Homes branding and the Module Profile "Sidra Staff". They also run the patches below.
+- Give staff users **Module Profile = Sidra Staff** so unused ERPNext modules are hidden (branding.py).
 
 | Patch | Effect |
 | --- | --- |
 | `v0_2.create_initial_unit_prices` | First price history entry for units priced before price history existed |
 | `v0_2.set_notary_reference_keys` | Fills the unique notary key for signed contracts. Stops with a message if two signed contracts share a reference. |
 | `v0_2.set_document_currency` | Sets `currency` on contracts and construction jobs from their Company |
+| `v0_3.resolve_profile_b_title_deadline` | Decision D4: Profile B gets 20 days and no hold, only if it still has the seeded hold values |
+| `v0_3.set_contract_source` | Existing installment contracts become "Generated from profile"; rows typed Installment; totals back-filled |
 
 ## 3. Staff accounts
 
@@ -132,8 +145,10 @@ cd frappe-bench
 bench --site <staging-site> backup --with-files
 bench update --pull --apps sidra_realestate --no-backup   # or: cd apps/sidra_realestate && git pull
 bench --site <staging-site> migrate
-bench build --app sidra_realestate
+bench build
 bench restart
 ```
+
+Run `migrate` twice after a release that adds patches (role-profile lesson from PR #12), and `bench build` for all apps, not only `sidra_realestate`, when the branding or assets change.
 
 To roll back, check out the previous commit of `sidra_realestate`, then `bench --site <staging-site> restore <backup>` if a patch changed data, then migrate and restart. The current patches only add data (history rows, keys, currency); none removes or rewrites business amounts.
