@@ -78,8 +78,49 @@ def create_demo_data(company: str | None = None) -> dict:
 	)
 	summary["construction_job"] = _construction_job(company)
 	summary["registered_contracts"] = _registered_contracts(company)
+	summary["migration_units"] = _ensure_migration_units(company)
 	frappe.db.commit()
 	return summary
+
+
+# ---------------------------------------------------------------- sample migration (G5)
+MIGRATION_SCHEME = "DEMO-MIGRATION"
+
+
+def _ensure_migration_units(company) -> list[str]:
+	"""Free plots for docs/samples/SAMPLE-LIVE-CONTRACTS_v0.1.csv, imported with Contract Import."""
+	if not frappe.db.exists("Sidra Scheme", MIGRATION_SCHEME):
+		frappe.get_doc(
+			{
+				"doctype": "Sidra Scheme",
+				"scheme_code": MIGRATION_SCHEME,
+				"scheme_name": "Demo Migration Plots",
+				"company": company,
+				"location": "Demo location",
+				"district": "Demo District",
+				"neighbourhood": "Demo Neighbourhood",
+			}
+		).insert(ignore_permissions=True)
+	names = []
+	for i in range(1, 10):
+		code = f"DEMO-M-{i:03d}"
+		names.append(code)
+		if not frappe.db.exists("Sidra Unit", code):
+			frappe.get_doc(
+				{
+					"doctype": "Sidra Unit",
+					"unit_code": code,
+					"scheme": MIGRATION_SCHEME,
+					"unit_type": "Plot",
+					"plot_fraction": "Half",
+					"dimensions": "9×24 m",
+					"district": "Demo District",
+					"neighbourhood": "Demo Neighbourhood",
+					"land_parcel": "Demo Parcel",
+					"cash_price": 5500,
+				}
+			).insert(ignore_permissions=True)
+	return names
 
 
 # ---------------------------------------------------------------- contract capture (brief §6.5)

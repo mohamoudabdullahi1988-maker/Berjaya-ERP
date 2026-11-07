@@ -123,6 +123,7 @@ The demo data is synthetic and safe to run more than once. It never runs unless 
 | 16 | demo.sales | New Sidra Sale Contract (Source External): units, price, reference, months / due day / grace → save → **Fill Schedule** → edit a row → save | Rows kept as edited; totals and difference update; Fill Schedule again asks before replacing |
 | 17 | demo.finance | Accounting reports for Sidra Demo Homes | No Sales Order, invoice, payment, journal or GL entry from any contract |
 | 18 | demo.manager | Real Estate → **Contract Import** → new → attach a CSV made from `/assets/sidra_realestate/templates/sidra_contract_import_template.csv` → **Validate** → **Import** | Validate creates nothing and lists any row errors; Import creates draft registered contracts with their schedules; importing the same file again skips them |
+| 19 | demo.manager | Contract Import with `/assets/sidra_realestate/templates/sample_live_contracts.csv`, Company Sidra Demo Homes, **Create Missing Customers** ticked → Validate → Import | 8 draft contracts MIG-0001 to MIG-0008 on plots DEMO-M-001 to 009, each reconciling to its amount due |
 
 Rehearsal result (6 Nov 2026, container, Frappe v16.55.2 / ERPNext v16.53.0, MariaDB 10.11): items 1, 2, 4, 5, 6, 8 and 9 passed through the browser as the named users. Items 3, 7 and 10 are covered by the automated tests (`test_cancel_releases_unit`, `test_*signed_copy*`, `test_approving_clause_later_unblocks_existing_draft`).
 
