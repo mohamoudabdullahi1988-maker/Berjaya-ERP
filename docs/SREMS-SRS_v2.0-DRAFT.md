@@ -2,6 +2,8 @@
 
 > **Repository note (5 Nov 2026, Mohamoud):** v2.0-DRAFT is the working specification for implementation. The repository stays `sidra-erp` and the app keeps the name `sidra_realestate`; read `sidra_real_estate` below as `sidra_realestate` (so `sidra_real_estate.services…` is `sidra_realestate.services…`). Handover v1.0 stays in force where this draft is silent. Questions on this draft are GitHub issues labelled `spec-question`.
 
+> **Decision note (7 Nov 2026, recording Mohamoud's decision D4 of 6 Nov 2026, issue #13):** Contract B's title deadline is **20 days** after final payment; the 14 days in the contract text is a typo. The 14/20-day conflict in §1.4, §3.3 and §9.1 is resolved, and Profile B's legal hold is lifted as `docs/CONTRACT-CAPTURE_v0.3.md` section 6 specifies.
+
 **Document ID:** SREMS-SRS  
 **Version:** v2.0-DRAFT (ERPNext redesign; not an approved functional baseline)  
 **Date:** 5 November 2026  
@@ -15,7 +17,7 @@
 1. Retain the five **business requirement areas** from v1.6: Construction Projects, Property Inventory & Sales, Murabaha/Installments & Collections, Finance & Accounting, and CRM/Portal/Notifications. Land brokerage remains in scope under property services.
 2. Replace Laravel/Filament/standalone MySQL tables with standard Frappe DocTypes and ERPNext-native documents. Avoid a second `customers`, `invoices`, `payments`, or general-ledger subsystem.
 3. Preserve source requirement identifiers `CON-*`, `SAL-*`, `INS-*`, `FIN-*`, `CRM-*` in backlog, stories, code comments and tests. See `REQUIREMENTS-TRACEABILITY.csv`.
-4. Preserve Profile A and Profile B **as described** in v1.6, allowing a non-submitted draft but with a submission legal hold on Profile B until its conflicting 14/20-day title deadline is resolved. Do not silently select one deadline.
+4. Preserve Profile A and Profile B **as described** in v1.6, allowing a non-submitted draft but with a submission legal hold on Profile B until its conflicting 14/20-day title deadline is resolved. Do not silently select one deadline. **Resolved 6 Nov 2026 (D4, issue #13): 20 days; the hold is lifted as specified in `docs/CONTRACT-CAPTURE_v0.3.md`.**
 5. Keep the v1.6 decision that contract terms vary by deal. Any profile override must undergo separate approval; **prototype prohibits overrides** and snapshots profile terms at contract creation.
 6. Record v1.6's choice of Sidra income for buyer-late penalties as a *source decision*, not as authorization to post them. Sharia/legal review is required; prototype only stores a `Pending Policy Sign-off` destination.
 7. Retain the business scope of **construction, design, inspection, land sales, house sales, and brokerage**. Leasing was discussed earlier as a possible generic capability, but is **not present in the supplied v1.6 scope** and is excluded unless management authorizes a change.
@@ -98,7 +100,7 @@
 
 **Profile A:** default 14 installments, down payment 0, grace 0, day 5, zero additional markup in specimen, $5/day buyer penalty capped at $150/month, 2 missed months trigger cancellation **review** (not automatic cancellation), title due 20 days after final *verified* payment, $5/day late-title term. Term storage is implemented; legal/financial enforcement is not.
 
-**Profile B:** 24 installments, fixed $3,000 down, 3 months' grace, day 10, fixed $100 after written notice of 15 days, $220/month late-title term and possible refund+10% after 90 days. **Legal hold** until original contract clauses reconcile 14-day vs 20-day title deadline. Production contract signing under this profile is prohibited until resolved.
+**Profile B:** 24 installments, fixed $3,000 down, 3 months' grace, day 10, fixed $100 after written notice of 15 days, $220/month late-title term and possible refund+10% after 90 days. Title deadline **20 days** after final payment (D4, issue #13, 6 Nov 2026: the 14 days in the contract text is a typo). The former legal hold is lifted as specified in `docs/CONTRACT-CAPTURE_v0.3.md`; until that change is merged and migrated, a site may still show Profile B as held.
 
 **Hagbad examples:** full plot $11,000 / 14 months / no down -> 13 × $786 + $782 final. Half plot $5,500 / 22 months -> 22 × $250. Existing price agreement prevails over generic financing example.
 
@@ -211,7 +213,7 @@ The v1.6 source anticipated six phases over approximately 23 weeks for a small t
 
 The following must **not** be silently decided by an AI coding agent:
 
-1. Contract B legal title transfer deadline conflicts (14 vs 20 days); Profile B stays blocked.
+1. ~~Contract B legal title transfer deadline conflicts (14 vs 20 days); Profile B stays blocked.~~ **Resolved 6 Nov 2026 (D4, issue #13): 20 days; hold lifted per `docs/CONTRACT-CAPTURE_v0.3.md`.**
 2. Source v1.6 says buyer late penalties retained as Sidra income, but earlier INS-10 specified charity. Legal/Sharia/Finance must approve enforceability and treatment.
 3. The v1.6 Murabaha formula uses a cash offer price minus down payment; this is not the same as asset carrying cost. Approved contract classification and revenue/profit recognition method are required.
 4. The source says main accounting ledger undecided. The new architectural recommendation is ERPNext as single ledger, subject to Sidra sign-off.

@@ -4,6 +4,9 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Changed (decision D4, issue #13)
+- `CLAUDE.md` rule 3 and `docs/SREMS-SRS_v2.0-DRAFT.md` (§1.4, §3.3 Profile B, §9 item 1) record that Contract B's title deadline is 20 days and that Profile B's legal hold is lifted only through the D4 seed / patch; rule 3 also records D7 for registered contracts. Docs only: the seed and patch in `docs/CONTRACT-CAPTURE_v0.3.md` are not part of this change
+
 ### Fixed (ChatGPT review of develop @ cbce4f3)
 - Signed copy: must be a private file attached to this contract's Signed Copy field, on disk, readable by the submitter and used by no other record; a pasted or re-used file URL is refused
 - Lock order: units are locked first (ascending name), then reservations, in reserve, cancel, expiry and contract submit
