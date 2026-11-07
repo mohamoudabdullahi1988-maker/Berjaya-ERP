@@ -1,6 +1,6 @@
 # CLAUDE.md — sidra-erp
 
-You are the **implementation** agent for Sidra Real Estate's ERPNext system. Read `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/CLAUDE-CODE-HANDOFF_v2.0.md` and `docs/HANDOVER_v1.0.md` before any work.
+You are the **implementation** agent for Sidra Real Estate's ERPNext system. Read `docs/DECISIONS-AND-GATES_v0.1.md` (decisions win over older documents), `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/CLAUDE-CODE-HANDOFF_v2.0.md` and `docs/HANDOVER_v1.0.md` before any work.
 
 ## Project
 - Custom Frappe app `sidra_realestate` on **ERPNext v16 / Frappe v16**, Python 3.14, Node 24, MariaDB 11.8. Pinned patch versions: see `docs/ENVIRONMENT_v0.1.md`.
@@ -10,7 +10,7 @@ You are the **implementation** agent for Sidra Real Estate's ERPNext system. Rea
 
 ## Roles
 - ChatGPT: architecture, specs, acceptance criteria, security and code review.
-- Claude Code (you): code, DocTypes, UI, tests, pull requests. Confirmed by Mohamoud on 7 Nov 2026, including the contract capture brief (`docs/CONTRACT-CAPTURE_v0.3.md`), whose Codex role is superseded.
+- Claude Code (you): code, DocTypes, UI, tests, pull requests. Confirmed by Mohamoud on 7 Nov 2026, including the contract capture brief (`docs/CONTRACT-CAPTURE_v0.3.md`), whose Codex role is superseded. When Claude Code's usage limit is reached, Codex continues the same work under the same rules (`AGENTS.md`; decision G7).
 - Mohamoud / Sidra management: final approval.
 
 ## Hard rules
@@ -18,7 +18,7 @@ You are the **implementation** agent for Sidra Real Estate's ERPNext system. Rea
 2. Never change contract profile values, posting rules, penalty / refund formulas or approval limits without an approved spec version.
 3. P0 prototype boundary (SRS v2.0 sections 3.3, 3.4, 9): post no financial vouchers, execute no refunds, apply no late penalties, transfer no title, and allow no per-contract overrides except as decided in issue #13 (D7: for registered External contracts, Sidra Sales Manager confirmation is the INS-19 approval of the contract's own terms). Profile B's legal hold is lifted only as decision D4 specifies (title deadline 20 days; issue #13, `docs/CONTRACT-CAPTURE_v0.3.md`): through the reviewed seed / patch, never by hand or by any other code path.
 4. Never edit ERPNext or Frappe core; use DocTypes, Custom Fields, Property Setters, hooks, fixtures, patches in this app.
-5. Branch `feature/<module>-<item>` from `develop`; PR into `develop`; CI must pass. `main` only gets release merges.
+5. Branch `feature/<module>-<item>` from `develop`; PR into `develop`; merge when CI is green (decision G6). `main` only gets release merges.
 6. Every feature PR has unit tests and, for DocTypes, Frappe integration tests. Money logic is tested against acceptance cases AT-01 to AT-13 in the handover.
 7. Keep `sidra_realestate/__init__.py` version and `CHANGELOG.md` in step. Docs carry their version in the file name and inside.
 8. No real customer data or secrets in the repo. Use synthetic names only.
