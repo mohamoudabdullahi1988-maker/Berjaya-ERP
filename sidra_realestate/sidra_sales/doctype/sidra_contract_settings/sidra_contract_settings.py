@@ -17,9 +17,11 @@ class SidraContractSettings(Document):
 
 def _stored():
 	"""The stored value, or None when the setting has never been saved (get_single_value casts None to 0)."""
-	return frappe.db.get_value(
-		"Singles", {"doctype": "Sidra Contract Settings", "field": "schedule_tolerance"}, "value"
+	rows = frappe.db.sql(
+		"select value from `tabSingles` where doctype=%s and field=%s",
+		("Sidra Contract Settings", "schedule_tolerance"),
 	)
+	return rows[0][0] if rows else None
 
 
 def schedule_tolerance() -> float:
