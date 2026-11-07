@@ -41,8 +41,9 @@ class TestStaffPage(IntegrationTestCase):
 def _page_module():
 	"""The www page module (its folder name has a hyphen, so it is loaded by path)."""
 	import importlib.util
+	import os
 
-	path = frappe.get_app_path("sidra_realestate", "www", "sidra-staff", "index.py")
+	path = os.path.join(frappe.get_app_path("sidra_realestate"), "www", "sidra-staff", "index.py")
 	spec = importlib.util.spec_from_file_location("sidra_staff_page", path)
 	module = importlib.util.module_from_spec(spec)
 	spec.loader.exec_module(module)

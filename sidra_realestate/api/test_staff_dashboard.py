@@ -72,6 +72,8 @@ class TestStaffDashboard(IntegrationTestCase):
 		self.assertFalse(data["payments"]["available"])  # never zero receipts
 		self.assertTrue(data["payments"]["reason"])
 		self.assertFalse(data["sales"]["available"])
+		self.assertFalse(data["jobs"]["available"])  # Sales Manager has no construction access
+		self.assertTrue(all(loc["doctype"] == "Sidra Unit" for loc in data["locations"]))
 		mine = [c for c in data["contracts"] if c["id"] == doc.name]
 		self.assertEqual((mine[0]["status"], mine[0]["value"]), ("Confirmed", "1200.00"))
 		upcoming = [r for r in data["schedule"]["upcoming"] if r["contract_id"] == doc.name]

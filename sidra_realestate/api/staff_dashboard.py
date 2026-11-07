@@ -261,6 +261,8 @@ def _locations(company):
 		("Sidra Unit", "unit_code", "scheme"),
 		("Sidra Construction Job", "customer", "site_location"),
 	):
+		if not frappe.has_permission(doctype, "read"):
+			continue  # roles without access to this record type see none of its pins
 		fields = ["name", label_field, area_field, "status", "modified", "sidra_location"]
 		if doctype == "Sidra Construction Job":
 			fields.append("gps")
@@ -288,6 +290,8 @@ def _locations(company):
 
 
 def _jobs(company, today):
+	if not frappe.has_permission("Sidra Construction Job", "read"):
+		return {"available": False, "reason": "Your role does not include construction jobs."}
 	jobs = frappe.get_list(
 		"Sidra Construction Job",
 		filters={"company": company},
