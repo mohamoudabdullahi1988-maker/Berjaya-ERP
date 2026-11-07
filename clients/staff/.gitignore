@@ -1,0 +1,10 @@
+node_modules/
+.build/
+.gradle/
+**/build/
+native/macos/dist/
+local.properties
+*.keystore
+*.jks
+__pycache__/
+.env
