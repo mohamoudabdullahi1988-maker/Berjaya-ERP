@@ -4,6 +4,9 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (staff clients backend: locations)
+- `sidra_realestate/api/locations.py` and `location_geometry.py`: Codex's plot / site location adapter, reviewed and integrated (`get_location`, `set_location` with stale-edit refusal, `export_kml`); `sidra_location` Geolocation field added to Sidra Unit and Sidra Construction Job (existing GPS text kept); integration tests with real Sidra roles
+
 ### Added (sample migration data and brokerage spec)
 - `docs/samples/SAMPLE-LIVE-CONTRACTS_v0.1.csv` (also `/assets/sidra_realestate/templates/sample_live_contracts.csv`): 8 synthetic live contracts, 182 schedule rows (12 to 36 months, both down-payment modes, a fee row, a two-plot contract); the demo adds free plots DEMO-M-001 to 009 for it, and `tests/test_demo.py` imports it
 - `docs/BROKERAGE_v0.1.md`: draft spec for approval: Sidra as broker for owners' plots and agent commission on Sidra's sales, 2.5 % of the plot price, due in full on the buyer's first payment, recorded not posted; acceptance tests BR-01 to BR-10
