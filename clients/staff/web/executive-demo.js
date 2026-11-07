@@ -4,9 +4,10 @@ const pad = value => String(value).padStart(3, '0');
 // Complete synthetic cohorts, not partial samples presented as reconciled totals.
 // Record generation here is fixture scaffolding, never live financial logic.
 const sales = report('/app/sidra-sale-contract?company=demo&status=Confirmed', ['Contract', 'Property', 'Agreed value'],
-  Array.from({length: 26}, (_, i) => [`EXT-DEMO-${101 + i}`, `Demo Plot C-${101 + i}`, 'US$11,000.00']));
+  [['EXT-DEMO-001', 'Demo Plot A-012', 'US$14,000.00'], ['EXT-DEMO-003', 'Demo Plot B-004', 'US$11,000.00'],
+    ...Array.from({length: 24}, (_, i) => [`EXT-DEMO-${101 + i}`, `Demo Plot C-${101 + i}`, i === 23 ? 'US$8,000.00' : 'US$11,000.00'])]);
 const cash = report('/app/payment-entry?company=demo&docstatus=1', ['Receipt', 'Contract', 'Received'],
-  Array.from({length: 26}, (_, i) => [`DEMO-PAY-${pad(i + 1)}`, `EXT-DEMO-${101 + i}`, ['US$1,250.00', 'US$750.00', 'US$2,000.00'][i] || 'US$1,500.00']));
+  sales.preview.rows.map((row, i) => [`DEMO-PAY-${pad(i + 1)}`, row[0], ['US$1,250.00', 'US$750.00', 'US$2,000.00'][i] || 'US$1,500.00']));
 const aging = report('/app/query-report/Demo%20Contract%20Aging?company=demo', ['Contract', 'Age', 'Unpaid'], [
   ['EXT-DEMO-004', '1–30 days', 'US$4,250.00'], ['EXT-DEMO-005', '31–60 days', 'US$2,000.00'],
   ['EXT-DEMO-006', '31–60 days', 'US$1,000.00'], ['EXT-DEMO-007', '61–90 days', 'US$1,250.00'],

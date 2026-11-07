@@ -50,6 +50,15 @@ test('complete fictional headline supporting cohorts reconcile to the displayed 
   const metrics = demo.executive.metrics;
   assert.equal(rows('sales_value').length, 26);
   assert.equal(sum(rows('sales_value'), 2), Number(metrics.sales_value.value));
+  for (const contract of demo.contracts.filter(row => row.status === 'Confirmed')) {
+    const evidence = rows('sales_value').find(row => row[0] === contract.reference);
+    assert(evidence, 'Operational confirmed contract is in the executive cohort');
+    assert.equal(amount(evidence[2]), Number(contract.value));
+    assert.equal(evidence[1], contract.unit_label);
+    assert(contract.signed_on >= '2026-11-01' && contract.signed_on <= '2026-11-07');
+  }
+  const confirmed = new Set(rows('sales_value').map(row => row[0]));
+  assert(rows('cash_collected').every(row => confirmed.has(row[1])));
   assert.equal(sum(rows('cash_collected'), 2), Number(metrics.cash_collected.value));
   assert.equal(rows('overdue_balance').length, demo.payments.overdue_contracts);
   assert.equal(sum(rows('overdue_balance'), 2), Number(metrics.overdue_balance.value));
