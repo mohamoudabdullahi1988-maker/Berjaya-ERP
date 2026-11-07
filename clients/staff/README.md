@@ -19,7 +19,7 @@ node tools/browser-smoke.mjs
 
 `?demo=1` is explicitly labelled fictional. Pins edited in preview are in-memory only. Without that parameter the page requests the live same-origin backend and shows failures honestly. The app keeps no local financial database and no offline private-data cache.
 
-The screens cover Sales/lead pipeline, posted Payments and overdue aging, existing Construction Job KPIs, contracts, scheduled installments, and shared plot/site locations. KPI definitions and permission rules are in [the API contract](docs/API-CONTRACT.md). Nothing calculates penalties, refunds, revenue recognition or title obligations on the client.
+The executive overview covers six headline cards, server-supplied targets, monthly sales/collections, management decisions with supporting records, business exposure, scope filters and freshness. Preview filters are fixed and disabled; live filters request new server snapshots. The screens also cover Sales/lead pipeline, posted Payments and overdue aging, existing Construction Job KPIs, contracts, scheduled installments, and shared plot/site locations. KPI definitions and permission rules are in [the API contract](docs/API-CONTRACT.md) and [executive API v0.1](docs/EXECUTIVE-API_v0.1.md). Nothing calculates penalties, refunds, revenue recognition or title obligations on the client.
 
 ## Native apps
 

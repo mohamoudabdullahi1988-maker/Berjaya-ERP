@@ -38,13 +38,13 @@ export function renderExecutive(data, {el, empty, preview}) {
   const currency = data?.currency || 'USD';
   const usable = executive?.available === true;
   const section = name => usable ? executive[name] : null;
-  const format = (value, kind = 'money') => value == null ? '—' : kind === 'money' ? compactMoney(value, currency) : String(value);
+  const format = (value, kind = 'money') => !numeric(value) ? '—' : kind === 'money' ? compactMoney(value, currency) : String(value);
   const stateClass = status => ['on_track', 'attention', 'critical'].includes(status) ? status : 'neutral';
 
   function openExample(drilldown, title) {
     const sample = drilldown.preview;
     $('evidence-title').textContent = title;
-    $('evidence-note').textContent = 'Fictional example selection. The live dashboard opens a permission-filtered ERPNext report.';
+    $('evidence-note').textContent = 'Complete fictional supporting cohort for this fixed preview. Live records require a permission-filtered ERPNext report.';
     $('evidence-body').replaceChildren(el('table', {}, [
       el('thead', {}, el('tr', {}, sample.columns.map(label => el('th', {}, label)))),
       el('tbody', {}, sample.rows.map(row => el('tr', {}, row.map(value => el('td', {}, value))))),
@@ -74,10 +74,10 @@ export function renderExecutive(data, {el, empty, preview}) {
         el('small', {class: 'target-caption'}, `${card.attainment_percent}% of target`));
       }
     }
-    if (card.available && card.id === 'available_units') children.push(el('div', {class: 'metric-sub'}, card.asking_value == null ? 'Asking value unavailable' : format(card.asking_value) + ' asking value'));
+    if (card.available && card.id === 'available_units') children.push(el('div', {class: 'metric-sub'}, !numeric(card.asking_value) ? 'Asking value unavailable' : format(card.asking_value) + ' asking value'));
     if (card.available && card.id === 'due_next_30_days') {
       const expected = card.expected_receipts;
-      children.push(el('div', {class: 'metric-sub'}, expected?.available && expected.value != null ? 'Expected receipts ' + format(expected.value) : 'Contractual dues · no cash forecast'));
+      children.push(el('div', {class: 'metric-sub'}, expected?.available === true && numeric(expected.value) ? 'Expected receipts ' + format(expected.value) : 'Contractual dues · no cash forecast'));
     }
     children.push(el('div', {class: 'metric-sub'}, card.available ? card.detail : card.reason));
     if (card.available && (preview && card.drilldown?.preview || reportPath(card.drilldown?.path))) children.push(el('span', {class: 'records-hint'}, 'View supporting records →'));
@@ -94,7 +94,7 @@ export function renderExecutive(data, {el, empty, preview}) {
 
   const trends = section('trends');
   $('trend-range').textContent = trends?.period_label || 'Monthly';
-  const months = trends?.available && Array.isArray(trends.months) ? trends.months : [];
+  const months = trends?.available === true && Array.isArray(trends.months) ? trends.months : [];
   const hasNumber = numeric;
   const hasTrend = months.some(month => hasNumber(month.sales_value) || hasNumber(month.received));
   if (!hasTrend) $('executive-trend').replaceChildren(empty(trends?.reason || 'Monthly sales and collection reporting is not connected.'));
@@ -105,13 +105,13 @@ export function renderExecutive(data, {el, empty, preview}) {
         hasNumber(month[key]) ? el('span', {class: 'trend-bar ' + style + (Number(month[key]) < 0 ? ' negative' : ''), style: `height:${Math.max(1, Math.abs(Number(month[key])) / scale * 138)}px`, title: `${month.label}: ${money(month[key], currency)}`}) : el('span', {class: 'trend-missing', title: 'Unavailable'}, '—'))), el('span', {class: 'trend-label'}, month.label)])));
     $('executive-trend').replaceChildren(chart, el('details', {class: 'trend-values'}, [el('summary', {}, 'View exact monthly values'),
       el('div', {class: 'table-wrap'}, el('table', {}, [el('thead', {}, el('tr', {}, ['Month', 'Confirmed sales', 'Cash collected'].map(label => el('th', {}, label)))),
-        el('tbody', {}, months.map(month => el('tr', {}, [month.label, money(month.sales_value, currency), money(month.received, currency)].map(value => el('td', {}, value)))))]))]));
+        el('tbody', {}, months.map(month => el('tr', {}, [month.label, numeric(month.sales_value) ? money(month.sales_value, currency) : '—', numeric(month.received) ? money(month.received, currency) : '—'].map(value => el('td', {}, value)))))]))]));
   }
 
   const decisions = section('decisions');
   $('decision-count').textContent = decisions?.available && decisions.total != null ? `${decisions.total} open` : 'Not connected';
   $('decision-list').replaceChildren(...(decisions?.available ? decisions.items?.length ? decisions.items.map(item => {
-    const impact = item.impact?.amount == null ? item.impact?.description || 'Impact not quantified' : money(item.impact.amount, item.impact.currency || currency) + ' · ' + item.impact.description;
+    const impact = !numeric(item.impact?.amount) ? item.impact?.description || 'Impact not quantified' : money(item.impact.amount, item.impact.currency || currency) + ' · ' + item.impact.description;
     return el('article', {class: 'decision-item'}, [
       el('div', {class: 'decision-heading'}, [el('span', {class: 'performance-state ' + stateClass(item.priority)}, item.priority_label || 'For review'), el('small', {}, item.reference)]),
       el('h3', {}, item.title), el('p', {class: 'decision-impact'}, impact),
@@ -124,7 +124,7 @@ export function renderExecutive(data, {el, empty, preview}) {
   const exposure = section('exposure');
   $('executive-exposure').replaceChildren(...(exposure?.available && exposure.items?.length ? exposure.items.map(item =>
     linked('article', {class: 'exposure-item'}, [el('small', {}, item.label),
-      el('strong', {}, item.available ? format(item.value, item.kind) : 'Unavailable'),
+      el('strong', {}, item.available === true && numeric(item.value) ? format(item.value, item.kind) : 'Unavailable'),
       el('p', {}, item.available ? item.detail : item.reason),
       ...(item.available && (preview && item.drilldown?.preview || reportPath(item.drilldown?.path)) ? [el('span', {class: 'records-hint'}, 'View records →')] : []),
     ], item.available ? item.drilldown : null, item.label)) : [empty(exposure?.reason || 'Cancellation, reservation and inventory-age exposure is not connected.')]));

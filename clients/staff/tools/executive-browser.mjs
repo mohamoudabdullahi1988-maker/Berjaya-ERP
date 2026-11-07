@@ -1,0 +1,118 @@
+import assert from 'node:assert/strict';
+import demo from '../web/demo.js';
+
+// Browser fixtures verify rendering/request behavior, not Frappe authorization or calculations.
+export async function executiveBrowser({call, js, wait, shot}) {
+  await call('Page.navigate', {url: 'http://127.0.0.1:4173/?demo=1'});
+  await wait('document.querySelectorAll("#metrics .executive-card").length === 6 && document.querySelector("#connection").textContent === "Fictional preview"');
+  assert.equal((await js('document.querySelectorAll("#metrics a").length')).value, 6);
+  assert.equal((await js('document.querySelectorAll(".trend-month").length')).value, 6);
+  assert.equal((await js('document.querySelectorAll(".decision-item").length')).value, 3);
+  assert.equal((await js('document.querySelectorAll(".exposure-item").length')).value, 4);
+  assert((await js('["company","project","period"].every(id => document.getElementById(id).disabled)')).value);
+  for (const [index, count] of [26, 26, 6, 8, 9, 42].entries()) {
+    await js(`document.querySelectorAll('#metrics a')[${index}].click()`);
+    assert((await js('document.querySelector("#evidence-dialog").open')).value);
+    assert.equal((await js('document.querySelectorAll("#evidence-body tbody tr").length')).value, count);
+    assert((await js('document.querySelector("#evidence-note").textContent')).value.includes('fictional'));
+    await js('document.querySelector("#evidence-dialog button").click()');
+  }
+  await js('document.querySelectorAll(".case-link")[0].click()');
+  assert((await js('document.querySelector("#evidence-body").textContent')).value.includes('4,250'));
+  await js('document.querySelector("#evidence-dialog button").click()');
+  for (const [index, count] of [2, 3, 42, 4].entries()) {
+    await js(`document.querySelectorAll('#executive-exposure a')[${index}].click()`);
+    assert.equal((await js('document.querySelectorAll("#evidence-body tbody tr").length')).value, count);
+    await js('document.querySelector("#evidence-dialog").close()');
+  }
+  await call('Emulation.setDeviceMetricsOverride', {width: 1440, height: 1050, deviceScaleFactor: 1, mobile: false});
+  await shot('desktop-overview');
+  for (const width of [390, 320]) {
+    await call('Emulation.setDeviceMetricsOverride', {width, height: 844, deviceScaleFactor: 1, mobile: true});
+    assert((await js('document.documentElement.scrollWidth <= innerWidth')).value, `Executive page overflows at ${width}px`);
+    await js('document.querySelector(".trend-values").open = true');
+    assert((await js('document.documentElement.scrollWidth <= innerWidth')).value, 'Exact trend values overflow the page');
+    if (width === 390) await shot('mobile-overview');
+  }
+  await call('Emulation.setDeviceMetricsOverride', {width: 1440, height: 1050, deviceScaleFactor: 1, mobile: false});
+
+  const fixture = structuredClone(demo);
+  fixture.companies.push({id: 'other', name: 'Other fictional company'});
+  const {identifier} = await call('Page.addScriptToEvaluateOnNewDocument', {source: `
+    window.__executiveTest = {payload: ${JSON.stringify(fixture)}, requests: [], mode: 'ok', pending: []};
+    const originalFetch = window.fetch;
+    window.fetch = async (url, options) => {
+      if (!String(url).startsWith('/api/method/sidra_realestate.api.staff_dashboard.get_dashboard')) return originalFetch(url, options);
+      const state = window.__executiveTest;
+      const params = Object.fromEntries(new URL(url, location.origin).searchParams);
+      state.requests.push(params);
+      const payload = structuredClone(state.payload);
+      payload.scope.company_id = params.company || 'demo';
+      payload.scope.project_id = params.project || null;
+      if (payload.executive?.available) {
+        payload.executive.period_label = 'Fixture scope: ' + payload.scope.company_id + ' / ' + (params.project || 'all') + ' / ' + params.period;
+        payload.executive.metrics.sales_value.drilldown.path = '/app/query-report/Executive%20Sales?' + new URLSearchParams(params);
+      }
+      if (state.mode === 'pending') return new Promise(resolve => state.pending.push(() => resolve(new Response(JSON.stringify({message:payload})))));
+      return new Response(JSON.stringify({message:payload}), {status: state.mode === 'denied' ? 403 : 200});
+    };`});
+  try {
+    await call('Page.navigate', {url: 'http://127.0.0.1:4173/'});
+    await wait('window.__executiveTest && document.querySelector("#reporting-range")?.textContent.includes("Fixture scope:")');
+    assert((await js('document.querySelector("#demo-banner").hidden')).value);
+    assert((await js('document.querySelector("#metrics a").getAttribute("href")')).value.startsWith('/app/query-report/Executive%20Sales?'));
+    await js('document.querySelector("#project").value="DEMO-PROJECT-001";document.querySelector("#project").dispatchEvent(new Event("change"))');
+    await wait('document.querySelector("#reporting-range").textContent.includes("DEMO-PROJECT-001")');
+    await js('document.querySelector("#period").value="last_30_days";document.querySelector("#period").dispatchEvent(new Event("change"))');
+    await wait('document.querySelector("#reporting-range").textContent.includes("last_30_days")');
+    const query = new URL((await js('document.querySelector("#metrics a").href')).value).searchParams;
+    assert.equal(query.get('project'), 'DEMO-PROJECT-001');
+    assert.equal(query.get('period'), 'last_30_days');
+    await js('document.querySelector("#company").value="other";document.querySelector("#company").dispatchEvent(new Event("change"))');
+    await wait('document.querySelector("#reporting-range").textContent.includes("other / all")');
+    assert.equal((await js('window.__executiveTest.requests.at(-1).project')).value, undefined);
+
+    // Missing integration must not borrow totals from the operational summary.
+    await js('delete window.__executiveTest.payload.executive;document.querySelector("#refresh").click()');
+    await wait('!document.querySelector("#refresh").disabled');
+    assert.equal((await js('document.querySelectorAll("#metrics .metric-unavailable").length')).value, 6);
+    assert.equal((await js('document.querySelectorAll("#metrics a, .trend-month, .decision-item, .exposure-item").length')).value, 0);
+
+    await js(`window.__executiveTest.payload.executive=${JSON.stringify(fixture.executive)};
+      const e=window.__executiveTest.payload.executive;
+      e.metrics.sales_value.target=null;e.metrics.cash_collected.value='0';e.metrics.cash_collected.attainment_percent=0;
+      e.metrics.available_units.asking_value=' ';e.metrics.due_next_30_days.expected_receipts={available:true,value:' '};
+      e.trends.months[0].sales_value=null;e.trends.months[0].received=' ';
+      e.freshness={status:'stale',label:'Fixture: collection source is stale'};
+      document.querySelector('#refresh').click()`);
+    await wait('document.querySelector("#freshness").classList.contains("stale")');
+    assert((await js('document.querySelectorAll("#metrics .executive-card")[0].textContent')).value.includes('Target not set'));
+    assert(!(await js('document.querySelectorAll("#metrics .executive-card")[1].textContent')).value.includes('Not connected'));
+    assert((await js('document.querySelectorAll("#metrics .executive-card")[5].textContent')).value.includes('Asking value unavailable'));
+    assert((await js('document.querySelectorAll("#metrics .executive-card")[3].textContent')).value.includes('no cash forecast'));
+    assert.equal((await js('document.querySelectorAll(".trend-values tbody tr")[0].textContent')).value, 'Jun——');
+
+    await js('window.__executiveTest.payload.executive.available=false;window.__executiveTest.payload.executive.reason="Management access required";document.querySelector("#refresh").click()');
+    await wait('!document.querySelector("#refresh").disabled');
+    assert.equal((await js('document.querySelectorAll("#metrics a, .trend-month, .decision-item, .exposure-item").length')).value, 0);
+    assert((await js('document.querySelector("#metrics").textContent')).value.includes('Management access required'));
+
+    // Deliberately ignore AbortSignal in the fixture to exercise the generation guard.
+    await js(`window.__executiveTest.payload.executive=${JSON.stringify(fixture.executive)};window.__executiveTest.mode='pending';
+      document.querySelector('#company').value='demo';document.querySelector('#company').dispatchEvent(new Event('change'))`);
+    await wait('window.__executiveTest.pending.length === 1');
+    assert.equal((await js('document.querySelectorAll("#metrics a").length')).value, 0);
+    await js('window.__executiveTest.mode="ok";document.querySelector("#company").value="other";document.querySelector("#company").dispatchEvent(new Event("change"))');
+    await wait('document.querySelector("#reporting-range").textContent.includes("other / all")');
+    await js('window.__executiveTest.pending.shift()();new Promise(resolve=>setTimeout(resolve,50))');
+    assert((await js('document.querySelector("#reporting-range").textContent')).value.includes('other / all'));
+    await js('window.__executiveTest.mode="denied";document.querySelector("#refresh").click()');
+    await wait('!document.querySelector("#alert").hidden');
+    assert((await js('document.querySelector("#alert").textContent')).value.includes('permitted Sidra staff account'));
+    assert.equal((await js('document.querySelectorAll("#metrics a, .trend-month, .decision-item, .exposure-item").length')).value, 0);
+    assert((await js('document.querySelector("#demo-banner").hidden')).value);
+    assert((await js('document.querySelector("#signout").hidden && !document.querySelector("#signin").hidden')).value);
+  } finally {
+    await call('Page.removeScriptToEvaluateOnNewDocument', {identifier});
+  }
+}

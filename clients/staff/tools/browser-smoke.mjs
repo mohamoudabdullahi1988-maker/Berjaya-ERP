@@ -1,3 +1,4 @@
+import {executiveBrowser} from './executive-browser.mjs';
 import {spawn} from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -11,7 +12,8 @@ try{
  let pages;for(let i=0;i<60;i++){try{pages=await(await fetch('http://127.0.0.1:9226/json')).json();break;}catch{await new Promise(r=>setTimeout(r,150));}}
  if(!pages)throw Error('Chromium did not start');
  socket=new WebSocket(pages.find(p=>p.type==='page').webSocketDebuggerUrl);await new Promise((r,j)=>{socket.onopen=r;socket.onerror=j;});
- let id=0;const pending=new Map();socket.onmessage=e=>{const x=JSON.parse(e.data);if(x.id&&pending.has(x.id)){const [resolve,reject]=pending.get(x.id);pending.delete(x.id);x.error?reject(x.error):resolve(x.result);}};
+ const exceptions=[];
+ let id=0;const pending=new Map();socket.onmessage=e=>{const x=JSON.parse(e.data);if(x.method==='Runtime.exceptionThrown')exceptions.push(x.params.exceptionDetails);if(x.id&&pending.has(x.id)){const [resolve,reject]=pending.get(x.id);pending.delete(x.id);x.error?reject(x.error):resolve(x.result);}};
  const call=(method,params={})=>new Promise((r,j)=>{pending.set(++id,[r,j]);socket.send(JSON.stringify({id,method,params}));});
  const js=async expression=>(await call('Runtime.evaluate',{expression,returnByValue:true,awaitPromise:true})).result;
  evaluate=js;
@@ -33,5 +35,7 @@ try{
  assert((await js('document.documentElement.scrollWidth <= innerWidth')).value,'Mobile page overflows horizontally');
  await call('Page.navigate',{url:'http://127.0.0.1:4173/'});await wait('document.querySelector("#alert") && !document.querySelector("#alert").hidden');
  assert((await js('document.querySelector("#demo-banner").hidden')).value,'Failed live request must not switch to fictional data');
- console.log('Browser smoke passed: dashboard, payments, web pin, invalid GPS, mobile width, explicit live failure.');
+ await executiveBrowser({call,js,wait,shot});
+ assert.deepEqual(exceptions, [], 'Unhandled browser exceptions');
+ console.log('Browser smoke passed: executive cards/evidence, trends, decisions, exposure, fixed preview, scope requests, stale/missing/restricted data, late responses, 320/390px layout; dashboard, payments, web pin, invalid GPS, mobile width, explicit live failure.');
 }catch(error){if(evaluate)console.error('Browser failure page:',(await evaluate('({url:location.href,state:document.readyState,text:document.body?.innerText,html:document.documentElement?.outerHTML.slice(0,1500)})')).value);throw error;}finally{socket?.close();chrome.kill();await fs.rm(profile,{recursive:true,force:true}).catch(()=>{});}

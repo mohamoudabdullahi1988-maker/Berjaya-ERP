@@ -48,7 +48,8 @@ function render() {
  $('company').replaceChildren(...data.companies.map(c=>el('option',{value:c.id,selected:c.id===data.scope.company_id},c.name)));
  const projects = data.projects || [];
  $('project').replaceChildren(el('option',{value:''},'All permitted projects'),...projects.map(p=>el('option',{value:p.id,selected:p.id===data.scope.project_id},p.name)));
- $('project').disabled=!projects.length;
+ $('company').disabled=preview;$('period').disabled=preview;
+ $('project').disabled=preview||!projects.length;
  renderExecutive(data,{el,empty,preview});
  renderContracts();
  $('upcoming').replaceChildren(table(['Contract / buyer','Due date','Type','Agreed amount'],data.schedule.upcoming.map(r=>[el('div',{},[record('Sidra Sale Contract',r.contract_id,r.external_reference||r.contract_id),el('small',{},r.customer_display)]),date(r.due_date),r.row_type,money(r.amount,r.currency)])));
@@ -102,6 +103,7 @@ function showLocation(item) {
 async function load() {
  const generation=++loadGeneration;
  const company=$('company').value||null, project=$('project').value||null;
+ $('evidence-dialog').close();$('evidence-body').replaceChildren();
  aborter?.abort();aborter=new AbortController();$('refresh').disabled=true;$('project').disabled=true;message('');data=null;
  $('connection').textContent='Connecting to server';$('updated').textContent='Awaiting server data';
  for(const id of ['contracts-table','upcoming','locations','sales-metrics','pipeline','payment-metrics','aging','job-metrics','jobs-table']) $(id).replaceChildren();
@@ -109,13 +111,13 @@ async function load() {
  renderExecutive(null,{el,empty,preview});
  try {
   let result;
-  if(preview){result=structuredClone((await import('./demo.js')).default);result.scope.project_id=project;$('demo-banner').hidden=false;}
+  if(preview){result=structuredClone((await import('./demo.js')).default);$('demo-banner').hidden=false;}
   else result=await request(config.dashboardMethod,{period:$('period').value,company,project},{signal:aborter.signal});
   if(generation!==loadGeneration)return;
   data=requireDashboard(result);selectedLocation=null;$('location-detail').replaceChildren(empty('Select a plot or construction site to view its saved location.'));render();
  }catch(error){
   if(error.name==='AbortError'||generation!==loadGeneration)return;
-  data=null;$('connection').textContent='Server not connected';message(error.message+' Demo preview is available separately at ?demo=1.');
+  data=null;$('signin').hidden=false;$('signout').hidden=true;$('role').textContent='Staff workspace';$('connection').textContent='Server not connected';message(error.message+' Demo preview is available separately at ?demo=1.');
   renderExecutive(null,{el,empty,preview});
  }finally{if(generation===loadGeneration)$('refresh').disabled=false;}
 }

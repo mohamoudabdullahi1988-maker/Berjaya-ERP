@@ -39,6 +39,10 @@ Unavailable groups must use `available:false` and a clear `reason`. Missing acco
 - Overdue: unpaid due obligations after authoritative payment allocation and permitted adjustments; age in 1–30, 31–60, 61–90, 90+ day buckets. The schedule alone cannot establish unpaid balances.
 - Construction: existing jobs, milestones and inspection records only. Return unavailable where the actual workflow/data does not exist. No invented completion %, certifications, costs or margins. Margin KPIs wait for reliable actual costs and commitments.
 
+## Executive overview extension
+
+See [Executive dashboard API v0.1](EXECUTIVE-API_v0.1.md) for the optional `executive` response, project scope, six headline cards, monthly series, decisions, exposure, freshness and permission-filtered supporting reports. Backend implementation and HTTPS integration remain pending with Claude.
+
 ## Plot and site location API
 
 The isolated implementation is in `integration/frappe/sidra_realestate/api/`. Integrate those files into the app after backend review. Existing site `gps` text is read conservatively and preserved. A dedicated native Frappe Geolocation Custom Field `sidra_location` holds a single GeoJSON point; it is not a parcel survey or legal boundary.
