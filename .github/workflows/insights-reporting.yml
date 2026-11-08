@@ -85,7 +85,7 @@ jobs:
       - name: Import workbook, execute native queries and verify document access
         working-directory: /home/runner/insights-bench
         run: |
-          bench --site insights_ci execute runpy.run_path --kwargs "{\"path_name\":\"$GITHUB_WORKSPACE/integrations/insights/bench_smoke.py\",\"run_name\":\"__main__\"}" 2>&1 | tee /tmp/insights-smoke.log
+          bench --site insights_ci execute "__import__('runpy').run_path(__import__('os').environ['GITHUB_WORKSPACE'] + '/integrations/insights/bench_smoke.py')['run']()" 2>&1 | tee /tmp/insights-smoke.log
           test ${PIPESTATUS[0]} -eq 0
       - name: Retain disposable test evidence
         if: always()
