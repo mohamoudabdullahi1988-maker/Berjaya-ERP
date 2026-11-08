@@ -1,5 +1,7 @@
 """Native read-only supporting report. No raw SQL or permission bypass on parents."""
 
+from html import escape
+
 from frappe import _
 
 from sidra_realestate.api.executive_dashboard import executive_evidence
@@ -11,6 +13,11 @@ def execute(filters=None):
 	rows = [
 		{**row, "value": row.get("value") if row.get("value") is not None else "Unavailable"} for row in rows
 	]
+	# Native Data columns can render HTML. Keep recorded names/notes literal, including in print views.
+	for row in rows:
+		for key in ("row_reference", "note", "owner", "status"):
+			if isinstance(row.get(key), str):
+				row[key] = escape(row[key])
 	columns = [
 		{"fieldname": "doctype", "label": _("Source type"), "fieldtype": "Data", "hidden": 1},
 		{

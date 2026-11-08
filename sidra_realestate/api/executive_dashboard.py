@@ -470,6 +470,11 @@ def executive_evidence(filters):
 	_staff_only()
 	if not management_access():
 		frappe.throw(_("Management reporting access required"), frappe.PermissionError)
+	if not isinstance(filters, dict) or any(
+		filters.get(key) is not None and not isinstance(filters[key], str)
+		for key in ("company", "period", "metric", "project", "as_of")
+	):
+		frappe.throw(_("Executive report filters must be text values"))
 	company, period, metric = (
 		filters.get("company"),
 		filters.get("period") or "this_month",

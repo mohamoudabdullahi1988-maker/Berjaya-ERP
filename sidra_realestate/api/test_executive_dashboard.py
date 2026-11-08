@@ -78,12 +78,12 @@ class TestExecutiveDashboard(IntegrationTestCase):
 		with patch("sidra_realestate.api.executive_dashboard.snapshot_time", return_value=NOW), as_user(user):
 			return get_dashboard(company=self.company, **values)
 
-	def evidence(self, metric, user=GENERAL_MANAGER, **filters):
+	def evidence(self, cohort, user=GENERAL_MANAGER, **filters):
 		with patch("sidra_realestate.api.executive_dashboard.snapshot_time", return_value=NOW), as_user(user):
 			return executive_evidence(
 				{
 					"company": self.company,
-					"metric": metric,
+					"metric": cohort,
 					"period": "this_month",
 					"as_of": str(NOW.date()),
 					**filters,
@@ -176,6 +176,8 @@ class TestExecutiveDashboard(IntegrationTestCase):
 			{"metric": "cash_collected"},
 			{"project": "not-authorized"},
 			{"as_of": "2026-11-07"},
+			{"metric": ["sales_value"]},
+			{"company": {"name": self.company}},
 		):
 			with self.assertRaises(frappe.ValidationError):
 				self.evidence("sales_value", **filters)
@@ -258,3 +260,33 @@ class TestExecutiveDashboard(IntegrationTestCase):
 			data = executive_snapshot(self.company, "USD", "this_month", NOW)
 		self.assertFalse(data["decisions"]["available"])
 		self.assertNotIn("total", data["decisions"])
+
+	def test_native_report_escapes_recorded_stage_text(self):
+		frappe.get_doc(
+			{
+				"doctype": "Sidra Construction Job",
+				"company": self.company,
+				"customer": BUYER,
+				"service_type": "Full Construction",
+				"status": "In Progress",
+				"stages": [
+					{
+						"stage_name": "<img src=x onerror=alert(1)>",
+						"planned_end": "2026-11-06",
+						"completion_pct": 0,
+					}
+				],
+			}
+		).insert(ignore_permissions=True)
+		with (
+			patch("sidra_realestate.api.executive_dashboard.snapshot_time", return_value=NOW),
+			as_user(GENERAL_MANAGER),
+		):
+			data = run_report(
+				REPORT,
+				filters={"company": self.company, "metric": "stage_exceptions"},
+				ignore_prepared_report=True,
+			)
+		self.assertEqual(len(data["result"]), 1)
+		self.assertIn("&lt;img", data["result"][0]["note"])
+		self.assertNotIn("<img", data["result"][0]["note"])
