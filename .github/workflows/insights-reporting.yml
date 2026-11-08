@@ -16,6 +16,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: insights-reporting-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   workbook-regressions:
     runs-on: ubuntu-latest
@@ -25,3 +29,70 @@ jobs:
         with:
           python-version: '3.14'
       - run: python -m unittest discover -s integrations/insights/tests -v
+
+  native-insights:
+    name: Native Insights import and queries
+    if: github.event_name == 'pull_request' || github.ref == 'refs/heads/develop'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    env:
+      FRAPPE_VERSION: v16.55.2
+      ERPNEXT_VERSION: v16.53.0
+      INSIGHTS_COMMIT: c7dc954d8275756deb5ad24f7c35c3f3c2ca1a6c
+      SIDRA_INSIGHTS_DISPOSABLE_SITE: '1'
+      CI: 'Yes'
+    services:
+      redis-cache:
+        image: redis:7-alpine
+        ports: ['13000:6379']
+      redis-queue:
+        image: redis:7-alpine
+        ports: ['11000:6379']
+      mariadb:
+        image: mariadb:11.8
+        env:
+          MARIADB_ROOT_PASSWORD: root
+        ports: ['3306:3306']
+        options: --health-cmd="healthcheck.sh --connect --innodb_initialized" --health-interval=5s --health-timeout=5s --health-retries=20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.14'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Install disposable bench tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq mariadb-client
+          pip install frappe-bench
+          bench init --skip-redis-config-generation --skip-assets --frappe-branch "$FRAPPE_VERSION" --python "$(which python)" ~/insights-bench
+      - name: Install pinned apps
+        working-directory: /home/runner/insights-bench
+        run: |
+          bench get-app --branch "$ERPNEXT_VERSION" --skip-assets https://github.com/frappe/erpnext
+          bench get-app --skip-assets sidra_realestate "$GITHUB_WORKSPACE"
+          git clone https://github.com/frappe/insights.git /tmp/pinned-insights
+          git -C /tmp/pinned-insights checkout "$INSIGHTS_COMMIT"
+          bench get-app --skip-assets insights /tmp/pinned-insights
+          bench setup requirements --dev
+          bench new-site --db-root-password root --admin-password admin --db-host 127.0.0.1 insights_ci
+          bench --site insights_ci install-app erpnext
+          bench --site insights_ci install-app sidra_realestate
+          bench --site insights_ci install-app insights
+          bench --site insights_ci list-apps
+      - name: Import workbook, execute native queries and verify document access
+        working-directory: /home/runner/insights-bench
+        run: |
+          bench --site insights_ci execute runpy.run_path --kwargs "{\"path_name\":\"$GITHUB_WORKSPACE/integrations/insights/bench_smoke.py\",\"run_name\":\"__main__\"}" 2>&1 | tee /tmp/insights-smoke.log
+          test ${PIPESTATUS[0]} -eq 0
+      - name: Retain disposable test evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: insights-native-test-evidence
+          path: |
+            /tmp/insights-smoke.log
+            /home/runner/insights-bench/logs/bench.log
+          if-no-files-found: ignore
