@@ -46,12 +46,18 @@ def _companies():
 	if not rows or any(not row.default_currency for row in rows):
 		# v16 Company Select permission can return names with other fields redacted, not
 		# necessarily a PermissionError. Retain readable metadata; hydrate only Companies
-		# established by permission-filtered units, just as in the no-Company-read fallback.
+		# established by readable operational parents; a construction-only Company need
+		# not have property inventory. Never hydrate arbitrary Company Select results.
 		known = {row.name: row for row in rows if row.default_currency}
-		names = sorted(
-			{r.company for r in frappe.get_list("Sidra Unit", fields=["company"], limit_page_length=0)}
-		)
-		for name in names:
+		names = set()
+		for doctype in ("Sidra Unit", "Sidra Construction Job", "Sidra Sale Contract", "Sidra Reservation"):
+			if frappe.has_permission(doctype, "read"):
+				names.update(
+					r.company
+					for r in frappe.get_list(doctype, fields=["company"], limit_page_length=0)
+					if r.company
+				)
+		for name in sorted(names):
 			known.setdefault(
 				name,
 				frappe._dict(

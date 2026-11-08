@@ -319,3 +319,27 @@ class TestExecutiveDashboard(IntegrationTestCase):
 			data = self.dashboard(user)
 		self.assertEqual(data["summary"]["new_leads"], 2)
 		self.assertFalse(data["sales"]["available"])
+
+	def test_construction_company_without_units_has_a_readable_dashboard(self):
+		company = ensure_company(unique("_Test Executive Jobs"), unique("_EJ"))
+		frappe.get_doc(
+			{
+				"doctype": "Sidra Construction Job",
+				"company": company,
+				"customer": BUYER,
+				"service_type": "Full Construction",
+				"status": "In Progress",
+				"stages": [
+					{"stage_name": "Recorded stage", "planned_end": "2026-11-06", "completion_pct": 0}
+				],
+			}
+		).insert(ignore_permissions=True)
+		with (
+			patch("sidra_realestate.api.executive_dashboard.snapshot_time", return_value=NOW),
+			as_user(GENERAL_MANAGER),
+		):
+			data = get_dashboard(company=company)
+		self.assertEqual(data["currency"], "USD")
+		self.assertEqual(data["executive"]["metrics"]["available_units"]["value"], 0)
+		self.assertEqual(data["jobs"]["active"], 1)
+		self.assertEqual(data["executive"]["decisions"]["total"], 1)
