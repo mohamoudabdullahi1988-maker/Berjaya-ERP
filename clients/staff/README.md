@@ -2,7 +2,7 @@
 
 A small server-hosted staff dashboard, an Android system-WebView app, and a macOS WKWebView app. Claude owns the ERPNext backend/test server; this component does not modify the backend checkout.
 
-**Status:** working fictional web preview and tested location geometry/API boundary. Server URL is not ready. Real dashboards require Claude's aggregate endpoint. The isolated location adapter is provided but not installed or integration-tested against a real Frappe site. Android debug assembly/lint and macOS packaging have passed CI; final universal build and actual device acceptance remain pending; source size is not an APK/app-size claim.
+**Status (8 Nov 2026):** the executive UI is merged, and PR #28 provides the staff page, operational dashboard and location APIs in the Frappe app. The optional executive aggregate, approved targets/Finance source mappings, HTTPS deployment and actual device acceptance remain pending. Android debug assembly/lint and universal macOS packaging have passed prior CI; source size is not an installed-app-size claim. See the current [dashboard handover](docs/DASHBOARD-HANDOVER_v0.2.md) for verified behavior and remaining integration work.
 
 ## Preview
 
@@ -33,6 +33,6 @@ Downloads are only from the configured origin; Android streams to a user-selecte
 
 ## Deployment handover
 
-Host `web/` at `/sidra-staff/` on Frappe's HTTPS origin, inject the real session CSRF token, and connect the response in `docs/API-CONTRACT.md`. Integrate the separately provided location adapter, or map it to an existing equivalent location field/API. Do not overwrite Claude's app entrypoints or hook files. The staff server must enforce all roles and Company permissions itself.
+PR #28 serves `web/` at `/sidra-staff/` with session CSRF injection and integrates the location APIs/native fields in the app. Deploy through the normal migrate/build process; do not copy the historical isolated adapter over Claude's implementation or install duplicate fields. Complete the HTTPS deployment and executive response described in `docs/API-CONTRACT.md` and `docs/EXECUTIVE-API_v0.1.md`. The staff server must enforce all roles and Company permissions itself.
 
 See [desktop preview](docs/screenshots/desktop-overview.png), [phone preview](docs/screenshots/mobile-overview.png), [payments](docs/screenshots/payments.png), [web location editor](docs/screenshots/web-location.png). Screenshots contain fictional data, not verified live financial figures.

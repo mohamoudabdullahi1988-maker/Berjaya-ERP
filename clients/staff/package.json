@@ -7,5 +7,5 @@
     "test": "node --test tests/*.test.mjs",
     "check": "node --check web/app.js && node --check web/core.js && node --check web/executive.js && node --check web/executive-demo.js && node --check web/demo.js && node --check tools/browser-smoke.mjs && node --check tools/executive-browser.mjs"
   },
-  "version": "0.1.0"
+  "version": "0.1.1"
 }

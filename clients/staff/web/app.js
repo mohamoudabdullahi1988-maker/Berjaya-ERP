@@ -31,7 +31,19 @@ for(const b of document.querySelectorAll('[data-view]'))b.addEventListener('clic
 function arrow() {const s=document.createElementNS('http://www.w3.org/2000/svg','svg');s.setAttribute('viewBox','0 0 24 24');s.setAttribute('width','15');s.setAttribute('height','15');s.setAttribute('aria-hidden','true');const p=document.createElementNS(s.namespaceURI,'path');p.setAttribute('d','M6 18 18 6M6 6h12v12');p.setAttribute('fill','none');p.setAttribute('stroke','currentColor');p.setAttribute('stroke-width','1.4');s.append(p);return s;}
 function metric(label,value,note,accent=false,unavailable=false) {return el('article',{class:'metric'+(accent?' accent':'')},[el('div',{class:'metric-label'},[label,arrow()]),el('div',{class:unavailable?'metric-value metric-unavailable':'metric-value'},value),el('div',{class:'metric-sub'},note)]);}
 function unavailable(group) {return !group?.available;}
-function financialMetric(label,group,key,note) {return metric(label,unavailable(group)?'Awaiting finance integration':compactMoney(group[key],data.currency),unavailable(group)?(group?.reason||'Posted payment data has not been connected.'):note,false,unavailable(group));}
+function financialMetric(label,group,key,note) {
+ if(unavailable(group))return metric(label,'Awaiting finance integration',group?.reason||'Posted payment data has not been connected.',false,true);
+ const value=compactMoney(group[key],data.currency),known=value!=='—';
+ return metric(label,known?value:'Unavailable',known?note:'This amount is unavailable.',false,!known);
+}
+function countMetric(label,value,note,reason='This count is unavailable.') {
+ const known=Number.isInteger(value)&&value>=0;
+ return metric(label,known?value:'Unavailable',known?note:reason,false,!known);
+}
+function percentageMetric(label,value,note) {
+ const known=typeof value==='number'&&Number.isFinite(value);
+ return metric(label,known?`${value}%`:'Unavailable',known?note:'This rate is unavailable.',false,!known);
+}
 function cells(row) {return row.map(v=>el('td',{},v));}
 function table(headers,rows) {if(!rows.length)return empty('No records for this company and period.');return el('table',{},[el('thead',{},el('tr',{},headers.map(h=>el('th',{},h)))),el('tbody',{},rows.map(row=>el('tr',{},cells(row))))]);}
 function record(doctype,id,label) {
@@ -53,11 +65,11 @@ function render() {
  renderExecutive(data,{el,empty,preview});
  renderContracts();
  $('upcoming').replaceChildren(table(['Contract / buyer','Due date','Type','Agreed amount'],data.schedule.upcoming.map(r=>[el('div',{},[record('Sidra Sale Contract',r.contract_id,r.external_reference||r.contract_id),el('small',{},r.customer_display)]),date(r.due_date),r.row_type,money(r.amount,r.currency)])));
- $('sales-metrics').replaceChildren(metric('New leads',data.sales?.available?data.summary.new_leads:'Not connected','Selected period'),metric('Qualified opportunities',data.sales?.available?data.sales.qualified_opportunities:'—','Server qualification status'),metric('Lead conversion',data.sales?.available?`${data.sales.conversion_rate}%`:'—','Server-linked lead cohort'),metric('Agreed contract value',compactMoney(data.summary.agreed_contract_value,data.currency),'Commercial value · not recognized revenue',true));
+ $('sales-metrics').replaceChildren(countMetric('New leads',data.summary.new_leads,'Created during the selected period'),countMetric('Qualified opportunities',data.sales?.available?data.sales.qualified_opportunities:null,'Server qualification status',data.sales?.reason),percentageMetric('Lead conversion',data.sales?.available?data.sales.conversion_rate:null,'Server-linked lead cohort'),metric('Agreed contract value',compactMoney(data.summary.agreed_contract_value,data.currency),'Commercial value · not recognized revenue',true));
  if(data.sales?.available)pipeline('pipeline',data.sales.pipeline);else $('pipeline').replaceChildren(empty(data.sales?.reason||'Lead integration is not connected yet.'));
- $('payment-metrics').replaceChildren(financialMetric('Payments received',data.payments,'received','Posted receipts only'),financialMetric('Overdue unpaid',data.payments,'overdue','After payment allocation'),metric('Collection rate',data.payments?.available?`${data.payments.collection_rate}%`:'—','Server-defined due cohort'),metric('Overdue contracts',data.payments?.available?data.payments.overdue_contracts:'—','With unpaid overdue obligations'));
+ $('payment-metrics').replaceChildren(financialMetric('Payments received',data.payments,'received','Posted receipts only'),financialMetric('Overdue unpaid',data.payments,'overdue','After payment allocation'),percentageMetric('Collection rate',data.payments?.available?data.payments.collection_rate:null,'Server-defined due cohort'),countMetric('Overdue contracts',data.payments?.available?data.payments.overdue_contracts:null,'With unpaid overdue obligations',data.payments?.reason));
  if(data.payments?.available)pipeline('aging',data.payments.aging,true);else $('aging').replaceChildren(empty(data.payments?.reason||'Awaiting finance integration. Schedule amounts are not evidence of payment or arrears.'));
- $('job-metrics').replaceChildren(...[['Active jobs','active'],['Overdue milestones','overdue_milestones'],['Awaiting inspection','awaiting_inspection'],['Completed jobs','completed']].map(([label,key])=>metric(label,data.jobs?.available?data.jobs[key]:'—',data.jobs?.available?'Selected company and period':(data.jobs?.reason||'Awaiting job reporting integration'))));
+ $('job-metrics').replaceChildren(...[['Active jobs','active'],['Overdue milestones','overdue_milestones'],['Awaiting inspection','awaiting_inspection'],['Completed jobs','completed']].map(([label,key])=>countMetric(label,data.jobs?.available?data.jobs[key]:null,'Current records · selected company',data.jobs?.reason)));
  $('jobs-table').replaceChildren(data.jobs?.available?table(['Job','Status','Progress','Next milestone','Due date'],data.jobs.items.map(r=>[record('Sidra Construction Job',r.id,r.label),r.status,r.progress==null?'—':`${r.progress}%`,r.next_milestone,date(r.due_date)])):empty('Job reporting is supplied by the server.'));
  renderLocations();
 }
