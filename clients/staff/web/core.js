@@ -15,14 +15,14 @@ export function mapLinks(latitude, longitude) {
   const point = encodeURIComponent(`${lat},${lng}`);
   return {maps: `https://www.google.com/maps/search/?api=1&query=${point}`, earth: `https://earth.google.com/web/search/${point}`};
 }
+const numericAmount = amount => (typeof amount === 'number' || typeof amount === 'string' && amount.trim() !== '') && Number.isFinite(Number(amount));
 export function money(amount, currency = 'USD') {
-  if (amount == null) return '—';
+  if (!numericAmount(amount)) return '—';
   const n = Number(amount);
-  if (!Number.isFinite(n)) return '—';
   return new Intl.NumberFormat('en-GB', {style: 'currency', currency, minimumFractionDigits: 2, maximumFractionDigits: 2}).format(n);
 }
 export function compactMoney(amount, currency='USD') {
-  if (amount == null || !Number.isFinite(Number(amount))) return '—';
+  if (!numericAmount(amount)) return '—';
   return new Intl.NumberFormat('en-GB',{style:'currency',currency,notation:'compact',maximumFractionDigits:1}).format(Number(amount));
 }
 export function date(value) {

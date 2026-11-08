@@ -30,6 +30,8 @@ The exact example is `web/demo.js` (fictional). Required payload:
 
 Unavailable groups must use `available:false` and a clear `reason`. Missing accounting integration is not zero receipts or zero arrears. Monetary JSON values should be decimal strings. Do not sum different currencies without Finance-approved conversion; return one company/currency scope.
 
+`summary.new_leads` is independent of `sales.available`: the server may supply a readable creation count while qualification stages remain undefined. A known zero is valid; null means unavailable. Individual job counts, rates and monetary values may also be null/missing; the client must not convert them or blank strings into a zero. The current operational job endpoint returns current company records, not period-filtered historical counts. Implementation status and pending executive/HTTPS integration are recorded in [dashboard handover v0.2](DASHBOARD-HANDOVER_v0.2.md).
+
 ### KPI definitions for backend agreement
 
 - New leads: ERPNext Lead creation in the selected period. Qualification and conversion must use documented, linked server stages/cohorts; an externally registered contract is not automatically a converted lead.
@@ -45,9 +47,9 @@ See [Executive dashboard API v0.1](EXECUTIVE-API_v0.1.md) for the optional `exec
 
 ## Plot and site location API
 
-The isolated implementation is in `integration/frappe/sidra_realestate/api/`. Integrate those files into the app after backend review. Existing site `gps` text is read conservatively and preserved. A dedicated native Frappe Geolocation Custom Field `sidra_location` holds a single GeoJSON point; it is not a parcel survey or legal boundary.
+PR #28 integrates this API into `sidra_realestate/api/locations.py` and `location_geometry.py` with native DocType Geolocation fields named `sidra_location`. Deploy through the normal app migrate/build process. The older isolated source under `clients/staff/integration/` is retained for reference and stubbed tests; do not copy it over the integrated backend or install duplicate Custom Fields. Existing site `gps` text is read conservatively and preserved. A location pin is not a parcel survey or legal boundary.
 
-Run `bench --site <test-site> execute sidra_realestate.api.locations.install_fields` as the administrator after copying the files. It adds only the two missing Custom Fields, preflights name/type conflicts, does not overwrite other geometry or GPS text, and does not install another app. If Claude already has an equivalent dedicated pin field, adapt the field mapping instead of creating a duplicate.
+Preserve native fields, GPS text and other geometry. No extra app or historical adapter field-installation command is needed for the integrated implementation.
 
 - GET `...locations.get_location?doctype=Sidra%20Unit&name=<id>`: validates allowed parent type and parent read/Company permissions. Returns latitude/longitude, source, configured, unsupported_geometry, modified, can_write and Google Maps/Earth links.
 - POST `...locations.set_location`: `{doctype,name,latitude,longitude,expected_modified}`. Session + CSRF, parent write and Company permissions, draft/non-submitted parent only, finite/ranged coordinates, optimistic timestamp check under row lock. Only the validated pin column changes; no reservation, pricing, BOQ, contract or accounting calculations run. Parent modification/audit comment/realtime notification are updated. No client can bypass parent permissions by choosing another doctype.
