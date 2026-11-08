@@ -4,6 +4,11 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (staff clients backend: locations, dashboard and staff page)
+- `/sidra-staff/` (`www/sidra-staff/`): Codex's staff UI on the site's own origin for signed-in Sidra staff (guests go to login), session CSRF token injected per request into `window.SIDRA_CONFIG`, not cached; UI files published at `/assets/sidra_realestate/staff/` through the `public/staff` link to `clients/staff/web`
+- `sidra_realestate/api/staff_dashboard.py`: `get_dashboard` (schema_version 1 of API-CONTRACT.md), permission-filtered through `frappe.get_list`, one Company and currency, money as decimal strings; payments and sales pipeline returned as unavailable with a reason (no receipts in ERPNext yet; no lead stages), scheduled amounts labelled as obligations; jobs from recorded stages only
+- `sidra_realestate/api/locations.py` and `location_geometry.py`: Codex's plot / site location adapter, reviewed and integrated (`get_location`, `set_location` with stale-edit refusal, `export_kml`); `sidra_location` Geolocation field added to Sidra Unit and Sidra Construction Job (existing GPS text kept); integration tests with real Sidra roles
+
 ### Added (sample migration data and brokerage spec)
 - `docs/samples/SAMPLE-LIVE-CONTRACTS_v0.1.csv` (also `/assets/sidra_realestate/templates/sample_live_contracts.csv`): 8 synthetic live contracts, 182 schedule rows (12 to 36 months, both down-payment modes, a fee row, a two-plot contract); the demo adds free plots DEMO-M-001 to 009 for it, and `tests/test_demo.py` imports it
 - `docs/BROKERAGE_v0.1.md`: draft spec for approval: Sidra as broker for owners' plots and agent commission on Sidra's sales, 2.5 % of the plot price, due in full on the buyer's first payment, recorded not posted; acceptance tests BR-01 to BR-10

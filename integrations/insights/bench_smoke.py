@@ -72,8 +72,8 @@ def run():
     payload = builder.build_workbook(company, "USD", "2026-11-01", "2026-11-07")
     workbook = import_workbook(payload)
     frappe.db.commit()
-    charts = frappe.get_all("Insights Chart v3", {"workbook": workbook}, fields=["name", "query", "is_public"])
-    dashboards = frappe.get_all("Insights Dashboard v3", {"workbook": workbook}, fields=["name", "is_public", "items"])
+    charts = frappe.get_all("Insights Chart v3", filters={"workbook": workbook}, fields=["name", "query", "is_public"])
+    dashboards = frappe.get_all("Insights Dashboard v3", filters={"workbook": workbook}, fields=["name", "is_public", "items"])
     check(len(charts) == 8 and len(dashboards) == 1, "Expected eight charts and one dashboard")
     check(not any(c.is_public for c in charts) and not dashboards[0].is_public, "Imported objects must remain private")
     check(len([i for i in json.loads(dashboards[0].items) if i["type"] == "chart"]) == 8,
