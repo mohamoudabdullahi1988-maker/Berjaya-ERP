@@ -76,7 +76,7 @@ def run():
     dashboards = frappe.get_all("Insights Dashboard v3", filters={"workbook": workbook}, fields=["name", "is_public", "items"])
     check(len(charts) == 8 and len(dashboards) == 1, "Expected eight charts and one dashboard")
     check(not any(c.is_public for c in charts) and not dashboards[0].is_public, "Imported objects must remain private")
-    check(len([i for i in json.loads(dashboards[0].items) if i["type"] == "chart"]) == 8,
+    check(len([i for i in json.loads(dashboards[0]["items"]) if i["type"] == "chart"]) == 8,
           "Dashboard must retain all imported chart references")
 
     source_query_ids = {chart.query for chart in charts}
