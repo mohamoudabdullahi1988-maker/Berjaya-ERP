@@ -93,6 +93,8 @@ class TestExecutiveDashboard(IntegrationTestCase):
 	def test_saved_sources_reconcile_without_join_fanout(self):
 		doc = self.contract()
 		data = self.dashboard()
+		self.assertEqual(data["currency"], "USD")
+		self.assertTrue(data["scope"]["company_name"])
 		metrics = data["executive"]["metrics"]
 		self.assertEqual(metrics["sales_value"]["value"], "1200.00")
 		self.assertEqual(metrics["available_units"]["value"], 1)
@@ -262,7 +264,7 @@ class TestExecutiveDashboard(IntegrationTestCase):
 		self.assertNotIn("total", data["decisions"])
 
 	def test_native_report_escapes_recorded_stage_text(self):
-		frappe.get_doc(
+		job = frappe.get_doc(
 			{
 				"doctype": "Sidra Construction Job",
 				"company": self.company,
@@ -271,13 +273,17 @@ class TestExecutiveDashboard(IntegrationTestCase):
 				"status": "In Progress",
 				"stages": [
 					{
-						"stage_name": "<img src=x onerror=alert(1)>",
+						"stage_name": "Recorded legacy stage",
 						"planned_end": "2026-11-06",
 						"completion_pct": 0,
 					}
 				],
 			}
 		).insert(ignore_permissions=True)
+		# Simulate a legacy/imported stored value without weakening normal input sanitization.
+		frappe.db.set_value(
+			"Sidra Project Stage", job.stages[0].name, "stage_name", "<img src=x onerror=alert(1)>"
+		)
 		with (
 			patch("sidra_realestate.api.executive_dashboard.snapshot_time", return_value=NOW),
 			as_user(GENERAL_MANAGER),

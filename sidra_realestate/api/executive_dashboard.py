@@ -263,6 +263,8 @@ def _evidence_rows(source, metric, start):
 def executive_snapshot(company, currency, period, now=None):
 	if not management_access():
 		return unavailable(_("Management reporting access required"))
+	if not currency:
+		return unavailable(_("Company currency metadata is unavailable"))
 	now = now or snapshot_time()
 	today = now.date()
 	start, _end = period_window(period, today)
@@ -483,6 +485,8 @@ def executive_evidence(filters):
 	permitted = {c.name: c for c in _companies()}
 	if not company or company not in permitted:
 		frappe.throw(_("A permitted Company is required"), frappe.PermissionError)
+	if not permitted[company].default_currency:
+		frappe.throw(_("Company currency metadata is unavailable; no monetary totals can be established"))
 	if filters.get("project"):
 		frappe.throw(_("Project associations are not configured; choose all permitted projects"))
 	if metric not in EVIDENCE:

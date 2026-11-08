@@ -36,22 +36,33 @@ def _period_start(period):
 def _companies():
 	try:
 		rows = frappe.get_list(
-			"Company", fields=["name", "company_name", "default_currency"], order_by="name", limit_page_length=0
+			"Company",
+			fields=["name", "company_name", "default_currency"],
+			order_by="name",
+			limit_page_length=0,
 		)
 	except frappe.PermissionError:
 		rows = []
-	if not rows:  # roles without Company read: the companies of units they may read
+	if not rows or any(not row.default_currency for row in rows):
+		# v16 Company Select permission can return names with other fields redacted, not
+		# necessarily a PermissionError. Retain readable metadata; hydrate only Companies
+		# established by permission-filtered units, just as in the no-Company-read fallback.
+		known = {row.name: row for row in rows if row.default_currency}
 		names = sorted(
 			{r.company for r in frappe.get_list("Sidra Unit", fields=["company"], limit_page_length=0)}
 		)
-		rows = [
-			frappe._dict(
-				name=n,
-				company_name=n,
-				default_currency=frappe.get_cached_value("Company", n, "default_currency"),
+		for name in names:
+			known.setdefault(
+				name,
+				frappe._dict(
+					name=name,
+					company_name=name,
+					default_currency=frappe.get_cached_value("Company", name, "default_currency"),
+				),
 			)
-			for n in names
-		]
+		rows = [known[name] for name in sorted(known)]
+	for row in rows:
+		row.company_name = row.company_name or row.name
 	return rows
 
 
@@ -94,6 +105,8 @@ def get_dashboard(company: str | None = None, period: str = "this_month", projec
 	if company and company not in permitted:
 		frappe.throw(_("Company {0} is not available to you").format(company), frappe.PermissionError)
 	scope = permitted[company] if company else companies[0]
+	if not scope.default_currency:
+		frappe.throw(_("Company currency metadata is unavailable; no monetary totals can be established"))
 	now = snapshot_time()
 	today = now.date()
 	start, _end = period_window(period, today)
@@ -101,7 +114,12 @@ def get_dashboard(company: str | None = None, period: str = "this_month", projec
 	payload = {
 		"schema_version": 1,
 		"as_of": now.isoformat(timespec="seconds"),
-		"scope": {"company_id": scope.name, "company_name": scope.company_name, "project_id": None, "role_label": _role_label()},
+		"scope": {
+			"company_id": scope.name,
+			"company_name": scope.company_name,
+			"project_id": None,
+			"role_label": _role_label(),
+		},
 		"projects": [],
 		"companies": [{"id": c.name, "name": c.company_name} for c in companies],
 		"currency": scope.default_currency,
@@ -133,7 +151,12 @@ def _property_and_summary(company, start, today, currency):
 		counts[u.status] = counts.get(u.status, 0) + 1
 	confirmed = frappe.get_list(
 		"Sidra Sale Contract",
-		filters={"company": company, "currency": currency, "docstatus": 1, "signed_on": ["between", [start, today]]},
+		filters={
+			"company": company,
+			"currency": currency,
+			"docstatus": 1,
+			"signed_on": ["between", [start, today]],
+		},
 		fields=["agreed_price"],
 		limit_page_length=0,
 	)
@@ -141,7 +164,10 @@ def _property_and_summary(company, start, today, currency):
 		new_leads = len(
 			frappe.get_list(
 				"Lead",
-				filters={"creation": ["between", [str(start) + " 00:00:00", str(today) + " 23:59:59.999999"]], "company": company},
+				filters={
+					"creation": ["between", [str(start) + " 00:00:00", str(today) + " 23:59:59.999999"]],
+					"company": company,
+				},
 				pluck="name",
 				limit_page_length=0,
 			)
