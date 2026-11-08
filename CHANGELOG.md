@@ -4,6 +4,12 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.2 — read-only executive dashboard, 8 Nov 2026)
+- Codex takes over the remaining dashboard backend/client implementation and tests end to end under the user's updated allocation; financial/legal gates are unchanged.
+- Management-only executive snapshot on the existing staff endpoint: permission-filtered signed sales and trends, available units/verified asking prices, gross scheduled rows tomorrow through day 30, current stage date exceptions, expired active reservations and registration-age exposure. Reuses the reviewed Insights source definitions without installing another app or executing unrestricted parent SQL.
+- Native **Sidra Executive Detail** Script Report provides independently authorized source rows and parent links; Company/Unit User Permissions, role restrictions, date/currency consistency, whole-contract exclusions and stale-date/project rejection are enforced server-side. No financial records or workflow states are changed.
+- Gross schedules are labelled separately from unpaid balances/forecast cash. Unavailable receipt/allocation, target and approved-baseline sources remain unavailable. Reporting periods have exact inclusive 30/90-day windows in Africa/Mogadishu; signed sales and operational schedule aggregates exclude future-signed/foreign-currency contracts.
+
 ### Added (staff clients backend: locations, dashboard and staff page)
 - `/sidra-staff/` (`www/sidra-staff/`): Codex's staff UI on the site's own origin for signed-in Sidra staff (guests go to login), session CSRF token injected per request into `window.SIDRA_CONFIG`, not cached; UI files published at `/assets/sidra_realestate/staff/` through the `public/staff` link to `clients/staff/web`
 - `sidra_realestate/api/staff_dashboard.py`: `get_dashboard` (schema_version 1 of API-CONTRACT.md), permission-filtered through `frappe.get_list`, one Company and currency, money as decimal strings; payments and sales pipeline returned as unavailable with a reason (no receipts in ERPNext yet; no lead stages), scheduled amounts labelled as obligations; jobs from recorded stages only

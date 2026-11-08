@@ -102,6 +102,19 @@ export async function executiveBrowser({call, js, wait, shot}) {
     assert((await js('document.querySelector("#payment-metrics").textContent')).value.includes('Awaiting finance integration'));
     assert((await js('document.querySelector("#aging").textContent')).value.includes('Payments are not recorded yet'));
 
+    await js(`window.__executiveTest.payload.executive.metrics.due_next_30_days.basis='gross_schedule';
+      document.querySelector('#refresh').click()`);
+    await wait('!document.querySelector("#refresh").disabled');
+    const scheduleCard=(await js('document.querySelectorAll("#metrics .executive-card")[3].textContent')).value;
+    assert(scheduleCard.includes('Scheduled next 30 days'));
+    assert(scheduleCard.includes('before settlements, not expected cash'));
+    await js(`window.__executiveTest.payload.executive.decisions={available:true,total:null,items:[],summary:'Partial coverage: reservation data unavailable'};
+      document.querySelector('#refresh').click()`);
+    await wait('!document.querySelector("#refresh").disabled');
+    assert.equal((await js('document.querySelector("#decision-count").textContent')).value,'Partial coverage');
+    assert((await js('document.querySelector("#decision-list").textContent')).value.includes('reservation data unavailable'));
+    assert(!(await js('document.querySelector("#decision-list").textContent')).value.includes('No escalations'));
+
     // Missing integration must not borrow totals from the operational summary.
     await js('delete window.__executiveTest.payload.executive;document.querySelector("#refresh").click()');
     await wait('!document.querySelector("#refresh").disabled');
