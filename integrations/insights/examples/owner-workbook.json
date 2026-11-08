@@ -1,0 +1,532 @@
+{
+  "version": "1.0",
+  "timestamp": "2026-11-07T15:29:46.347308+00:00",
+  "type": "Workbook",
+  "name": "sidra-ceo-starter-v01",
+  "doc": {
+    "name": "sidra-ceo-starter-v01",
+    "title": "Sidra Owner Overview — Example Homes — 2026-11-07"
+  },
+  "dependencies": {
+    "folders": [],
+    "queries": {
+      "sales": {
+        "name": "sales",
+        "title": "Sales",
+        "workbook": "sidra-ceo-starter-v01",
+        "use_live_connection": 1,
+        "is_native_query": 1,
+        "is_builder_query": 0,
+        "is_script_query": 0,
+        "sort_order": 0,
+        "operations": [
+          {
+            "type": "sql",
+            "data_source": "Site DB",
+            "raw_sql": "SELECT c.name AS contract, c.signed_on, c.contract_type, c.source,\n          c.company, c.currency, c.agreed_price AS signed_sales_value\n          FROM `tabSidra Sale Contract` c WHERE c.docstatus = 1 AND c.company = 'Example Homes'\n      AND c.currency = 'USD' AND c.signed_on <= '2026-11-07'\n      AND EXISTS (SELECT 1 FROM `tabSidra Contract Unit` cu\n          WHERE cu.parent = c.name AND cu.parenttype = 'Sidra Sale Contract'\n          AND cu.parentfield = 'units')\n      AND NOT EXISTS (\n          SELECT 1 FROM `tabSidra Contract Unit` cu\n          LEFT JOIN `tabSidra Unit` u ON u.name = cu.unit\n          LEFT JOIN `tabSidra Scheme` s ON s.name = u.scheme\n          WHERE cu.parent = c.name AND cu.parenttype = 'Sidra Sale Contract'\n          AND cu.parentfield = 'units'\n          AND (u.name IS NULL OR s.name IS NULL OR u.company IS NULL\n               OR u.company <> c.company OR s.company IS NULL\n               OR s.company <> c.company OR u.scheme IN ('TEST-SCHEME')))\n          AND c.signed_on >= '2026-11-01'"
+          }
+        ]
+      },
+      "sales_by_scheme": {
+        "name": "sales_by_scheme",
+        "title": "Sales By Scheme",
+        "workbook": "sidra-ceo-starter-v01",
+        "use_live_connection": 1,
+        "is_native_query": 1,
+        "is_builder_query": 0,
+        "is_script_query": 0,
+        "sort_order": 1,
+        "operations": [
+          {
+            "type": "sql",
+            "data_source": "Site DB",
+            "raw_sql": "SELECT c.name AS contract, s.name AS scheme,\n          s.scheme_name, u.name AS unit, c.signed_on, c.currency,\n          cu.allocated_price AS allocated_sales_value\n          FROM `tabSidra Sale Contract` c\n          JOIN `tabSidra Contract Unit` cu ON cu.parent = c.name\n            AND cu.parenttype = 'Sidra Sale Contract' AND cu.parentfield = 'units'\n          JOIN `tabSidra Unit` u ON u.name = cu.unit\n          JOIN `tabSidra Scheme` s ON s.name = u.scheme\n          WHERE c.docstatus = 1 AND c.company = 'Example Homes'\n      AND c.currency = 'USD' AND c.signed_on <= '2026-11-07'\n      AND EXISTS (SELECT 1 FROM `tabSidra Contract Unit` cu\n          WHERE cu.parent = c.name AND cu.parenttype = 'Sidra Sale Contract'\n          AND cu.parentfield = 'units')\n      AND NOT EXISTS (\n          SELECT 1 FROM `tabSidra Contract Unit` cu\n          LEFT JOIN `tabSidra Unit` u ON u.name = cu.unit\n          LEFT JOIN `tabSidra Scheme` s ON s.name = u.scheme\n          WHERE cu.parent = c.name AND cu.parenttype = 'Sidra Sale Contract'\n          AND cu.parentfield = 'units'\n          AND (u.name IS NULL OR s.name IS NULL OR u.company IS NULL\n               OR u.company <> c.company OR s.company IS NULL\n               OR s.company <> c.company OR u.scheme IN ('TEST-SCHEME'))) AND c.signed_on >= '2026-11-01'"
+          }
+        ]
+      },
+      "inventory": {
+        "name": "inventory",
+        "title": "Inventory",
+        "workbook": "sidra-ceo-starter-v01",
+        "use_live_connection": 1,
+        "is_native_query": 1,
+        "is_builder_query": 0,
+        "is_script_query": 0,
+        "sort_order": 2,
+        "operations": [
+          {
+            "type": "sql",
+            "data_source": "Site DB",
+            "raw_sql": "SELECT u.name AS unit, s.name AS scheme, s.scheme_name,\n          u.unit_type, u.status, u.offplan_status, u.delivery_date,\n          u.company, 'USD' AS currency, 1 AS unit_count,\n          CASE WHEN u.status = 'Available' THEN 1 ELSE 0 END AS available_count\n          FROM `tabSidra Unit` u JOIN `tabSidra Scheme` s ON s.name = u.scheme\n          JOIN `tabCompany` co ON co.name = u.company\n          WHERE u.company = 'Example Homes' AND s.company = u.company\n          AND co.default_currency = 'USD' AND u.scheme NOT IN ('TEST-SCHEME')"
+          }
+        ]
+      },
+      "scheduled_dues": {
+        "name": "scheduled_dues",
+        "title": "Scheduled Dues",
+        "workbook": "sidra-ceo-starter-v01",
+        "use_live_connection": 1,
+        "is_native_query": 1,
+        "is_builder_query": 0,
+        "is_script_query": 0,
+        "sort_order": 3,
+        "operations": [
+          {
+            "type": "sql",
+            "data_source": "Site DB",
+            "raw_sql": "SELECT c.name AS contract, l.name AS schedule_row,\n          l.seq, l.row_type, l.due_date, l.amount AS scheduled_amount,\n          c.company, c.currency\n          FROM `tabSidra Sale Contract` c\n          JOIN `tabSidra Installment Line` l ON l.parent = c.name\n            AND l.parenttype = 'Sidra Sale Contract' AND l.parentfield = 'schedule'\n          WHERE c.docstatus = 1 AND c.company = 'Example Homes'\n      AND c.currency = 'USD' AND c.signed_on <= '2026-11-07'\n      AND EXISTS (SELECT 1 FROM `tabSidra Contract Unit` cu\n          WHERE cu.parent = c.name AND cu.parenttype = 'Sidra Sale Contract'\n          AND cu.parentfield = 'units')\n      AND NOT EXISTS (\n          SELECT 1 FROM `tabSidra Contract Unit` cu\n          LEFT JOIN `tabSidra Unit` u ON u.name = cu.unit\n          LEFT JOIN `tabSidra Scheme` s ON s.name = u.scheme\n          WHERE cu.parent = c.name AND cu.parenttype = 'Sidra Sale Contract'\n          AND cu.parentfield = 'units'\n          AND (u.name IS NULL OR s.name IS NULL OR u.company IS NULL\n               OR u.company <> c.company OR s.company IS NULL\n               OR s.company <> c.company OR u.scheme IN ('TEST-SCHEME'))) AND c.contract_type = 'Installment'\n          AND l.due_date >= '2026-11-08'\n          AND l.due_date <= '2026-12-07'"
+          }
+        ]
+      },
+      "construction_stages": {
+        "name": "construction_stages",
+        "title": "Construction Stages",
+        "workbook": "sidra-ceo-starter-v01",
+        "use_live_connection": 1,
+        "is_native_query": 1,
+        "is_builder_query": 0,
+        "is_script_query": 0,
+        "sort_order": 4,
+        "operations": [
+          {
+            "type": "sql",
+            "data_source": "Site DB",
+            "raw_sql": "SELECT j.name AS job, j.project, j.service_type,\n          j.status AS job_status, st.name AS stage, st.stage_name,\n          st.planned_end, st.actual_end, st.completion_pct,\n          j.company, j.currency,\n          CASE WHEN st.planned_end IS NOT NULL AND st.planned_end <> ''\n            AND ((st.actual_end IS NOT NULL AND st.actual_end <> ''\n                  AND st.actual_end > st.planned_end)\n              OR ((st.actual_end IS NULL OR st.actual_end = '')\n                  AND st.planned_end < '2026-11-07'\n                  AND (st.completion_pct IS NULL OR st.completion_pct < 100)))\n            THEN 1 ELSE 0 END AS stage_date_exception\n          FROM `tabSidra Construction Job` j\n          JOIN `tabSidra Project Stage` st ON st.parent = j.name\n            AND st.parenttype = 'Sidra Construction Job' AND st.parentfield = 'stages'\n          WHERE j.company = 'Example Homes' AND j.currency = 'USD'\n            AND j.status IN ('Contracted', 'In Progress', 'On Hold')"
+          }
+        ]
+      }
+    },
+    "charts": {
+      "sales_total": {
+        "name": "sales_total",
+        "title": "Signed sales value (USD)",
+        "query": "sales",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Number",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "number_columns": [
+            {
+              "column_name": "signed_sales_value",
+              "data_type": "Decimal",
+              "aggregation": "sum",
+              "measure_name": "Signed sales value"
+            }
+          ],
+          "number_column_options": [],
+          "comparison": false,
+          "sparkline": false,
+          "shorten_numbers": false,
+          "decimal": 2
+        }
+      },
+      "available_units": {
+        "name": "available_units",
+        "title": "Available units now",
+        "query": "inventory",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Number",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "number_columns": [
+            {
+              "column_name": "available_count",
+              "data_type": "Integer",
+              "aggregation": "sum",
+              "measure_name": "Available units"
+            }
+          ],
+          "number_column_options": [],
+          "comparison": false,
+          "sparkline": false,
+          "shorten_numbers": false,
+          "decimal": 0
+        }
+      },
+      "scheduled_total": {
+        "name": "scheduled_total",
+        "title": "Gross scheduled dues next 30 days (USD)",
+        "query": "scheduled_dues",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Number",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "number_columns": [
+            {
+              "column_name": "scheduled_amount",
+              "data_type": "Decimal",
+              "aggregation": "sum",
+              "measure_name": "Gross scheduled dues"
+            }
+          ],
+          "number_column_options": [],
+          "comparison": false,
+          "sparkline": false,
+          "shorten_numbers": false,
+          "decimal": 2
+        }
+      },
+      "scheme_sales": {
+        "name": "scheme_sales",
+        "title": "Signed sales by scheme (USD)",
+        "query": "sales_by_scheme",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Bar",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "x_axis": {
+            "dimension": {
+              "column_name": "scheme",
+              "data_type": "String",
+              "dimension_name": "scheme"
+            }
+          },
+          "y_axis": {
+            "series": [
+              {
+                "measure": {
+                  "column_name": "allocated_sales_value",
+                  "data_type": "Decimal",
+                  "aggregation": "sum",
+                  "measure_name": "Allocated sales"
+                }
+              }
+            ]
+          }
+        }
+      },
+      "unit_status": {
+        "name": "unit_status",
+        "title": "Current inventory by status",
+        "query": "inventory",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Donut",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "label_column": {
+            "column_name": "status",
+            "data_type": "String",
+            "dimension_name": "status"
+          },
+          "value_column": {
+            "column_name": "unit_count",
+            "data_type": "Integer",
+            "aggregation": "sum",
+            "measure_name": "Units"
+          }
+        }
+      },
+      "scheme_inventory": {
+        "name": "scheme_inventory",
+        "title": "Inventory by scheme and status",
+        "query": "inventory",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Table",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "rows": [
+            {
+              "column_name": "scheme",
+              "data_type": "String",
+              "dimension_name": "scheme"
+            },
+            {
+              "column_name": "scheme_name",
+              "data_type": "String",
+              "dimension_name": "scheme_name"
+            },
+            {
+              "column_name": "status",
+              "data_type": "String",
+              "dimension_name": "status"
+            }
+          ],
+          "columns": [],
+          "values": [
+            {
+              "column_name": "unit_count",
+              "data_type": "Integer",
+              "aggregation": "sum",
+              "measure_name": "Units"
+            }
+          ]
+        }
+      },
+      "due_rows": {
+        "name": "due_rows",
+        "title": "Upcoming contractual schedule — before settlements",
+        "query": "scheduled_dues",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Table",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "filters": [],
+            "logical_operator": "And"
+          },
+          "order_by": [],
+          "limit": 1000,
+          "rows": [
+            {
+              "column_name": "contract",
+              "data_type": "String",
+              "dimension_name": "contract"
+            },
+            {
+              "column_name": "schedule_row",
+              "data_type": "String",
+              "dimension_name": "schedule_row"
+            },
+            {
+              "column_name": "row_type",
+              "data_type": "String",
+              "dimension_name": "row_type"
+            },
+            {
+              "column_name": "due_date",
+              "data_type": "Date",
+              "dimension_name": "due_date"
+            }
+          ],
+          "columns": [],
+          "values": [
+            {
+              "column_name": "scheduled_amount",
+              "data_type": "Decimal",
+              "aggregation": "sum",
+              "measure_name": "Scheduled amount"
+            }
+          ]
+        }
+      },
+      "stage_rows": {
+        "name": "stage_rows",
+        "title": "Current construction stage date exceptions",
+        "query": "construction_stages",
+        "workbook": "sidra-ceo-starter-v01",
+        "chart_type": "Table",
+        "is_public": 0,
+        "config": {
+          "filters": {
+            "logical_operator": "And",
+            "filters": [
+              {
+                "column": {
+                  "column_name": "stage_date_exception",
+                  "type": "column"
+                },
+                "operator": "=",
+                "value": 1
+              }
+            ]
+          },
+          "order_by": [],
+          "limit": 1000,
+          "rows": [
+            {
+              "column_name": "job",
+              "data_type": "String",
+              "dimension_name": "job"
+            },
+            {
+              "column_name": "stage",
+              "data_type": "String",
+              "dimension_name": "stage"
+            },
+            {
+              "column_name": "stage_name",
+              "data_type": "String",
+              "dimension_name": "stage_name"
+            },
+            {
+              "column_name": "planned_end",
+              "data_type": "Date",
+              "dimension_name": "planned_end"
+            },
+            {
+              "column_name": "actual_end",
+              "data_type": "Date",
+              "dimension_name": "actual_end"
+            }
+          ],
+          "columns": [],
+          "values": [
+            {
+              "column_name": "stage_date_exception",
+              "data_type": "Integer",
+              "aggregation": "sum",
+              "measure_name": "Exceptions"
+            }
+          ]
+        }
+      }
+    },
+    "dashboards": {
+      "sidra-overview": {
+        "name": "sidra-overview",
+        "title": "Sidra Owner Overview",
+        "workbook": "sidra-ceo-starter-v01",
+        "is_public": 0,
+        "items": [
+          {
+            "type": "text",
+            "text": "<h2>Sidra Owner Overview — Example Homes</h2><p>USD · Signed sales: 2026-11-01–2026-11-07. Inventory and stages: current records at query refresh. Date cutoffs are fixed; this is not a historical accounting snapshot.</p>",
+            "layout": {
+              "i": "text-0",
+              "x": 0,
+              "y": 0,
+              "w": 20,
+              "h": 4
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "sales_total",
+            "layout": {
+              "i": "sales_total",
+              "x": 0,
+              "y": 4,
+              "w": 7,
+              "h": 3
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "available_units",
+            "layout": {
+              "i": "available_units",
+              "x": 7,
+              "y": 4,
+              "w": 6,
+              "h": 3
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "scheduled_total",
+            "layout": {
+              "i": "scheduled_total",
+              "x": 13,
+              "y": 4,
+              "w": 7,
+              "h": 3
+            }
+          },
+          {
+            "type": "text",
+            "text": "<p><strong>Unavailable:</strong> cash collected, unpaid overdue balance, cash balance, forecast margin and collections targets. Receipt/allocation and approved Finance sources are not integrated. Scheduled dues are obligations before settlements, not expected receipts. Separately recorded down payments without due dates are outside this schedule.</p>",
+            "layout": {
+              "i": "text-7",
+              "x": 0,
+              "y": 7,
+              "w": 20,
+              "h": 4
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "scheme_sales",
+            "layout": {
+              "i": "scheme_sales",
+              "x": 0,
+              "y": 11,
+              "w": 10,
+              "h": 7
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "unit_status",
+            "layout": {
+              "i": "unit_status",
+              "x": 10,
+              "y": 11,
+              "w": 10,
+              "h": 7
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "scheme_inventory",
+            "layout": {
+              "i": "scheme_inventory",
+              "x": 0,
+              "y": 18,
+              "w": 20,
+              "h": 7
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "due_rows",
+            "layout": {
+              "i": "due_rows",
+              "x": 0,
+              "y": 25,
+              "w": 20,
+              "h": 8
+            }
+          },
+          {
+            "type": "chart",
+            "chart": "stage_rows",
+            "layout": {
+              "i": "stage_rows",
+              "x": 0,
+              "y": 33,
+              "w": 20,
+              "h": 8
+            }
+          },
+          {
+            "type": "text",
+            "text": "<p>Source queries retain record IDs for reconciliation. No automatic approvals or financial actions. Scheme labels are display names; reconcile by scheme ID. Charts have a 1,000-row/group limit; inspect full queries before relying on totals. Missing results are not proof of zero. Construction exceptions compare recorded dates; they do not certify an approved baseline.</p>",
+            "layout": {
+              "i": "text-41",
+              "x": 0,
+              "y": 41,
+              "w": 20,
+              "h": 4
+            }
+          }
+        ]
+      }
+    }
+  }
+}
