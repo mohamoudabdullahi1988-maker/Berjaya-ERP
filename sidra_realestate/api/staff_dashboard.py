@@ -12,9 +12,10 @@ Agreed contract value is commercial value, not revenue.
 
 import frappe
 from frappe import _
-from frappe.utils import add_days, flt, get_first_day, getdate, now_datetime, nowdate
+from frappe.utils import flt, get_system_timezone, getdate
 
 from sidra_realestate.api.location_geometry import extract_point, legacy_point
+from sidra_realestate.services.executive_metrics import period_window, site_period_bounds
 
 PERIODS = {"this_month", "last_30_days", "last_90_days"}
 LOCATION_DOCTYPES = ("Sidra Unit", "Sidra Construction Job")
@@ -27,31 +28,47 @@ def money(value) -> str:
 
 
 def _period_start(period):
-	today = getdate(nowdate())
-	if period == "this_month":
-		return get_first_day(today)
-	return add_days(today, -30 if period == "last_30_days" else -90)
+	from sidra_realestate.api.executive_dashboard import snapshot_time
+
+	return period_window(period, snapshot_time().date())[0]
 
 
 def _companies():
 	try:
 		rows = frappe.get_list(
-			"Company", fields=["name", "company_name", "default_currency"], order_by="name"
+			"Company",
+			fields=["name", "company_name", "default_currency"],
+			order_by="name",
+			limit_page_length=0,
 		)
 	except frappe.PermissionError:
 		rows = []
-	if not rows:  # roles without Company read: the companies of units they may read
-		names = sorted(
-			{r.company for r in frappe.get_list("Sidra Unit", fields=["company"], limit_page_length=0)}
-		)
-		rows = [
-			frappe._dict(
-				name=n,
-				company_name=n,
-				default_currency=frappe.get_cached_value("Company", n, "default_currency"),
+	if not rows or any(not row.default_currency for row in rows):
+		# v16 Company Select permission can return names with other fields redacted, not
+		# necessarily a PermissionError. Retain readable metadata; hydrate only Companies
+		# established by readable operational parents; a construction-only Company need
+		# not have property inventory. Never hydrate arbitrary Company Select results.
+		known = {row.name: row for row in rows if row.default_currency}
+		names = set()
+		for doctype in ("Sidra Unit", "Sidra Construction Job", "Sidra Sale Contract", "Sidra Reservation"):
+			if frappe.has_permission(doctype, "read"):
+				names.update(
+					r.company
+					for r in frappe.get_list(doctype, fields=["company"], limit_page_length=0)
+					if r.company
+				)
+		for name in sorted(names):
+			known.setdefault(
+				name,
+				frappe._dict(
+					name=name,
+					company_name=name,
+					default_currency=frappe.get_cached_value("Company", name, "default_currency"),
+				),
 			)
-			for n in names
-		]
+		rows = [known[name] for name in sorted(known)]
+	for row in rows:
+		row.company_name = row.company_name or row.name
 	return rows
 
 
@@ -79,8 +96,12 @@ def _staff_only():
 
 
 @frappe.whitelist(methods=["GET"])
-def get_dashboard(company: str | None = None, period: str = "this_month") -> dict:
+def get_dashboard(company: str | None = None, period: str = "this_month", project: str | None = None) -> dict:
+	from sidra_realestate.api.executive_dashboard import executive_snapshot, snapshot_time
+
 	_staff_only()
+	if project:
+		frappe.throw(_("Project associations are not configured; choose all permitted projects"))
 	if period not in PERIODS:
 		frappe.throw(_("Period must be one of {0}").format(", ".join(sorted(PERIODS))))
 	companies = _companies()
@@ -90,19 +111,28 @@ def get_dashboard(company: str | None = None, period: str = "this_month") -> dic
 	if company and company not in permitted:
 		frappe.throw(_("Company {0} is not available to you").format(company), frappe.PermissionError)
 	scope = permitted[company] if company else companies[0]
-	start = _period_start(period)
-	today = getdate(nowdate())
+	if not scope.default_currency:
+		frappe.throw(_("Company currency metadata is unavailable; no monetary totals can be established"))
+	now = snapshot_time()
+	today = now.date()
+	start, _end = period_window(period, today)
 
 	payload = {
 		"schema_version": 1,
-		"as_of": now_datetime().astimezone().isoformat(timespec="seconds"),
-		"scope": {"company_id": scope.name, "company_name": scope.company_name, "role_label": _role_label()},
+		"as_of": now.isoformat(timespec="seconds"),
+		"scope": {
+			"company_id": scope.name,
+			"company_name": scope.company_name,
+			"project_id": None,
+			"role_label": _role_label(),
+		},
+		"projects": [],
 		"companies": [{"id": c.name, "name": c.company_name} for c in companies],
 		"currency": scope.default_currency,
 		"period": period,
 	}
-	payload.update(_property_and_summary(scope.name, start))
-	payload["schedule"] = _schedule(scope.name, today)
+	payload.update(_property_and_summary(scope.name, start, today, scope.default_currency))
+	payload["schedule"] = _schedule(scope.name, today, scope.default_currency)
 	payload["contracts"] = _contracts(scope.name)
 	payload["locations"] = _locations(scope.name)
 	payload["sales"] = {
@@ -114,10 +144,11 @@ def get_dashboard(company: str | None = None, period: str = "this_month") -> dic
 		"reason": "Payments are not recorded in ERPNext yet (Finance gate). Scheduled amounts are not receipts or arrears.",
 	}
 	payload["jobs"] = _jobs(scope.name, today)
+	payload["executive"] = executive_snapshot(scope.name, scope.default_currency, period, now)
 	return payload
 
 
-def _property_and_summary(company, start):
+def _property_and_summary(company, start, today, currency):
 	units = frappe.get_list(
 		"Sidra Unit", filters={"company": company}, fields=["status"], limit_page_length=0
 	)
@@ -126,15 +157,24 @@ def _property_and_summary(company, start):
 		counts[u.status] = counts.get(u.status, 0) + 1
 	confirmed = frappe.get_list(
 		"Sidra Sale Contract",
-		filters={"company": company, "docstatus": 1, "signed_on": [">=", start]},
+		filters={
+			"company": company,
+			"currency": currency,
+			"docstatus": 1,
+			"signed_on": ["between", [start, today]],
+		},
 		fields=["agreed_price"],
 		limit_page_length=0,
 	)
 	try:
+		creation_start, creation_end = site_period_bounds(start, today, get_system_timezone())
 		new_leads = len(
 			frappe.get_list(
 				"Lead",
-				filters={"creation": [">=", start], "company": company},
+				filters={
+					"creation": ["between", [creation_start, creation_end]],
+					"company": company,
+				},
 				pluck="name",
 				limit_page_length=0,
 			)
@@ -163,13 +203,13 @@ def _property_and_summary(company, start):
 	}
 
 
-def _schedule(company, today):
+def _schedule(company, today, currency):
 	"""Scheduled amounts of confirmed contracts from today on. Obligations, not receipts."""
 	contracts = {
 		c.name: c
 		for c in frappe.get_list(
 			"Sidra Sale Contract",
-			filters={"company": company, "docstatus": 1},
+			filters={"company": company, "currency": currency, "docstatus": 1, "signed_on": ["<=", today]},
 			fields=["name", "external_reference", "customer", "currency"],
 			limit_page_length=0,
 		)

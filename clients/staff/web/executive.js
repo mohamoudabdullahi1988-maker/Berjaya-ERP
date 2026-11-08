@@ -25,7 +25,7 @@ export function executiveCards(data) {
   return HEADLINES.map(definition => {
     const metric = executive?.available === true ? executive.metrics?.[definition.id] : null;
     const hasValue = numeric(metric?.value);
-    return {...definition, ...(metric || {}), id: definition.id, label: definition.label, kind: definition.kind,
+    return {...definition, ...(metric || {}), id: definition.id, label: definition.id === 'due_next_30_days' && metric?.basis === 'gross_schedule' ? 'Scheduled next 30 days' : definition.label, kind: definition.kind,
       available: metric?.available === true && hasValue,
       reason: executive?.available === false ? executive.reason : metric?.reason || 'Executive reporting is not connected yet.'};
   });
@@ -77,7 +77,7 @@ export function renderExecutive(data, {el, empty, preview}) {
     if (card.available && card.id === 'available_units') children.push(el('div', {class: 'metric-sub'}, !numeric(card.asking_value) ? 'Asking value unavailable' : format(card.asking_value) + ' asking value'));
     if (card.available && card.id === 'due_next_30_days') {
       const expected = card.expected_receipts;
-      children.push(el('div', {class: 'metric-sub'}, expected?.available === true && numeric(expected.value) ? 'Expected receipts ' + format(expected.value) : 'Contractual dues · no cash forecast'));
+      children.push(el('div', {class: 'metric-sub'}, card.basis === 'gross_schedule' ? 'Gross schedule · before settlements, not expected cash' : expected?.available === true && numeric(expected.value) ? 'Expected receipts ' + format(expected.value) : 'Contractual dues · no cash forecast'));
     }
     children.push(el('div', {class: 'metric-sub'}, card.available ? card.detail : card.reason));
     if (card.available && (preview && card.drilldown?.preview || reportPath(card.drilldown?.path))) children.push(el('span', {class: 'records-hint'}, 'View supporting records →'));
@@ -109,7 +109,7 @@ export function renderExecutive(data, {el, empty, preview}) {
   }
 
   const decisions = section('decisions');
-  $('decision-count').textContent = decisions?.available && decisions.total != null ? `${decisions.total} open` : 'Not connected';
+  $('decision-count').textContent = decisions?.available ? decisions.total != null ? `${decisions.total} open` : 'Partial coverage' : 'Not connected';
   $('decision-list').replaceChildren(...(decisions?.available ? decisions.items?.length ? decisions.items.map(item => {
     const impact = !numeric(item.impact?.amount) ? item.impact?.description || 'Impact not quantified' : money(item.impact.amount, item.impact.currency || currency) + ' · ' + item.impact.description;
     return el('article', {class: 'decision-item'}, [
@@ -119,7 +119,8 @@ export function renderExecutive(data, {el, empty, preview}) {
       el('p', {class: 'decision-action'}, item.next_action || 'Next action not assigned'),
       linked('span', {class: 'case-link'}, preview && item.drilldown?.preview || reportPath(item.drilldown?.path) ? 'Open case →' : 'Supporting case unavailable', item.drilldown, item.title),
     ]);
-  }) : [empty('No escalations in the selected scope.')] : [empty(decisions?.reason || 'Management escalation reporting is not connected.')]));
+  }) : [empty(decisions.summary || 'No escalations in the selected scope.')] : [empty(decisions?.reason || 'Management escalation reporting is not connected.')]));
+  if(decisions?.available && decisions.items?.length && decisions.summary) $('decision-list').prepend(el('p',{class:'panel-note footer-note'},decisions.summary));
 
   const exposure = section('exposure');
   $('executive-exposure').replaceChildren(...(exposure?.available && exposure.items?.length ? exposure.items.map(item =>

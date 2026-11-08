@@ -1,0 +1,13 @@
+{
+ "doctype": "Report",
+ "name": "Sidra Executive Detail",
+ "report_name": "Sidra Executive Detail",
+ "ref_doctype": "Sidra Sale Contract",
+ "report_type": "Script Report",
+ "is_standard": "Yes",
+ "module": "Sidra Sales",
+ "disabled": 0,
+ "prepared_report": 0,
+ "add_total_row": 0,
+ "roles": [{"role": "Sidra General Manager"}, {"role": "System Manager"}]
+}

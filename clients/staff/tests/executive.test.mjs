@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import {executiveCards, reportPath} from '../web/executive.js';
 import demo from '../web/demo.js';
 
+test('gross schedules are explicitly distinct from unpaid dues and forecast cash',()=>{
+ const data=structuredClone(demo);data.executive.metrics.due_next_30_days.basis='gross_schedule';
+ const card=executiveCards(data).find(card=>card.id==='due_next_30_days');
+ assert.equal(card.label,'Scheduled next 30 days');assert.equal(card.basis,'gross_schedule');
+ delete data.executive.metrics.due_next_30_days.basis;
+ assert.equal(executiveCards(data).find(card=>card.id==='due_next_30_days').label,'Due in the next 30 days');
+});
+
 test('a legacy dashboard never becomes invented executive totals or targets', () => {
   const legacy = {...demo, executive: undefined};
   const cards = executiveCards(legacy);

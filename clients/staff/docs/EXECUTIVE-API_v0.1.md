@@ -1,5 +1,7 @@
 # Executive dashboard API v0.1
 
+Implementation update, 8 Nov 2026: Codex now owns this work end to end. [Executive implementation v0.2](../../../docs/EXECUTIVE-DASHBOARD_v0.2.md) supersedes the implementation status and adds explicit `basis:"gross_schedule"` support plus partial exception coverage. The original unavailable Finance/target/baseline constraints below remain in force.
+
 7 Nov 2026. Backend/test server: Claude. Shared web and Android/macOS clients: Codex. Integration proposal for the existing dashboard endpoint; no backend implementation or approved accounting-policy change is supplied here.
 
 ## Request and scope

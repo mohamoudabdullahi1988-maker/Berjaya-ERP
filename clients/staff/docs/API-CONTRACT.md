@@ -1,5 +1,7 @@
 # Staff client API contract v0.1
 
+Current implementation/ownership: [Executive dashboard v0.2](../../../docs/EXECUTIVE-DASHBOARD_v0.2.md), 8 Nov 2026. Codex owns backend and clients end to end. The executive response and native evidence report are implemented; the historical owner/status notes below are superseded. Finance sources remain explicitly unavailable, and gross scheduled dues use their own labelled basis.
+
 7 Nov 2026. Backend owner: Claude. Clients: Codex. Staff only; no customer portal in this version.
 
 ## Shared deployment
@@ -43,7 +45,7 @@ Unavailable groups must use `available:false` and a clear `reason`. Missing acco
 
 ## Executive overview extension
 
-See [Executive dashboard API v0.1](EXECUTIVE-API_v0.1.md) for the optional `executive` response, project scope, six headline cards, monthly series, decisions, exposure, freshness and permission-filtered supporting reports. Backend implementation and HTTPS integration remain pending with Claude.
+See [Executive dashboard API v0.1](EXECUTIVE-API_v0.1.md) and its [implemented v0.2 update](../../../docs/EXECUTIVE-DASHBOARD_v0.2.md) for the executive response and native report. The gross-schedule basis is explicitly labelled before settlements; project associations and HTTPS/device acceptance remain pending. No further Claude handoff is required.
 
 ## Plot and site location API
 

@@ -2,7 +2,7 @@
 
 A small server-hosted staff dashboard, an Android system-WebView app, and a macOS WKWebView app. Claude owns the ERPNext backend/test server; this component does not modify the backend checkout.
 
-**Status (8 Nov 2026):** the executive UI is merged, and PR #28 provides the staff page, operational dashboard and location APIs in the Frappe app. The optional executive aggregate, approved targets/Finance source mappings, HTTPS deployment and actual device acceptance remain pending. Android debug assembly/lint and universal macOS packaging have passed prior CI; source size is not an installed-app-size claim. See the current [dashboard handover](docs/DASHBOARD-HANDOVER_v0.2.md) for verified behavior and remaining integration work.
+**Status (8 Nov 2026):** Codex owns the remaining dashboard backend and clients end to end. The executive endpoint and native supporting report now provide permission-filtered signed sales, inventory, gross future schedule rows and recorded management exceptions. Receipt/allocation, targets and approved-baseline performance remain explicitly unavailable. See [executive implementation v0.2](../../docs/EXECUTIVE-DASHBOARD_v0.2.md) for definitions and verification limits. HTTPS deployment and actual device acceptance remain pending; prior native CI results are build evidence, not installed-app-size or production claims.
 
 ## Preview
 
@@ -33,6 +33,6 @@ Downloads are only from the configured origin; Android streams to a user-selecte
 
 ## Deployment handover
 
-PR #28 serves `web/` at `/sidra-staff/` with session CSRF injection and integrates the location APIs/native fields in the app. Deploy through the normal migrate/build process; do not copy the historical isolated adapter over Claude's implementation or install duplicate fields. Complete the HTTPS deployment and executive response described in `docs/API-CONTRACT.md` and `docs/EXECUTIVE-API_v0.1.md`. The staff server must enforce all roles and Company permissions itself.
+The app serves `web/` at `/sidra-staff/` with session CSRF injection and integrates the location APIs/native fields. Deploy through the normal migrate/build process to install the executive Report and publish assets; do not reinstall the historical isolated adapter. Complete HTTPS/device acceptance using [the implementation guide](../../docs/EXECUTIVE-DASHBOARD_v0.2.md). The staff server enforces management, document and Company permissions; no approval action is supplied by these reports.
 
 See [desktop preview](docs/screenshots/desktop-overview.png), [phone preview](docs/screenshots/mobile-overview.png), [payments](docs/screenshots/payments.png), [web location editor](docs/screenshots/web-location.png). Screenshots contain fictional data, not verified live financial figures.

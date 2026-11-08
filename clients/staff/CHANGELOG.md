@@ -1,5 +1,9 @@
 # Staff clients changelog
 
+## Web client v0.1.2 — 8 Nov 2026
+
+Connect the actual executive backend and native source report. Clearly label gross next-30-day schedule rows before settlements and partial decision-source coverage. Codex now owns the remaining dashboard implementation end to end; see `docs/EXECUTIVE-DASHBOARD_v0.2.md` in the repository root. No financial posting, receipt assumptions, approved baseline or target values are introduced.
+
 ## Web client v0.1.1 — 8 Nov 2026
 
 Display server lead counts independently of pipeline qualification. Distinguish null/blank KPI values from verified zero, show missing inspection/rate/count values explicitly, and describe operational job totals as current company records. Add browser coverage and an updated backend integration handover. Native shell versions and backend app version are unchanged.
