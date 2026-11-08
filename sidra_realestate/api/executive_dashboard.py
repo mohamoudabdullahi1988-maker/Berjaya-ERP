@@ -8,13 +8,14 @@ from zoneinfo import ZoneInfo
 
 import frappe
 from frappe import _
-from frappe.utils import getdate
+from frappe.utils import get_system_timezone, getdate
 
 from sidra_realestate.services.executive_metrics import (
 	decimal_amount,
 	money,
 	month_starts,
 	period_window,
+	registration_day,
 	stage_date_exception,
 )
 
@@ -80,6 +81,7 @@ def _children(doctype, parents, parenttype, parentfield, fields, **filters):
 class Sources:
 	def __init__(self, company, currency, today):
 		self.company, self.currency, self.today = company, currency, today
+		self.site_timezone = get_system_timezone()
 		schemes = _read("Sidra Scheme", company, ["name"])
 		units = _read(
 			"Sidra Unit", company, ["name", "unit_code", "scheme", "status", "cash_price", "creation"]
@@ -196,12 +198,12 @@ def _evidence_rows(source, metric, start):
 			row(
 				"Sidra Unit",
 				u.name,
-				date=str(getdate(u.creation)),
+				date=str(registration_day(u.creation, source.site_timezone)),
 				status=u.status,
 				value=money(u.cash_price)
 				if u.cash_price is not None and decimal_amount(u.cash_price) > 0
 				else None,
-				age_days=max(0, (source.today - getdate(u.creation)).days),
+				age_days=max(0, (source.today - registration_day(u.creation, source.site_timezone)).days),
 				note="Current asking price; age since registration, not time in Available status",
 			)
 			for u in source.units.values()

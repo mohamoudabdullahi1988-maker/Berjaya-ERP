@@ -12,10 +12,10 @@ Agreed contract value is commercial value, not revenue.
 
 import frappe
 from frappe import _
-from frappe.utils import flt, getdate
+from frappe.utils import flt, get_system_timezone, getdate
 
 from sidra_realestate.api.location_geometry import extract_point, legacy_point
-from sidra_realestate.services.executive_metrics import period_window
+from sidra_realestate.services.executive_metrics import period_window, site_period_bounds
 
 PERIODS = {"this_month", "last_30_days", "last_90_days"}
 LOCATION_DOCTYPES = ("Sidra Unit", "Sidra Construction Job")
@@ -161,11 +161,12 @@ def _property_and_summary(company, start, today, currency):
 		limit_page_length=0,
 	)
 	try:
+		creation_start, creation_end = site_period_bounds(start, today, get_system_timezone())
 		new_leads = len(
 			frappe.get_list(
 				"Lead",
 				filters={
-					"creation": ["between", [str(start) + " 00:00:00", str(today) + " 23:59:59.999999"]],
+					"creation": ["between", [creation_start, creation_end]],
 					"company": company,
 				},
 				pluck="name",

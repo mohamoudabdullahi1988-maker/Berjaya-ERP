@@ -4,8 +4,9 @@ Definitions match the reviewed Insights starter. No receipts, allocation, accoun
 approved baseline, target or forecast is inferred from these operational records.
 """
 
-from datetime import date, timedelta
+from datetime import date, datetime, time, timedelta
 from decimal import ROUND_HALF_UP, Decimal, InvalidOperation
+from zoneinfo import ZoneInfo
 
 
 def period_window(period, today):
@@ -35,6 +36,24 @@ def money(value):
 def month_starts(today, count=6):
 	end = today.year * 12 + today.month - 1
 	return [date(index // 12, index % 12 + 1, 1) for index in range(end - count + 1, end + 1)]
+
+
+def site_period_bounds(start, end, site_timezone):
+	"""Convert business-day boundaries for Frappe's site-local naive Datetime storage."""
+	zone = ZoneInfo(site_timezone)
+	mogadishu = ZoneInfo("Africa/Mogadishu")
+	lower = datetime.combine(start, time.min, mogadishu).astimezone(zone).replace(tzinfo=None)
+	upper = (
+		datetime.combine(end + timedelta(days=1), time.min, mogadishu).astimezone(zone).replace(tzinfo=None)
+	)
+	return lower, upper - timedelta(microseconds=1)
+
+
+def registration_day(value, site_timezone):
+	dt = value if isinstance(value, datetime) else datetime.fromisoformat(str(value))
+	if dt.tzinfo is None:
+		dt = dt.replace(tzinfo=ZoneInfo(site_timezone))
+	return dt.astimezone(ZoneInfo("Africa/Mogadishu")).date()
 
 
 def stage_date_exception(row, today):

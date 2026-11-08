@@ -296,3 +296,26 @@ class TestExecutiveDashboard(IntegrationTestCase):
 		self.assertEqual(len(data["result"]), 1)
 		self.assertIn("&lt;img", data["result"][0]["note"])
 		self.assertNotIn("<img", data["result"][0]["note"])
+
+	def test_registration_age_converts_site_datetime_to_business_day(self):
+		frappe.db.set_value("Sidra Unit", self.unit.name, "creation", "2026-11-08 01:00:00")
+		with patch(
+			"sidra_realestate.api.executive_dashboard.get_system_timezone", return_value="Asia/Kolkata"
+		):
+			rows = self.evidence("inventory_age")
+		self.assertEqual(rows[0]["date"], "2026-11-07")
+		self.assertEqual(rows[0]["age_days"], 1)
+
+	def test_lead_creation_period_converts_business_bounds_to_site_timezone(self):
+		for creation in ("2026-11-01 02:29:59", "2026-11-01 02:30:00", "2026-11-02 02:00:00"):
+			lead = frappe.get_doc(
+				{"doctype": "Lead", "first_name": unique("_Test Executive Lead"), "company": self.company}
+			).insert(ignore_permissions=True)
+			frappe.db.set_value("Lead", lead.name, "creation", creation)
+		user = ensure_user(
+			unique("execlead").lower() + "@example.com", ["Sidra General Manager", "Sales Manager"]
+		)
+		with patch("sidra_realestate.api.staff_dashboard.get_system_timezone", return_value="Asia/Kolkata"):
+			data = self.dashboard(user)
+		self.assertEqual(data["summary"]["new_leads"], 2)
+		self.assertFalse(data["sales"]["available"])

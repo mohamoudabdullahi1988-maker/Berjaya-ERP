@@ -1,7 +1,7 @@
 """Pure boundaries for reporting only; no posting or allocation implementation."""
 
 import unittest
-from datetime import date
+from datetime import date, datetime, timezone
 from decimal import Decimal
 
 from sidra_realestate.services.executive_metrics import (
@@ -9,6 +9,8 @@ from sidra_realestate.services.executive_metrics import (
 	money,
 	month_starts,
 	period_window,
+	registration_day,
+	site_period_bounds,
 	stage_date_exception,
 )
 
@@ -22,6 +24,24 @@ class TestExecutiveMetrics(unittest.TestCase):
 			self.assertEqual((end - start).days + 1, days)
 		with self.assertRaises(ValueError):
 			period_window("forever", today)
+
+	def test_mogadishu_boundaries_for_site_datetime_fields(self):
+		start = end = date(2026, 11, 8)
+		self.assertEqual(
+			site_period_bounds(start, end, "Asia/Kolkata"),
+			(datetime(2026, 11, 8, 2, 30), datetime(2026, 11, 9, 2, 29, 59, 999999)),
+		)
+		self.assertEqual(
+			site_period_bounds(start, end, "UTC"),
+			(datetime(2026, 11, 7, 21), datetime(2026, 11, 8, 20, 59, 59, 999999)),
+		)
+
+	def test_registration_age_uses_mogadishu_calendar_day(self):
+		self.assertEqual(registration_day(datetime(2026, 11, 9, 1), "Asia/Kolkata"), date(2026, 11, 8))
+		self.assertEqual(
+			registration_day(datetime(2026, 11, 7, 22, tzinfo=timezone.utc), "Asia/Kolkata"),
+			date(2026, 11, 8),
+		)
 
 	def test_exact_amounts_and_unknown_values(self):
 		self.assertEqual(money(decimal_amount("0.10") + decimal_amount("0.20")), "0.30")
