@@ -25,7 +25,8 @@ export function executiveCards(data) {
   return HEADLINES.map(definition => {
     const metric = executive?.available === true ? executive.metrics?.[definition.id] : null;
     const hasValue = numeric(metric?.value);
-    return {...definition, ...(metric || {}), id: definition.id, label: definition.id === 'due_next_30_days' && metric?.basis === 'gross_schedule' ? 'Scheduled next 30 days' : definition.label, kind: definition.kind,
+    const label = definition.id === 'overdue_balance' && metric?.basis === 'native_invoice_demo' ? 'Overdue invoices (demo)' : definition.id === 'due_next_30_days' && metric?.basis === 'gross_schedule' ? 'Scheduled next 30 days' : definition.label;
+    return {...definition, ...(metric || {}), id: definition.id, label, kind: definition.kind,
       available: metric?.available === true && hasValue,
       reason: executive?.available === false ? executive.reason : metric?.reason || 'Executive reporting is not connected yet.'};
   });
