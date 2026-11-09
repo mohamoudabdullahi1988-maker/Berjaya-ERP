@@ -4,6 +4,11 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.3 — isolated fictional financial data, 9 Nov 2026)
+- Administrator-only, staging-opt-in finance demo loader: a separate fictional Company, six demo accounts, ten submitted native ERPNext vouchers, private ownership manifest, read-only balance verification and repeat protection. Never adopts an existing Company, duplicates vouchers or changes production posting rules.
+- Native GL, Trial Balance, P&L, Balance Sheet and receivable/payable reports can show real posted fictional data. Demo-only dashboard receipts/aging read permission-filtered native records and explicitly label invoice arrears separately from contract schedules.
+- Reuses external contract registration with a private fictional original and three installments, available plots, leads and one recorded milestone exception. No contract document generation or construction module expansion.
+
 ### Added (v0.1.2 — read-only executive dashboard, 8 Nov 2026)
 - Codex takes over the remaining dashboard backend/client implementation and tests end to end under the user's updated allocation; financial/legal gates are unchanged.
 - Management-only executive snapshot on the existing staff endpoint: permission-filtered signed sales and trends, available units/verified asking prices, gross scheduled rows tomorrow through day 30, current stage date exceptions, expired active reservations and registration-age exposure. Reuses the reviewed Insights source definitions without installing another app or executing unrestricted parent SQL.

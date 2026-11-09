@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import {executiveCards, reportPath} from '../web/executive.js';
 import demo from '../web/demo.js';
 
+test('persisted fictional invoice balances are labelled independently of contract arrears',()=>{
+ const data=structuredClone(demo);data.executive.metrics.overdue_balance.basis='native_invoice_demo';
+ assert.equal(executiveCards(data).find(card=>card.id==='overdue_balance').label,'Overdue invoices (demo)');
+ delete data.executive.metrics.overdue_balance.basis;
+ assert.equal(executiveCards(data).find(card=>card.id==='overdue_balance').label,'Overdue balance');
+});
+
 test('gross schedules are explicitly distinct from unpaid dues and forecast cash',()=>{
  const data=structuredClone(demo);data.executive.metrics.due_next_30_days.basis='gross_schedule';
  const card=executiveCards(data).find(card=>card.id==='due_next_30_days');
