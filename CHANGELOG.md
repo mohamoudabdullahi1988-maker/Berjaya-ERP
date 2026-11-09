@@ -4,6 +4,13 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.3 — staff dashboard review fixes, 9 Nov 2026)
+- Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
+- Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.
+- The schedule bucket "Next 30 days" now covers tomorrow through day 30, the same window as the executive `due_next_30_days`; rows due today have a separate "Due today" bucket.
+- Overdue milestones use the shared `stage_overdue` rule (no actual end, completion below 100, active/on-hold jobs only), consistent with the executive stage exceptions.
+- Open spec questions, not changed here: the two contract-value totals and the construction progress % (GitHub issues labelled `spec-question`).
+
 ### Added (v0.1.2 — read-only executive dashboard, 8 Nov 2026)
 - Codex takes over the remaining dashboard backend/client implementation and tests end to end under the user's updated allocation; financial/legal gates are unchanged.
 - Management-only executive snapshot on the existing staff endpoint: permission-filtered signed sales and trends, available units/verified asking prices, gross scheduled rows tomorrow through day 30, current stage date exceptions, expired active reservations and registration-age exposure. Reuses the reviewed Insights source definitions without installing another app or executing unrestricted parent SQL.

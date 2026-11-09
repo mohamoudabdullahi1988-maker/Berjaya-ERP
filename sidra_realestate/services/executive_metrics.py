@@ -56,14 +56,29 @@ def registration_day(value, site_timezone):
 	return dt.astimezone(ZoneInfo("Africa/Mogadishu")).date()
 
 
+def stage_overdue(row, today):
+	"""Incomplete after its recorded planned end: no actual end and completion below 100.
+
+	The one overdue rule for both the staff jobs view and the executive exceptions.
+	"""
+	planned = row.get("planned_end")
+	if not planned or row.get("actual_end"):
+		return False
+	completion = row.get("completion_pct")
+	return date.fromisoformat(str(planned)[:10]) < today and (
+		completion is None or decimal_amount(completion) < 100
+	)
+
+
 def stage_date_exception(row, today):
-	"""Recorded dates only; missing dates never imply an approved/on-time baseline."""
+	"""Recorded dates only; missing dates never imply an approved/on-time baseline.
+
+	An exception is a stage that is overdue now or that recorded an actual end after its planned end.
+	"""
 	planned = row.get("planned_end")
 	if not planned:
 		return False
-	planned = date.fromisoformat(str(planned)[:10])
 	actual = row.get("actual_end")
 	if actual:
-		return date.fromisoformat(str(actual)[:10]) > planned
-	completion = row.get("completion_pct")
-	return planned < today and (completion is None or decimal_amount(completion) < 100)
+		return date.fromisoformat(str(actual)[:10]) > date.fromisoformat(str(planned)[:10])
+	return stage_overdue(row, today)
