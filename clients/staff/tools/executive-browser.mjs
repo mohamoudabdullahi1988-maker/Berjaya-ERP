@@ -72,6 +72,16 @@ export async function executiveBrowser({call, js, wait, shot}) {
     await wait('document.querySelector("#reporting-range").textContent.includes("other / all")');
     assert.equal((await js('window.__executiveTest.requests.at(-1).project')).value, undefined);
 
+    // Persisted demo responses are still live responses, with explicit invoice basis.
+    await js(`window.__executiveTest.payload.payments={available:true,basis:'native_invoice_demo',received:'35000.00',overdue:'15000.00',collection_rate:70,overdue_invoices:1,overdue_contracts:null,aging:[{label:'1–30 days',amount:'15000.00'}]};
+      window.__executiveTest.payload.executive.metrics.overdue_balance.basis='native_invoice_demo';
+      document.querySelector('#refresh').click()`);
+    await wait('!document.querySelector("#refresh").disabled');
+    assert((await js('document.querySelector("#payment-metrics").textContent')).value.includes('Overdue invoices'));
+    assert(!(await js('document.querySelector("#payment-metrics").textContent')).value.includes('Overdue contracts'));
+    assert((await js('document.querySelector("#metrics").textContent')).value.includes('Overdue invoices (demo)'));
+    assert((await js('document.querySelector("#demo-banner").hidden')).value);
+
     // PR #28 can supply lead counts before qualification stages, and null inspection counts.
     await js(`window.__executiveTest.payload.sales={available:false,reason:'Qualification stages are not defined'};
       window.__executiveTest.payload.summary.new_leads=4;

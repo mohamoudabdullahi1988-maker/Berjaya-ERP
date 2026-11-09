@@ -4,12 +4,12 @@ See docs/FINANCE-DEMO_v0.1.md. This does not enable Sidra contract posting.
 """
 
 import json
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta
 from decimal import Decimal
 from urllib.parse import quote, urlencode
+from zoneinfo import ZoneInfo
 
 import frappe
-from frappe.utils import getdate
 
 from sidra_realestate.services.executive_metrics import decimal_amount, money
 
@@ -18,6 +18,7 @@ ABBR = "SFD"
 CUSTOMER = "SFD Fictional Buyer"
 SUPPLIER = "SFD Fictional Supplier"
 ITEM = "SFD Fictional Service"
+PRICE_LIST = "SFD Fictional USD"
 MANIFEST = "sidra-finance-demo-v1.json"
 FLAGS = ("sidra_allow_demo_data", "sidra_finance_demo_site", "sidra_allow_finance_demo_vouchers")
 VOUCHERS = {"Sales Invoice": 3, "Purchase Invoice": 2, "Payment Entry": 4, "Journal Entry": 1}
@@ -105,6 +106,7 @@ def create_finance_demo_data():
 		("Customer", {"customer_name": CUSTOMER}),
 		("Supplier", {"supplier_name": SUPPLIER}),
 		("Item", {"item_code": ITEM}),
+		("Price List", {"price_list_name": PRICE_LIST}),
 		("Sidra Scheme", {"scheme_code": "SFD-FICTIONAL"}),
 	):
 		if frappe.db.exists(doctype, filters):
@@ -140,7 +142,8 @@ def _create():
 	from sidra_realestate.demo import _ensure_presets
 
 	_ensure_presets()
-	today = getdate()
+	# Match the staff report's business day even when the site's timezone differs.
+	today = datetime.now(ZoneInfo("Africa/Mogadishu")).date()
 	start = today - timedelta(days=45)
 	company = _insert("Company", company_name=COMPANY, abbr=ABBR, default_currency="USD", country="Somalia")
 	years = []
@@ -218,6 +221,7 @@ def _create():
 			}
 		],
 	).name
+	_insert("Price List", price_list_name=PRICE_LIST, currency="USD", enabled=1, buying=1, selling=1)
 	vouchers = {doctype: [] for doctype in VOUCHERS}
 	capital = _insert(
 		"Journal Entry",
@@ -245,6 +249,10 @@ def _create():
 			**({"customer": customer} if is_sale else {"supplier": supplier}),
 			currency="USD",
 			conversion_rate=1,
+			**({"selling_price_list": PRICE_LIST} if is_sale else {"buying_price_list": PRICE_LIST}),
+			price_list_currency="USD",
+			plc_conversion_rate=1,
+			ignore_pricing_rule=1,
 			posting_date=today + timedelta(days=offset),
 			set_posting_time=1,
 			due_date=today + timedelta(days=due_offset),

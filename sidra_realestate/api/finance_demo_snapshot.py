@@ -132,12 +132,17 @@ def demo_financials(company, currency, start, today):
 			"receipts": [
 				{"date": str(r.posting_date), "amount": money(r.base_received_amount)} for r in receipts
 			],
-			"cash_drilldown": link(
-				"General Ledger",
-				from_date=start,
-				to_date=today,
-				account=json.dumps([data["accounts"]["Bank"]]),
-			),
+			"cash_drilldown": {
+				"path": "/app/payment-entry?"
+				+ urlencode(
+					{
+						"company": COMPANY,
+						"docstatus": 1,
+						"payment_type": "Receive",
+						"posting_date": json.dumps(["between", [str(start), str(today)]]),
+					}
+				)
+			},
 			"overdue_drilldown": link("Accounts Receivable", report_date=today),
 		}
 	except (

@@ -19,7 +19,13 @@ from sidra_realestate.finance_demo import (
 	report_links,
 	verify_finance_demo,
 )
-from sidra_realestate.tests.helpers import GENERAL_MANAGER, OTHER_COMPANY, as_user, ensure_base_records
+from sidra_realestate.tests.helpers import (
+	GENERAL_MANAGER,
+	OTHER_COMPANY,
+	as_user,
+	ensure_base_records,
+	ensure_user,
+)
 
 
 class TestFinanceDemo(IntegrationTestCase):
@@ -84,6 +90,8 @@ class TestFinanceDemo(IntegrationTestCase):
 					verify_finance_demo(data)
 
 	def _native_reports(self, data):
+		from erpnext.accounts.report.accounts_payable.accounts_payable import execute as payable
+		from erpnext.accounts.report.accounts_receivable.accounts_receivable import execute as receivable
 		from erpnext.accounts.report.balance_sheet.balance_sheet import execute as balance_sheet
 		from erpnext.accounts.report.financial_statements import build_period_list
 		from erpnext.accounts.report.general_ledger.general_ledger import execute as general_ledger
@@ -98,6 +106,16 @@ class TestFinanceDemo(IntegrationTestCase):
 		rows = [r for r in gl if r.get("voucher_no")]
 		self.assertEqual(sum(Decimal(str(r.get("debit", 0))) for r in rows), Decimal("237000"))
 		self.assertEqual(sum(Decimal(str(r.get("credit", 0))) for r in rows), Decimal("237000"))
+		for run, expected in ((receivable, "35000"), (payable, "8000")):
+			result = run(
+				frappe._dict(company=COMPANY, report_date=data["as_of"], ageing_based_on="Due Date")
+			)[1]
+			voucher_rows = [r for r in result if r.get("voucher_no")]
+			self.assertEqual(
+				sum(Decimal(str(r.get("outstanding") or 0)) for r in voucher_rows),
+				Decimal(expected),
+				run.__module__,
+			)
 		statement_filters = frappe._dict(
 			company=COMPANY,
 			filter_based_on="Date Range",
@@ -188,6 +206,28 @@ class TestFinanceDemo(IntegrationTestCase):
 
 		with patch("sidra_realestate.api.finance_demo_snapshot.frappe.get_list", side_effect=incomplete):
 			self.assertFalse(demo_financials(COMPANY, "USD", today, today)["available"])
+		finance_user = ensure_user(
+			"sidra.finance-demo-test@example.com", ["Accounts Manager", "Sidra General Manager"]
+		)
+		with as_user(finance_user):
+			self.assertTrue(demo_financials(COMPANY, "USD", today, today)["available"])
+		permission = frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": finance_user,
+				"allow": "Company",
+				"for_value": OTHER_COMPANY,
+				"apply_to_all_doctypes": 1,
+			}
+		).insert()
+		frappe.clear_cache(user=finance_user)
+		try:
+			with as_user(finance_user):
+				self.assertFalse(demo_financials(COMPANY, "USD", today, today)["available"])
+				with self.assertRaises(frappe.PermissionError):
+					get_dashboard(company=COMPANY)
+		finally:
+			frappe.delete_doc("User Permission", permission.name)
 		dashboard = get_dashboard(company=COMPANY)
 		self.assertEqual(dashboard["payments"]["basis"], "native_invoice_demo")
 		self.assertEqual(dashboard["payments"]["overdue_contracts"], None)

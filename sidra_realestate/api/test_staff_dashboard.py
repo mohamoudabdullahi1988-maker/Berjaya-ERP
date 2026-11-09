@@ -4,6 +4,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from sidra_realestate.api.executive_dashboard import snapshot_time
 from sidra_realestate.api.staff_dashboard import get_dashboard
 from sidra_realestate.install import ensure_contract_profiles
 from sidra_realestate.tests.helpers import (
@@ -29,6 +30,7 @@ class TestStaffDashboard(IntegrationTestCase):
 		cls.scheme = make_scheme("_TEST-DASH")
 
 	def confirmed_contract(self):
+		today = snapshot_time().date()  # Dashboard dates use Mogadishu, not the site's calendar.
 		unit = make_unit(unique("_T-DASH"), self.scheme).name
 		doc = frappe.get_doc(
 			{
@@ -38,18 +40,18 @@ class TestStaffDashboard(IntegrationTestCase):
 				"external_reference": unique("EXT-DASH"),
 				"customer": BUYER,
 				"company": COMPANY,
-				"signed_on": frappe.utils.nowdate(),
+				"signed_on": today,
 				"agreed_price": 1200,
 				"units": [{"unit": unit, "allocated_price": 1200}],
 				"schedule": [
 					{
 						"row_type": "Installment",
-						"due_date": frappe.utils.add_days(frappe.utils.nowdate(), 10),
+						"due_date": frappe.utils.add_days(today, 10),
 						"amount": 600,
 					},
 					{
 						"row_type": "Installment",
-						"due_date": frappe.utils.add_days(frappe.utils.nowdate(), 45),
+						"due_date": frappe.utils.add_days(today, 45),
 						"amount": 600,
 					},
 				],
