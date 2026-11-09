@@ -6,6 +6,11 @@ from frappe.tests import IntegrationTestCase
 
 from sidra_realestate.install import PROFILE_B_TITLE_DEADLINE_NOTE, ensure_contract_profiles
 from sidra_realestate.patches.v0_3 import resolve_profile_b_title_deadline
+from sidra_realestate.patches.v0_4 import set_collection_rule_defaults
+from sidra_realestate.sidra_installments.doctype.sidra_contract_profile.sidra_contract_profile import (
+	COLLECTION_RULE_DEFAULTS,
+	TERM_FIELDS,
+)
 from sidra_realestate.tests.helpers import (
 	GENERAL_MANAGER,
 	SYSTEM_ONLY,
@@ -159,8 +164,65 @@ class TestSidraContractProfile(IntegrationTestCase):
 		frappe.db.set_value("Sidra Contract Profile", "Profile A", "is_default", 1)
 		frappe.db.set_value("Sidra Contract Profile", doc.name, "is_default", 0)
 
+	# ------------------------------------------------------------ collections rules (issue #3)
+	def test_collection_rules_seeded_with_engine_assumptions(self):
+		"""Mohamoud, 9 Nov 2026: the engine's assumptions become editable profile settings."""
+		for name in ("Profile A", "Profile B"):
+			profile = frappe.get_doc("Sidra Contract Profile", name)
+			with self.subTest(profile=name):
+				self.assertEqual(
+					{k: profile.get(k) for k in COLLECTION_RULE_DEFAULTS}, COLLECTION_RULE_DEFAULTS
+				)
+				self.assertTrue(set(COLLECTION_RULE_DEFAULTS) <= set(profile.terms()))
+		self.assertEqual(COLLECTION_RULE_DEFAULTS["penalty_cap_basis"], "Per Installment")  # AT-07
+		self.assertEqual(COLLECTION_RULE_DEFAULTS["notice_last_day"], "Counts as Late")  # AT-09
+		self.assertEqual(COLLECTION_RULE_DEFAULTS["refund_installment_basis"], "Regular Installment")  # AT-08
+
+	def test_collection_rules_are_contract_terms(self):
+		self.assertTrue(set(COLLECTION_RULE_DEFAULTS) <= set(TERM_FIELDS))
+
+	def test_new_profile_gets_rule_defaults_and_can_change_them(self):
+		doc = self.new_profile()
+		self.assertEqual({k: doc.get(k) for k in COLLECTION_RULE_DEFAULTS}, COLLECTION_RULE_DEFAULTS)
+		doc.penalty_cap_basis = "Per Calendar Month"
+		doc.missed_after_days = 5
+		doc.title_part_month = "Pro Rata by Day"
+		doc.save()
+		doc.reload()
+		self.assertEqual(
+			(doc.penalty_cap_basis, doc.missed_after_days, doc.title_part_month),
+			("Per Calendar Month", 5, "Pro Rata by Day"),
+		)
+
+	def test_patch_fills_blank_rules_and_keeps_chosen_ones(self):
+		doc = self.new_profile()
+		frappe.db.set_value(
+			"Sidra Contract Profile",
+			doc.name,
+			{"penalty_cap_basis": None, "receipt_order": "", "extra_payment_allocation": "Oldest First"},
+		)
+		set_collection_rule_defaults.execute()
+		state = frappe.db.get_value(
+			"Sidra Contract Profile",
+			doc.name,
+			["penalty_cap_basis", "receipt_order", "extra_payment_allocation"],
+			as_dict=True,
+		)
+		self.assertEqual(
+			(state.penalty_cap_basis, state.receipt_order, state.extra_payment_allocation),
+			("Per Installment", "Installments", "Oldest First"),
+		)
+
 	def test_ranges(self):
-		for field, value in (("due_day", 29), ("due_day", 0), ("installments", 61), ("grace_months", 13)):
+		for field, value in (
+			("due_day", 29),
+			("due_day", 0),
+			("installments", 61),
+			("grace_months", 13),
+			("penalty_grace_days", 61),
+			("penalty_grace_days", -1),
+			("missed_after_days", 61),
+		):
 			with self.subTest(field=field, value=value), self.assertRaises(frappe.ValidationError):
 				self.new_profile(**{field: value})
 

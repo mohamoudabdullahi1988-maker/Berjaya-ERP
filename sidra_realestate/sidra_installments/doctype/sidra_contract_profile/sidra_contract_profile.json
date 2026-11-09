@@ -27,20 +27,31 @@
   "column_break_penalty",
   "penalty_fixed_amount",
   "notice_days",
+  "penalty_grace_days",
+  "penalty_cap_basis",
+  "notice_last_day",
+  "receipt_order",
+  "extra_payment_allocation",
   "penalty_destination",
   "section_default",
   "default_trigger_missed",
   "column_break_default",
   "refund_retention_type",
   "refund_retention_value",
+  "missed_after_days",
+  "refund_installment_basis",
+  "refund_penalties",
   "section_title",
   "title_deadline_days",
   "title_deadline_note",
   "column_break_title",
   "title_penalty_type",
   "title_penalty_amount",
+  "title_part_month",
   "title_refund_after_days",
   "title_refund_compensation_pct",
+  "title_refund_from",
+  "title_refund_compensation_base",
   "section_clauses",
   "clauses"
  ],
@@ -182,6 +193,48 @@
    "depends_on": "eval:doc.penalty_type=='Fixed After Notice'"
   },
   {
+   "fieldname": "penalty_grace_days",
+   "fieldtype": "Int",
+   "label": "Days After Due Date Before Per-Day Penalty Starts",
+   "default": "0",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
+   "description": "Waiting period (G2). 0 = from the day after the due date"
+  },
+  {
+   "fieldname": "penalty_cap_basis",
+   "fieldtype": "Select",
+   "label": "Cap Applies",
+   "options": "Per Installment\nPer Installment, Each 30 Days Late\nPer Calendar Month",
+   "default": "Per Installment",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
+   "description": "Issue #3 item 1"
+  },
+  {
+   "fieldname": "notice_last_day",
+   "fieldtype": "Select",
+   "label": "Payment on the Last Notice Day",
+   "options": "Counts as Late\nCounts as On Time",
+   "default": "Counts as Late",
+   "depends_on": "eval:doc.penalty_type=='Fixed After Notice'",
+   "description": "Issue #3 item 2"
+  },
+  {
+   "fieldname": "receipt_order",
+   "fieldtype": "Select",
+   "label": "Receipt Pays First",
+   "options": "Installments\nPenalties",
+   "default": "Installments",
+   "description": "Issue #3 item 4"
+  },
+  {
+   "fieldname": "extra_payment_allocation",
+   "fieldtype": "Select",
+   "label": "Payment Beyond What Is Due",
+   "options": "Cashier Chooses\nOldest First\nReduce Last Installments",
+   "default": "Cashier Chooses",
+   "description": "Issue #3 item 3: Oldest First = advance payment (AT-10); Reduce Last Installments = early payment (AT-13)"
+  },
+  {
    "fieldname": "penalty_destination",
    "fieldtype": "Select",
    "label": "Penalty Goes To",
@@ -220,6 +273,30 @@
    "depends_on": "eval:in_list(['Fixed','Percent'], doc.refund_retention_type)"
   },
   {
+   "fieldname": "missed_after_days",
+   "fieldtype": "Int",
+   "label": "Days After Due Date Before an Installment Counts as Missed",
+   "default": "0",
+   "description": "Issue #3 item 5. 0 = missed from the day after the due date"
+  },
+  {
+   "fieldname": "refund_installment_basis",
+   "fieldtype": "Select",
+   "label": "One Installment Means",
+   "options": "Regular Installment\nFinal Installment",
+   "default": "Regular Installment",
+   "depends_on": "eval:doc.refund_retention_type=='One Installment'",
+   "description": "Issue #3 item 6"
+  },
+  {
+   "fieldname": "refund_penalties",
+   "fieldtype": "Select",
+   "label": "Penalties Paid in Refund Base",
+   "options": "Excluded\nIncluded",
+   "default": "Excluded",
+   "description": "Issue #3 item 6"
+  },
+  {
    "fieldname": "section_title",
    "fieldtype": "Section Break",
    "label": "Title Deadline (SAL-18) — stored only, not applied in P0",
@@ -254,6 +331,15 @@
    "depends_on": "eval:doc.title_penalty_type!='None'"
   },
   {
+   "fieldname": "title_part_month",
+   "fieldtype": "Select",
+   "label": "Part Month of Title Delay",
+   "options": "Pending Decision\nNot Charged\nCharged as Full Month\nPro Rata by Day",
+   "default": "Pending Decision",
+   "depends_on": "eval:doc.title_penalty_type=='Per Month'",
+   "description": "Issue #3 item 7"
+  },
+  {
    "fieldname": "title_refund_after_days",
    "fieldtype": "Int",
    "label": "Buyer Refund Right After (days)",
@@ -264,6 +350,24 @@
    "fieldtype": "Percent",
    "label": "Refund Compensation %",
    "depends_on": "title_refund_after_days"
+  },
+  {
+   "fieldname": "title_refund_from",
+   "fieldtype": "Select",
+   "label": "Refund Right Days Counted From",
+   "options": "Pending Decision\nFinal Payment\nTitle Deadline",
+   "default": "Pending Decision",
+   "depends_on": "title_refund_after_days",
+   "description": "Issue #3 item 8"
+  },
+  {
+   "fieldname": "title_refund_compensation_base",
+   "fieldtype": "Select",
+   "label": "Compensation % Applies To",
+   "options": "Pending Decision\nAmount Paid\nAgreed Price",
+   "default": "Pending Decision",
+   "depends_on": "title_refund_after_days",
+   "description": "Issue #3 item 8"
   },
   {
    "fieldname": "section_clauses",
@@ -280,7 +384,7 @@
  ],
  "index_web_pages_for_search": 0,
  "links": [],
- "modified": "2026-11-06 16:00:00.000000",
+ "modified": "2026-11-09 18:03:51.000000",
  "modified_by": "Administrator",
  "module": "Sidra Installments",
  "name": "Sidra Contract Profile",

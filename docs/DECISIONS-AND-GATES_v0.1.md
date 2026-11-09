@@ -15,6 +15,8 @@
 | G6 | 7 Nov 2026 | **Merge rule:** a PR into `develop` is merged when its CI is green. No separate review wait. | `CLAUDE.md` rule 5 (CI must pass) unchanged |
 | G7 | 7 Nov 2026 | **Implementers:** Claude Code implements. When Claude Code's usage limit is reached, **Codex continues the same work** under the same rules (`AGENTS.md`). | Contract capture brief roles (`CONTRACT-CAPTURE_v0.3.md`) |
 | G8 | 7 Nov 2026 | `sidra-erp_v0.1.0.zip` was committed by mistake and is removed. | — |
+| G9 | 9 Nov 2026 | **Collections rules are profile settings.** Each rule the installment engine had to assume (issue #3: penalty cap basis, penalty waiting days, last notice day, receipt order, payments beyond what is due, when an installment counts as missed, refund base, Profile B title part month and refund right) is a setting on the contract profile, frozen into each contract with the other terms and editable on registered contracts. Profiles A and B are seeded with the engine's assumptions; where the engine made none the value is **Pending Decision**. Settings only: nothing is applied until P2. | Issue #3 items 1–8; item 9 (cost / profit split) is void under G3 |
+| G10 | 9 Nov 2026 | **Contract clauses are bilingual, Somali and English, and Sidra supplies the wording.** The implementer loads the supplied text; the General Manager approves each clause in the system. | Issue #8 item 1 (who writes the text); the profile mapping and witness questions stay open |
 
 ## 2. Gates still open
 

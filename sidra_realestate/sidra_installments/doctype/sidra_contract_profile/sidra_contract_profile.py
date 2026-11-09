@@ -38,6 +38,17 @@ TERM_FIELDS = (
 	"title_penalty_amount",
 	"title_refund_after_days",
 	"title_refund_compensation_pct",
+	"penalty_grace_days",
+	"penalty_cap_basis",
+	"notice_last_day",
+	"receipt_order",
+	"extra_payment_allocation",
+	"missed_after_days",
+	"refund_installment_basis",
+	"refund_penalties",
+	"title_part_month",
+	"title_refund_from",
+	"title_refund_compensation_base",
 )
 
 
@@ -57,7 +68,37 @@ PENALTY_AND_TITLE_FIELDS = (
 	"title_penalty_amount",
 	"title_refund_after_days",
 	"title_refund_compensation_pct",
+	"penalty_grace_days",
+	"penalty_cap_basis",
+	"notice_last_day",
+	"receipt_order",
+	"extra_payment_allocation",
+	"missed_after_days",
+	"refund_installment_basis",
+	"refund_penalties",
+	"title_part_month",
+	"title_refund_from",
+	"title_refund_compensation_base",
 )
+
+
+# Collections rules the installment engine had to assume (issue #3). Mohamoud, 9 Nov 2026: each is a
+# profile setting, copied into the contract like the other terms, stored only until P2 applies them.
+# Seeded with the engine's assumptions (they pass AT-06 to AT-13); where the engine made no
+# assumption the value is "Pending Decision".
+COLLECTION_RULE_DEFAULTS = {
+	"penalty_grace_days": 0,
+	"penalty_cap_basis": "Per Installment",
+	"notice_last_day": "Counts as Late",
+	"receipt_order": "Installments",
+	"extra_payment_allocation": "Cashier Chooses",
+	"missed_after_days": 0,
+	"refund_installment_basis": "Regular Installment",
+	"refund_penalties": "Excluded",
+	"title_part_month": "Pending Decision",
+	"title_refund_from": "Pending Decision",
+	"title_refund_compensation_base": "Pending Decision",
+}
 
 
 def check_range(doc, field, low, high):
@@ -75,6 +116,8 @@ def check_not_negative(doc, *fields):
 def validate_penalty_and_title_terms(doc):
 	"""Range checks shared by Sidra Contract Profile and Sidra Sale Contract (D6)."""
 	check_range(doc, "notice_days", 0, 60)
+	check_range(doc, "penalty_grace_days", 0, 60)
+	check_range(doc, "missed_after_days", 0, 60)
 	check_not_negative(
 		doc,
 		"penalty_per_day",

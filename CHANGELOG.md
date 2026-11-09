@@ -4,6 +4,12 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.4 — collections rules as profile settings, decision G9, issue #3, 12 Nov 2026)
+- Sidra Contract Profile: eleven new settings for the rules the installment engine had to assume: days before a per-day penalty starts, cap basis, whether payment on the last notice day is late, what a receipt pays first, how a payment beyond what is due is allocated, days before an installment counts as missed, what "one installment" means for the refund, whether penalties paid are in the refund base, and Profile B's title part month, refund-right start and compensation base
+- The same settings on Sidra Sale Contract: frozen from the profile on generated contracts, prefilled and editable on registered (External) contracts, kept in the terms snapshot (INS-20). Stored only; nothing is applied (`CLAUDE.md` rule 3)
+- Profiles A and B seeded with the engine's assumptions (AT-06 to AT-13); title rules the engine left open are "Pending Decision". Patch `v0_4.set_collection_rule_defaults` fills only blank settings on existing profiles; contracts are not changed
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G9 (issue #3) and G10 (issue #8: bilingual clauses, wording supplied by Sidra)
+
 ### Added (v0.1.3 — isolated fictional financial data, 9 Nov 2026)
 - Administrator-only, staging-opt-in finance demo loader: a separate fictional Company, six demo accounts, ten submitted native ERPNext vouchers, private ownership manifest, read-only balance verification and repeat protection. Never adopts an existing Company, duplicates vouchers or changes production posting rules.
 - Native GL, Trial Balance, P&L, Balance Sheet and receivable/payable reports can show real posted fictional data. Demo-only dashboard receipts/aging read permission-filtered native records and explicitly label invoice arrears separately from contract schedules.

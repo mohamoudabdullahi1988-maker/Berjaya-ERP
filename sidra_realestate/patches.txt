@@ -8,3 +8,4 @@ sidra_realestate.patches.v0_2.set_notary_reference_keys
 sidra_realestate.patches.v0_2.set_document_currency
 sidra_realestate.patches.v0_3.resolve_profile_b_title_deadline
 sidra_realestate.patches.v0_3.set_contract_source
+sidra_realestate.patches.v0_4.set_collection_rule_defaults
