@@ -4,6 +4,17 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.12 — sale quotation, P1, 12 Nov 2026; decision G13; `docs/SALE-QUOTATION_v0.1.md`)
+- **Sidra Sale Quotation** (SAL-05): an offer for one or more units showing the cash option and the installment option side by side, printed on Sidra letterhead (print format *Sidra Sale Quotation*).
+  - Cash option: the unit's listed price, or lower as a discount.
+  - Installment option: a price entered per unit, never below the listed price; terms from a contract profile, with the number of months adjustable from 12 to 36; an indicative schedule.
+  - Discounts need a second person before the quotation is issued: a Sales Manager up to 5 % of the unit's listed price, the General Manager above. Changing a price clears the approval.
+  - Valid 7 days unless changed; a daily job marks issued quotations Expired.
+  - Offer only: no reservation, no unit change, no contract and no posting.
+- Real Estate sidebar link for Sale Quotations.
+- `services/quotation.py`: pure rules with `test_engine_quotation.py`. The 5 % limit, the month range and the valid days are constants that change only with an approved spec. Frappe integration tests.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G13.
+
 ### Fixed (v0.1.11 — staff sample figures, 12 Nov 2026)
 - Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
 - Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.
