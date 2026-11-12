@@ -1,4 +1,4 @@
-"""Read native finance only for the opted-in finance demo Company and its owned vouchers (G12)."""
+"""Read native finance only for the opted-in finance demo Company and its owned vouchers (G13)."""
 
 import json
 from decimal import Decimal

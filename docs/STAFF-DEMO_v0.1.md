@@ -3,7 +3,7 @@
 12 November 2026. The request is to populate contracts, sales, payments,
 construction and financial statements on the existing test site.
 
-Update 12 Nov 2026 (decision G12): on the test site the sample data is loaded
+Update 12 Nov 2026 (decision G13): on the test site the sample data is loaded
 under **Sidra Homes**, not a separate demo Company. Select Sidra Homes and the
 original date range returned by the loader. The loader refuses if Sidra Homes
 holds any GL entry its manifest does not own. **Sidra Demo Homes** and

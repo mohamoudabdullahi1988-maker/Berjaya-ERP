@@ -4,17 +4,31 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
-### Changed (v0.1.11 — sample data under Sidra Homes on the test site, decision G12, 12 Nov 2026)
-- Decision G12 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
+### Changed (v0.1.12 — sample data under Sidra Homes on the test site, decision G13, 12 Nov 2026)
+- Decision G13 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
 - Finance demo loader posts the same ten vouchers (237,000 / 237,000) into the existing Company **Sidra Homes**, named in one constant. It never creates or edits the Company; demo accounts sit under marked `Fictional Demo Accounts` groups; identities are `SHD`, so the v0.1 `SFD` records and both old demo Companies are untouched.
 - New no-foreign-GL guard: before the first insert, refuse a Company holding any GL entry the private manifest does not own, naming the count and first vouchers; refuse on a missing, duplicated or unreadable manifest. Also run by `verify_finance_demo`.
 - Staff dashboard demo finance adapter and `demo_reporting.populate_and_verify` follow the same constant to Sidra Homes.
 - Tests: finance demo tests retargeted; new tests for the guard (refusal, count in the message, nothing written), the missing Company, the unreadable manifest, and the count and checksum of 60 existing units before and after a load.
 - `deploy/sidra-homes-verify_v0.2.sh`: test-site runbook and read-only verification sweep.
 
-### Fixed (v0.1.10 — staff sample figures, 12 Nov 2026)
+### Fixed (v0.1.11 — staff sample figures, 12 Nov 2026)
 - Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
 - Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.
+
+### Added (v0.1.10 — buyer KYC and title transfer tracker, P1, 12 Nov 2026; decision G12; `docs/KYC-AND-TITLE_v0.1.md`)
+- **Sidra Customer KYC** (SAL-07): one restricted record per Customer with ID or passport, phone, address, guarantor details and private scans. Sales Users enter it and a Sales Manager verifies it; the General Manager reads. No other role has access. Changing a verified record returns it to Draft.
+- **Contract gate:** a contract generated from a profile can't be submitted until the buyer has verified KYC. Registered (external) contracts don't need it.
+- **Sidra Title Transfer** (SAL-08, SAL-18):
+  - one record per unit of a confirmed contract, with documents required, land office submission, deed number and handover;
+  - the final payment date is entered with private evidence and confirmed by a second Sales Manager; the deadline is the contract's frozen title deadline days after it;
+  - status is Due Soon from 5 days before the deadline and Overdue after it, with days past the deadline; a daily job keeps it current;
+  - the General Manager confirms the handover, after which the record is locked;
+  - record only: no change to the unit, the contract or ownership, and no late-title amount.
+- Real Estate sidebar links for Title Transfers and Customer KYC; Title connection on the sale contract.
+- `services/title.py`: pure deadline rules with `test_engine_title.py`. `services/files.py`: the shared private-file check. Frappe integration tests for both DocTypes and the contract gate.
+- The demo loader gives its fictional buyers verified KYC so generated demo contracts can still be confirmed.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G12.
 
 ### Added (v0.1.9 — construction controls, P1, 12 Nov 2026; decision G11; `docs/CONSTRUCTION-CONTROLS_v0.2.md`)
 - **Sidra Construction Quotation** (CON-02, CON-03):
