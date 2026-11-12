@@ -13,7 +13,7 @@
    "label": "Schedule Tolerance",
    "default": "5",
    "non_negative": 1,
-   "description": "Largest difference allowed between a registered contract's schedule and the amount due (D3). Confirmed contracts keep the tolerance stored in their snapshot."
+   "description": "Largest difference allowed between a registered contract's schedule and the amount due. Confirmed contracts keep the tolerance stored in their snapshot."
   }
  ],
  "issingle": 1,

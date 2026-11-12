@@ -51,3 +51,7 @@ scheduler_events = {
 		"sidra_realestate.services.prices.refresh_current_prices",
 	],
 }
+
+
+# Scoped Desk presentation fixes, loaded without changing Frappe core.
+app_include_js = ["/assets/sidra_realestate/js/desk_forms.js"]
