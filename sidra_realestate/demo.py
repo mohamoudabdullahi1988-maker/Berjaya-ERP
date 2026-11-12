@@ -14,7 +14,7 @@ import os
 from io import BytesIO
 
 import frappe
-from frappe.utils import add_days, today
+from frappe.utils import add_days, now_datetime, today
 
 from sidra_realestate.site_setup import REGIONAL, ensure_country
 
@@ -42,6 +42,7 @@ def create_demo_data(company: str | None = None) -> dict:
 	_guard()
 	company = company or _ensure_company()
 	_ensure_customers()
+	_ensure_kyc()
 	_ensure_users()
 	units = _ensure_units(company)
 	summary = {"company": company, "units": units}
@@ -350,6 +351,47 @@ def _ensure_customers():
 					"territory": "All Territories",
 				}
 			).insert(ignore_permissions=True)
+
+
+def _ensure_kyc():
+	"""Fictional verified KYC for the demo buyers, so generated demo contracts can be confirmed (SAL-07)."""
+	for index, name in enumerate(BUYERS, start=1):
+		if frappe.db.exists("Sidra Customer KYC", {"customer": name, "status": "Verified"}):
+			continue
+		if frappe.db.exists("Sidra Customer KYC", name):
+			doc = frappe.get_doc("Sidra Customer KYC", name)
+		else:
+			doc = frappe.get_doc(
+				{
+					"doctype": "Sidra Customer KYC",
+					"customer": name,
+					"id_type": "National ID",
+					"id_number": f"DEMO-ID-{2000 + index}",
+					"phone": f"+252 63 000 20{index:02d}",
+					"address": "Demo address, Hargeisa",
+				}
+			).insert(ignore_permissions=True)
+		if not doc.id_document:
+			doc.id_document = (
+				frappe.get_doc(
+					{
+						"doctype": "File",
+						"file_name": f"demo-id-scan-{index}.pdf",
+						"content": _placeholder_scan(f"demo-kyc-{index}"),
+						"is_private": 1,
+						"attached_to_doctype": doc.doctype,
+						"attached_to_name": doc.name,
+						"attached_to_field": "id_document",
+					}
+				)
+				.insert(ignore_permissions=True)
+				.file_url
+			)
+		doc.status = "Verified"
+		doc.verified_by = frappe.session.user
+		doc.verified_on = now_datetime()
+		doc.flags.verifying = True
+		doc.save(ignore_permissions=True)
 
 
 def _ensure_users():

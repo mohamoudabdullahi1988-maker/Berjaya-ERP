@@ -57,6 +57,7 @@ from sidra_realestate.sidra_installments.doctype.sidra_contract_profile.sidra_co
 from sidra_realestate.sidra_sales.doctype.sidra_contract_settings.sidra_contract_settings import (
 	schedule_tolerance,
 )
+from sidra_realestate.sidra_sales.doctype.sidra_customer_kyc.sidra_customer_kyc import has_verified_kyc
 
 NOTARY_REFERENCE = re.compile(r"^IPN/HL/\d{3}/\d{4}$")  # SAL-19
 
@@ -397,6 +398,8 @@ class SidraSaleContract(Document):
 			missing.append(_("the signed copy"))
 		else:
 			self.check_signed_copy()
+		if not has_verified_kyc(self.customer):
+			missing.append(_("the buyer's verified KYC"))  # SAL-07, G12: generated contracts only
 		if not (self.notary_name or "").strip():
 			missing.append(_("the notary"))
 		if not (self.notary_reference or "").strip():

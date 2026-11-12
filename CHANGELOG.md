@@ -4,6 +4,20 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.10 — buyer KYC and title transfer tracker, P1, 12 Nov 2026; decision G12; `docs/KYC-AND-TITLE_v0.1.md`)
+- **Sidra Customer KYC** (SAL-07): one restricted record per Customer with ID or passport, phone, address, guarantor details and private scans. Sales Users enter it and a Sales Manager verifies it; the General Manager reads. No other role has access. Changing a verified record returns it to Draft.
+- **Contract gate:** a contract generated from a profile can't be submitted until the buyer has verified KYC. Registered (external) contracts don't need it.
+- **Sidra Title Transfer** (SAL-08, SAL-18):
+  - one record per unit of a confirmed contract, with documents required, land office submission, deed number and handover;
+  - the final payment date is entered with private evidence and confirmed by a second Sales Manager; the deadline is the contract's frozen title deadline days after it;
+  - status is Due Soon from 5 days before the deadline and Overdue after it, with days past the deadline; a daily job keeps it current;
+  - the General Manager confirms the handover, after which the record is locked;
+  - record only: no change to the unit, the contract or ownership, and no late-title amount.
+- Real Estate sidebar links for Title Transfers and Customer KYC; Title connection on the sale contract.
+- `services/title.py`: pure deadline rules with `test_engine_title.py`. `services/files.py`: the shared private-file check. Frappe integration tests for both DocTypes and the contract gate.
+- The demo loader gives its fictional buyers verified KYC so generated demo contracts can still be confirmed.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G12.
+
 ### Added (v0.1.9 — construction controls, P1, 12 Nov 2026; decision G11; `docs/CONSTRUCTION-CONTROLS_v0.2.md`)
 - **Sidra Construction Quotation** (CON-02, CON-03):
   - priced from a frozen copy of the job's BOQ, or as a fixed fee; printed on Sidra letterhead (print format *Sidra Construction Quotation*);
