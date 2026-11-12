@@ -4,6 +4,7 @@
 import frappe
 from frappe.tests import IntegrationTestCase
 
+from sidra_realestate.api.executive_dashboard import snapshot_time
 from sidra_realestate.api.staff_dashboard import get_dashboard
 from sidra_realestate.install import ensure_contract_profiles
 from sidra_realestate.tests.helpers import (
@@ -37,6 +38,7 @@ class TestStaffDashboard(IntegrationTestCase):
 		frappe.db.commit()
 
 	def confirmed_contract(self, schedule=None):
+		today = snapshot_time().date()  # Dashboard dates use Mogadishu, not the site's calendar.
 		unit = make_unit(unique("_T-DASH"), self.scheme).name
 		if schedule is None:
 			schedule = [(10, 600), (45, 600)]
@@ -49,13 +51,13 @@ class TestStaffDashboard(IntegrationTestCase):
 				"external_reference": unique("EXT-DASH"),
 				"customer": BUYER,
 				"company": COMPANY,
-				"signed_on": frappe.utils.nowdate(),
+				"signed_on": today,
 				"agreed_price": price,
 				"units": [{"unit": unit, "allocated_price": price}],
 				"schedule": [
 					{
 						"row_type": "Installment",
-						"due_date": frappe.utils.add_days(frappe.utils.nowdate(), days),
+						"due_date": frappe.utils.add_days(today, days),
 						"amount": amount,
 					}
 					for days, amount in schedule
@@ -151,7 +153,7 @@ class TestStaffDashboard(IntegrationTestCase):
 	def test_overdue_milestones_follow_the_shared_stage_rule(self):
 		with as_user(GENERAL_MANAGER):
 			before = get_dashboard(company=COMPANY)["jobs"].get("overdue_milestones") or 0
-		past = frappe.utils.add_days(frappe.utils.nowdate(), -3)
+		past = frappe.utils.add_days(snapshot_time().date(), -3)
 		self.construction_job(
 			"In Progress",
 			[

@@ -179,6 +179,8 @@ def get_dashboard(company: str | None = None, period: str = "this_month", projec
 	}
 	payload["jobs"] = _jobs(scope.name, today)
 	payload["executive"] = executive_snapshot(scope.name, scope.default_currency, period, now)
+	if payload["executive"].get("finance_demo") is not None:
+		payload["payments"] = payload["executive"].pop("finance_demo")
 	return payload
 
 

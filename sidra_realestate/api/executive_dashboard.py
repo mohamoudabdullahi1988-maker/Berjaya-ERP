@@ -288,6 +288,35 @@ def executive_snapshot(company, currency, period, now=None):
 
 	missing = _("Required source records or linked records are not readable in this Company.")
 	metrics = {key: unavailable(FINANCE_REASON) for key in ("cash_collected", "overdue_balance")}
+	from sidra_realestate.api.finance_demo_snapshot import demo_financials
+
+	finance = demo_financials(company, currency, start, today)
+	if finance is not None:
+		for key, value, drilldown, detail in (
+			(
+				"cash_collected",
+				"received",
+				"cash_drilldown",
+				f"Fictional native Receive Payment Entries posted {start}–{today}; not contract collections.",
+			),
+			(
+				"overdue_balance",
+				"overdue",
+				"overdue_drilldown",
+				"Fictional submitted invoice outstanding amounts, due before today; after native payment allocation. Not contract arrears.",
+			),
+		):
+			metrics[key] = (
+				unavailable(finance["reason"])
+				if not finance["available"]
+				else {
+					"available": True,
+					"value": finance[value],
+					"basis": "native_invoice_demo",
+					"detail": detail,
+					"drilldown": finance[drilldown],
+				}
+			)
 	sales = rows["sales_value"]
 	metrics["sales_value"] = (
 		unavailable(missing)
@@ -360,6 +389,21 @@ def executive_snapshot(company, currency, period, now=None):
 		"months": months,
 		"reason": missing,
 	}
+	if finance and finance["available"]:
+		for first, row in zip(month_starts(today), months, strict=True):
+			row["received"] = money(
+				sum(
+					(
+						decimal_amount(r["amount"])
+						for r in finance["receipts"]
+						if getdate(r["date"]).replace(day=1) == first
+					),
+					Decimal(0),
+				)
+			)
+		trends["period_label"] = (
+			"Last six months; *current month to date. Fictional posted receipts; commercial signed sales are not revenue."
+		)
 
 	exposure = []
 	for key, label, detail in (
@@ -455,10 +499,13 @@ def executive_snapshot(company, currency, period, now=None):
 		}
 	return {
 		"available": True,
+		"finance_demo": finance,
 		"period_label": f"Signed sales {start}–{today}; inventory and exceptions are current records.",
 		"freshness": {
 			"status": "unknown",
-			"label": "Operational records read now; Finance, approved targets and baseline completeness are unverified.",
+			"label": finance["notice"] + " Native records read now; targets and approved baselines unset."
+			if finance and finance["available"]
+			else "Operational records read now; Finance, approved targets and baseline completeness are unverified.",
 		},
 		"metrics": metrics,
 		"trends": trends,

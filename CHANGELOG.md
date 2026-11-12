@@ -4,12 +4,17 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
-### Fixed (v0.1.3 — staff dashboard review fixes, 9 Nov 2026)
+### Fixed (v0.1.4 — staff dashboard review fixes, 12 Nov 2026)
 - Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
 - Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.
 - The schedule bucket "Next 30 days" now covers tomorrow through day 30, the same window as the executive `due_next_30_days`; rows due today have a separate "Due today" bucket.
 - Overdue milestones use the shared `stage_overdue` rule (no actual end, completion below 100, active/on-hold jobs only), consistent with the executive stage exceptions.
 - Open spec questions, not changed here: the two contract-value totals and the construction progress % (GitHub issues labelled `spec-question`).
+
+### Added (v0.1.3 — isolated fictional financial data, 9 Nov 2026)
+- Administrator-only, staging-opt-in finance demo loader: a separate fictional Company, six demo accounts, ten submitted native ERPNext vouchers, private ownership manifest, read-only balance verification and repeat protection. Never adopts an existing Company, duplicates vouchers or changes production posting rules.
+- Native GL, Trial Balance, P&L, Balance Sheet and receivable/payable reports can show real posted fictional data. Demo-only dashboard receipts/aging read permission-filtered native records and explicitly label invoice arrears separately from contract schedules.
+- Reuses external contract registration with a private fictional original and three installments, available plots, leads and one recorded milestone exception. No contract document generation or construction module expansion.
 
 ### Added (v0.1.2 — read-only executive dashboard, 8 Nov 2026)
 - Codex takes over the remaining dashboard backend/client implementation and tests end to end under the user's updated allocation; financial/legal gates are unchanged.

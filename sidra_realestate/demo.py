@@ -292,6 +292,21 @@ def export_pdfs(folder: str) -> list[str]:
 def _ensure_company() -> str:
 	if frappe.db.exists("Company", COMPANY):
 		return COMPANY
+	_ensure_presets()
+	frappe.get_doc(
+		{
+			"doctype": "Company",
+			"company_name": COMPANY,
+			"abbr": "SDH",
+			"default_currency": "USD",
+			"country": "Somalia",
+		}
+	).insert(ignore_permissions=True)
+	return COMPANY
+
+
+def _ensure_presets():
+	"""Native setup prerequisites shared by the two opt-in demo loaders."""
 	if not frappe.db.exists("Warehouse Type", "Transit"):
 		from erpnext.setup.setup_wizard.operations.install_fixtures import add_uom_data, get_preset_records
 
@@ -317,16 +332,6 @@ def _ensure_company() -> str:
 			if not frappe.db.exists(doctype, record.get("name") or record.get(keys.get(doctype))):
 				frappe.get_doc(record).insert(ignore_permissions=True)
 		add_uom_data()
-	frappe.get_doc(
-		{
-			"doctype": "Company",
-			"company_name": COMPANY,
-			"abbr": "SDH",
-			"default_currency": "USD",
-			"country": "Somalia",
-		}
-	).insert(ignore_permissions=True)
-	return COMPANY
 
 
 def _ensure_customers():
