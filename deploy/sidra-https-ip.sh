@@ -1,0 +1,841 @@
+#!/usr/bin/env bash
+# Sidra ERP - browser-trusted HTTPS on a bare IP address (no domain name).
+# Documentation: docs/HTTPS-IP_v0.1.md
+#
+#   sudo bash sidra-https-ip.sh inspect    read-only report, changes nothing
+#   sudo bash sidra-https-ip.sh apply      full setup, gated and verified
+#   sudo bash sidra-https-ip.sh regen      rebuild the nginx file (after `bench setup nginx`)
+#   sudo bash sidra-https-ip.sh verify     re-run the checks
+#   sudo bash sidra-https-ip.sh rollback   remove everything this script added
+#
+# The script never edits bench's config/nginx.conf. It writes one separate
+# nginx file whose HTTPS server is derived from the bench server block that
+# nginx actually loads (`nginx -T`), so `bench setup nginx` cannot remove it.
+# No secrets are stored here; the private key stays in /etc/letsencrypt.
+
+set -Eeuo pipefail
+
+IP="${SIDRA_IP:-5.253.233.218}"
+SITE="${SIDRA_SITE:-sidra.local}"
+BENCH="${SIDRA_BENCH:-/home/frappe/sidra/frappe-bench}"
+CERT_NAME="${SIDRA_CERT_NAME:-sidra-ip}"
+CERTBOT="${SIDRA_CERTBOT:-/opt/sidra-certbot/bin/certbot}"
+WEBROOT="${SIDRA_WEBROOT:-/var/www/letsencrypt}"
+NGINX_ETC="${SIDRA_NGINX_ETC:-/etc/nginx}"
+SET_HOST_NAME="${SIDRA_SET_HOST_NAME:-1}"
+
+LIVE="/etc/letsencrypt/live/${CERT_NAME}"
+OUR_CONF="${NGINX_ETC}/conf.d/sidra-https.conf"
+HOOK="/etc/letsencrypt/renewal-hooks/deploy/sidra-nginx-reload.sh"
+UNIT_DIR="/etc/systemd/system"
+TIMER="sidra-certbot-renew.timer"
+SERVICE="sidra-certbot-renew.service"
+BACKUP_ROOT="/var/backups/sidra"
+INSTALLED="/usr/local/sbin/sidra-https-ip"
+LOG="/var/log/sidra-https-ip.log"
+
+BACKUP_DIR=""
+PREV_CONF=""
+FAILS=0
+WARNS=0
+SOCKET_POLL=0
+SOCKET_WS=0
+
+say()  { printf '\n== %s\n' "$*"; }
+ok()   { printf '  PASS  %s\n' "$*"; }
+warn() { printf '  WARN  %s\n' "$*"; WARNS=$((WARNS + 1)); }
+bad()  { printf '  FAIL  %s\n' "$*"; FAILS=$((FAILS + 1)); }
+die()  { printf '\nERROR: %s\n' "$*" >&2; exit 1; }
+
+need_root() { [ "$(id -u)" -eq 0 ] || die "run with sudo"; }
+
+# ---------------------------------------------------------------- nginx file
+
+# Prints our nginx file, derived from a saved `nginx -T` dump.
+#   $1 = http mode: passthrough (HTTP still serves the site) | redirect
+#   $2 = https: yes | no
+#   $3 = file holding the `nginx -T` output
+generate_conf() {
+	python3 - "$IP" "$SITE" "$LIVE" "$WEBROOT" "$1" "$2" "$OUR_CONF" "$3" <<'PY'
+import re
+import sys
+
+ip, site, live, webroot, http_mode, https, our_conf, dump_path = sys.argv[1:9]
+with open(dump_path) as f:
+	dump = f.read()
+
+# Drop the section of the dump that is our own file, so we never copy ourselves.
+parts = re.split(r"(?m)^# configuration file (.+):\n", dump)
+text = parts[0]
+for path, body in zip(parts[1::2], parts[2::2]):
+	if path != our_conf:
+		text += body
+
+
+def strip_comment(line):
+	return line if "#" not in line else line[: line.index("#")]
+
+
+def blocks(src):
+	"""Top-level `server { ... }` blocks, matched by braces (comments ignored)."""
+	out = []
+	for m in re.finditer(r"(?m)^[ \t]*server\s*\{", src):
+		depth, i = 0, m.end() - 1
+		lines_from = src[i:]
+		pos = i
+		for line in lines_from.splitlines(keepends=True):
+			code = strip_comment(line)
+			depth += code.count("{") - code.count("}")
+			pos += len(line)
+			if depth <= 0:
+				break
+		if depth == 0:
+			out.append(src[m.start():pos])
+	return out
+
+
+LISTEN = re.compile(r"(?m)^([ \t]*)listen\s+((?:\[[0-9a-fA-F:]*\]:|[0-9.]+:)?)80\b([^;]*);")
+site_header = re.compile(r"X-Frappe-Site-Name\s+" + re.escape(site) + r"\s*;")
+
+candidates = [b for b in blocks(text) if LISTEN.search(b) and site_header.search(b)]
+if not candidates:
+	sys.exit(
+		"No loaded nginx server block listens on port 80 for site %s. "
+		"Run `bench setup nginx` and check that nginx includes the bench file." % site
+	)
+if len(candidates) > 1:
+	sys.exit("More than one port-80 server block serves %s; resolve that first." % site)
+src = candidates[0]
+
+others_default_80 = any(
+	re.search(r"(?m)^[ \t]*listen\s+[^;]*\b80\b[^;]*\bdefault_server\b", b) for b in blocks(text)
+)
+default = "" if others_default_80 else " default_server"
+prefixes = [m.group(2) for m in LISTEN.finditer(src)] or [""]
+
+acme = """
+	# Let's Encrypt HTTP-01 challenge (certbot --webroot)
+	location ^~ /.well-known/acme-challenge/ {
+		root %s;
+		default_type text/plain;
+		try_files $uri =404;
+	}
+""" % webroot
+
+tls = """
+	ssl_certificate      {live}/fullchain.pem;
+	ssl_certificate_key  {live}/privkey.pem;
+	ssl_protocols TLSv1.2 TLSv1.3;
+	ssl_session_timeout 5m;
+	ssl_session_cache shared:SidraIPSSL:10m;
+	ssl_session_tickets off;
+""".format(live=live)
+
+
+def derive(port_suffix, extra, default_flag):
+	"""Copy of the bench server block for another listen port / the IP name."""
+	out = LISTEN.sub(
+		lambda m: "%slisten %s%s%s;" % (m.group(1), m.group(2), port_suffix, default_flag), src
+	)
+	out, n = re.subn(r"server_name\s+[^;]*;", "server_name %s;\n%s" % (ip, extra), out, count=1)
+	if n != 1:
+		sys.exit("The bench server block has no server_name; cannot derive from it.")
+	return out
+
+
+chunks = [
+	"# Generated by sidra-https-ip (docs/HTTPS-IP_v0.1.md). Do not edit by hand:\n"
+	"# run `sudo sidra-https-ip regen` instead. http=%s https=%s\n" % (http_mode, https)
+]
+
+if http_mode == "redirect":
+	listens = "".join("\tlisten %s80%s;\n" % (p, default) for p in prefixes)
+	chunks.append(
+		"server {\n%s\tserver_name %s;\n%s\n\tlocation / {\n"
+		"\t\treturn 301 https://%s$request_uri;\n\t}\n}\n" % (listens, ip, acme, ip)
+	)
+else:
+	chunks.append(derive("80", acme, default))
+
+if https == "yes":
+	chunks.append(derive("443 ssl", tls + acme, ""))
+
+sys.stdout.write("\n".join(chunks))
+PY
+}
+
+current_modes() {
+	# Prints "<http> <https>" of the installed file, or "none none".
+	if [ -f "$OUR_CONF" ]; then
+		sed -n 's/^# run .* http=\([a-z]*\) https=\([a-z]*\)$/\1 \2/p' "$OUR_CONF" | head -1
+	else
+		echo "none none"
+	fi
+}
+
+wait_listen() {
+	# nginx applies a reload asynchronously: wait for the listener instead of
+	# testing straight away (the cause of a false "cannot connect" result).
+	local port="$1" i
+	for i in $(seq 1 30); do
+		if ss -Hltn "sport = :${port}" 2>/dev/null | grep -q .; then
+			sleep 1
+			return 0
+		fi
+		sleep 1
+	done
+	return 1
+}
+
+reload_nginx() {
+	nginx -t 2>&1 | sed 's/^/    /'
+	nginx -t >/dev/null 2>&1 || return 1
+	systemctl reload nginx
+	sleep 3
+	systemctl is-active --quiet nginx
+}
+
+nginx_logs() {
+	echo "--- journalctl -u nginx (last 30 lines)"
+	journalctl -u nginx -n 30 --no-pager 2>/dev/null || true
+	echo "--- ${SIDRA_NGINX_ERROR_LOG:-/var/log/nginx/error.log} (last 30 lines)"
+	tail -n 30 "${SIDRA_NGINX_ERROR_LOG:-/var/log/nginx/error.log}" 2>/dev/null || true
+}
+
+# Writes the file for the given modes, tests, reloads. On failure puts the
+# previous file back and reloads again.
+install_conf() {
+	local http_mode="$1" https="$2" tmp dump
+	tmp="$(mktemp)"
+	dump="$(mktemp)"
+	if ! nginx -T >"$dump" 2>/dev/null; then
+		rm -f "$tmp" "$dump"
+		die "nginx -T fails with the current configuration; fix that first (nginx -t)."
+	fi
+	if ! generate_conf "$http_mode" "$https" "$dump" >"$tmp"; then
+		rm -f "$tmp" "$dump"
+		die "could not derive the nginx file from the loaded configuration"
+	fi
+	rm -f "$dump"
+
+	PREV_CONF="$(mktemp)"
+	if [ -f "$OUR_CONF" ]; then cp -p "$OUR_CONF" "$PREV_CONF"; else : >"$PREV_CONF"; fi
+
+	install -m 0644 -o root -g root "$tmp" "$OUR_CONF"
+	rm -f "$tmp"
+
+	if ! reload_nginx; then
+		echo "nginx rejected the new file; restoring the previous state."
+		restore_prev_conf
+		nginx_logs
+		die "nginx configuration test or reload failed"
+	fi
+	if [ "$https" = "yes" ] && ! wait_listen 443; then
+		echo "nginx reloaded but nothing listens on 443 after 30 s; restoring."
+		restore_prev_conf
+		nginx_logs
+		die "port 443 did not come up"
+	fi
+	echo "  installed ${OUR_CONF} (http=${http_mode}, https=${https})"
+}
+
+restore_prev_conf() {
+	[ -n "$PREV_CONF" ] || return 0
+	if [ -s "$PREV_CONF" ]; then
+		cp -p "$PREV_CONF" "$OUR_CONF"
+	else
+		rm -f "$OUR_CONF"
+	fi
+	if nginx -t >/dev/null 2>&1; then systemctl reload nginx || true; fi
+}
+
+# ------------------------------------------------------------- certificate
+
+cert_seconds_left() {
+	local end
+	end="$(openssl x509 -in "${LIVE}/fullchain.pem" -noout -enddate 2>/dev/null | cut -d= -f2)" || return 1
+	[ -n "$end" ] || return 1
+	echo $(( $(date -d "$end" +%s) - $(date +%s) ))
+}
+
+cert_report() {
+	if [ ! -s "${LIVE}/fullchain.pem" ] || [ ! -s "${LIVE}/privkey.pem" ]; then
+		echo "  certificate files missing in ${LIVE}"
+		return 1
+	fi
+	openssl x509 -in "${LIVE}/fullchain.pem" -noout -subject -issuer -dates -ext subjectAltName 2>/dev/null \
+		| sed 's/^/  /'
+	local left
+	left="$(cert_seconds_left)" || return 1
+	echo "  remaining: $(( left / 3600 )) hours"
+	openssl x509 -in "${LIVE}/fullchain.pem" -noout -ext subjectAltName 2>/dev/null \
+		| grep -q "IP Address:${IP}\b" || { echo "  certificate does not name IP ${IP}"; return 1; }
+	local a b
+	a="$(openssl x509 -in "${LIVE}/fullchain.pem" -noout -pubkey | openssl sha256)"
+	b="$(openssl pkey -in "${LIVE}/privkey.pem" -pubout 2>/dev/null | openssl sha256)"
+	[ "$a" = "$b" ] || { echo "  private key does not match the certificate"; return 1; }
+	[ "$left" -gt 0 ]
+}
+
+# ----------------------------------------------------------------- checks
+
+acme_selftest() {
+	local token body
+	token="sidra-selftest-$(date +%s)-$$"
+	install -d -m 0755 "${WEBROOT}/.well-known/acme-challenge"
+	echo "$token" >"${WEBROOT}/.well-known/acme-challenge/${token}"
+	chmod 0644 "${WEBROOT}/.well-known/acme-challenge/${token}"
+	body="$(curl -sS -m 15 "http://${IP}/.well-known/acme-challenge/${token}" 2>&1 || true)"
+	rm -f "${WEBROOT}/.well-known/acme-challenge/${token}"
+	if [ "$body" = "$token" ]; then
+		ok "http://${IP}/.well-known/acme-challenge/ is served from ${WEBROOT} on port 80"
+	else
+		bad "ACME challenge path on port 80 did not return the test file (got: ${body:0:80})"
+	fi
+}
+
+socketio_check() {
+	# $1 = label, $2 = base URL, remaining args = extra curl options
+	local label="$1" base="$2" poll ws
+	shift 2
+	poll="$(curl -sS -m 15 "$@" "${base}/socket.io/?EIO=4&transport=polling" 2>/dev/null || true)"
+	ws="$(curl -sS -m 6 --http1.1 -o /dev/null -D - \
+		-H 'Connection: Upgrade' -H 'Upgrade: websocket' \
+		-H 'Sec-WebSocket-Version: 13' -H 'Sec-WebSocket-Key: c2lkcmEtaHR0cHMtdGVzdA==' \
+		"$@" "${base}/socket.io/?EIO=4&transport=websocket" 2>/dev/null | head -1 | tr -d '\r' || true)"
+	case "$poll" in 0\{*sid*) SOCKET_POLL=1 ;; *) SOCKET_POLL=0 ;; esac
+	case "$ws" in *" 101"*) SOCKET_WS=1 ;; *) SOCKET_WS=0 ;; esac
+	echo "    ${label}: polling handshake=$([ "$SOCKET_POLL" = 1 ] && echo ok || echo no), websocket upgrade=$([ "$SOCKET_WS" = 1 ] && echo 101 || echo "no (${ws:-no reply})")"
+}
+
+verify_https() {
+	local base="https://${IP}" page asset code
+	say "HTTPS checks against ${base}"
+
+	if curl -sS -m 20 -o /dev/null "${base}/login" 2>/tmp/sidra-https-curl.err; then
+		ok "TLS handshake trusted by the system CA store, certificate matches ${IP}"
+	else
+		bad "trusted TLS connection failed: $(tr '\n' ' ' </tmp/sidra-https-curl.err)"
+		rm -f /tmp/sidra-https-curl.err
+		return 0
+	fi
+	rm -f /tmp/sidra-https-curl.err
+
+	if echo | openssl s_client -connect "${IP}:443" -verify_return_error -verify_ip "${IP}" 2>/dev/null \
+		| grep -q "Verify return code: 0 (ok)"; then
+		ok "openssl: chain verified, IP ${IP} is in the certificate"
+	else
+		bad "openssl s_client could not verify the chain / IP identity"
+	fi
+	echo | openssl s_client -connect "${IP}:443" 2>/dev/null \
+		| openssl x509 -noout -issuer -enddate 2>/dev/null | sed 's/^/    served: /'
+
+	page="$(curl -sS -m 30 "${base}/login" || true)"
+	code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}/login" || true)"
+	if [ "$code" = "200" ] && echo "$page" | grep -qi "<html"; then
+		ok "login page loads (HTTP 200)"
+	else
+		bad "login page returned HTTP ${code}"
+	fi
+
+	asset="$(echo "$page" | grep -o '/assets/[^"'"'"' ?]*\.\(css\|js\)' | head -1 || true)"
+	if [ -n "$asset" ]; then
+		code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}${asset}" || true)"
+		if [ "$code" = "200" ]; then ok "asset ${asset} (HTTP 200)"; else bad "asset ${asset} returned HTTP ${code}"; fi
+	else
+		bad "the login page references no /assets/ file"
+	fi
+
+	code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}/api/method/ping" || true)"
+	if [ "$code" = "200" ]; then ok "Frappe API answers for site ${SITE} (/api/method/ping)"; else bad "/api/method/ping returned HTTP ${code}"; fi
+
+	code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}/protected/private/files/x" || true)"
+	if [ "$code" = "404" ]; then ok "/protected/ is internal only (HTTP 404 from outside)"; else bad "/protected/ returned HTTP ${code}, expected 404"; fi
+
+	code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}/private/files/sidra-https-probe.txt" || true)"
+	case "$code" in
+		401|403|404) ok "private files are not public (HTTP ${code} without login)" ;;
+		*) bad "private file URL returned HTTP ${code} without login" ;;
+	esac
+
+	local pub
+	pub="$(find "${BENCH}/sites/${SITE}/public/files" -maxdepth 1 -type f -name '[A-Za-z0-9_.-]*' 2>/dev/null | head -1 || true)"
+	if [ -n "$pub" ]; then
+		code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}/files/$(basename "$pub")" || true)"
+		if [ "$code" = "200" ]; then ok "public upload /files/$(basename "$pub") (HTTP 200)"; else bad "public upload returned HTTP ${code}"; fi
+	else
+		echo "    no public upload exists yet; /files/ uses the same rule as the HTTP site"
+	fi
+
+	echo "  Socket.IO:"
+	socketio_check "https" "https://${IP}"
+	local hp=$SOCKET_POLL hw=$SOCKET_WS
+	if [ "$hp" = 1 ] && [ "$hw" = 1 ]; then
+		ok "Socket.IO handshake and WebSocket upgrade work over HTTPS"
+	else
+		socketio_check "plain http (bench block)" "http://127.0.0.1" -H "Host: ${SITE}"
+		if [ "$SOCKET_POLL" = "$hp" ] && [ "$SOCKET_WS" = "$hw" ]; then
+			warn "Socket.IO behaves the same over plain HTTP, so this is not caused by HTTPS (check: supervisorctl status, node-socketio)"
+		else
+			bad "Socket.IO works over HTTP but not over HTTPS"
+		fi
+	fi
+}
+
+verify_redirect() {
+	say "HTTP on port 80"
+	local code loc
+	code="$(curl -sS -m 15 -o /dev/null -w '%{http_code}' "http://${IP}/login" || true)"
+	loc="$(curl -sS -m 15 -o /dev/null -w '%{redirect_url}' "http://${IP}/login" || true)"
+	if [ "$code" = "301" ] && [ "$loc" = "https://${IP}/login" ]; then
+		ok "http://${IP}/login redirects (301) to ${loc}"
+	else
+		bad "http://${IP}/login returned HTTP ${code} ${loc}"
+	fi
+	acme_selftest
+}
+
+verify_renewal() {
+	say "Renewal"
+	local conf="/etc/letsencrypt/renewal/${CERT_NAME}.conf"
+	if [ -f "$conf" ]; then
+		grep -E '^(authenticator|preferred_profile|webroot_path|\[\[webroot_map\]\]|[0-9.]+ = )' "$conf" | sed 's/^/    /'
+		grep -q '^authenticator = webroot' "$conf" && ok "renewal uses the webroot authenticator" \
+			|| bad "renewal config does not use webroot"
+		grep -q "$WEBROOT" "$conf" && ok "renewal webroot is ${WEBROOT}" || bad "renewal webroot is not ${WEBROOT}"
+		grep -q '^preferred_profile = shortlived' "$conf" && ok "renewal keeps the shortlived profile" \
+			|| warn "preferred_profile = shortlived is not recorded in ${conf}; IP certificates need it"
+	else
+		bad "${conf} is missing"
+	fi
+	[ -x "$HOOK" ] && ok "deploy hook ${HOOK}" || bad "deploy hook missing"
+	if systemctl is-enabled --quiet "$TIMER" 2>/dev/null && systemctl is-active --quiet "$TIMER" 2>/dev/null; then
+		ok "${TIMER} enabled and active"
+		systemctl list-timers "$TIMER" --no-pager 2>/dev/null | sed -n '1,2p' | sed 's/^/    /'
+	else
+		bad "${TIMER} is not enabled and active"
+	fi
+}
+
+# ---------------------------------------------------------------- inspect
+
+inspect() {
+	say "System"
+	. /etc/os-release 2>/dev/null && echo "  ${PRETTY_NAME:-unknown}"
+	nginx -v 2>&1 | sed 's/^/  /'
+	echo "  nginx active: $(systemctl is-active nginx 2>/dev/null || true)"
+	"$CERTBOT" --version 2>&1 | sed 's/^/  /' || echo "  ${CERTBOT} not runnable"
+
+	say "What nginx loads (nginx -T)"
+	if nginx -T >/tmp/sidra-nginx-T.txt 2>/tmp/sidra-nginx-T.err; then
+		grep '^# configuration file' /tmp/sidra-nginx-T.txt | sed 's/^/  /'
+		echo "  listen directives:"
+		grep -nE '^\s*listen\s' /tmp/sidra-nginx-T.txt | sed 's/^/    /'
+		echo "  server_name / site headers:"
+		grep -nE 'server_name|X-Frappe-Site-Name' /tmp/sidra-nginx-T.txt | sort -u -k2 | head -20 | sed 's/^/    /'
+	else
+		echo "  nginx -T FAILED:"
+		sed 's/^/    /' /tmp/sidra-nginx-T.err
+	fi
+	rm -f /tmp/sidra-nginx-T.txt /tmp/sidra-nginx-T.err
+
+	say "Bench nginx file: linked, copied or unused"
+	local f
+	for f in "${NGINX_ETC}"/conf.d/* "${NGINX_ETC}"/sites-enabled/*; do
+		[ -e "$f" ] || [ -L "$f" ] || continue
+		if [ -L "$f" ]; then
+			echo "  $f -> $(readlink -f "$f") (symlink)"
+		else
+			echo "  $f (regular file)"
+		fi
+	done
+	if [ -f "${BENCH}/config/nginx.conf" ]; then
+		echo "  bench file: ${BENCH}/config/nginx.conf ($(stat -c '%y' "${BENCH}/config/nginx.conf"))"
+		local linked=0
+		for f in "${NGINX_ETC}"/conf.d/* "${NGINX_ETC}"/sites-enabled/*; do
+			[ -e "$f" ] || continue
+			if [ "$(readlink -f "$f")" = "$(readlink -f "${BENCH}/config/nginx.conf")" ]; then
+				linked=1
+				echo "  => loaded through $f"
+			elif [ "$f" != "$OUR_CONF" ] && cmp -s "$f" "${BENCH}/config/nginx.conf"; then
+				echo "  => $f is an identical COPY (edits to the bench file do not reach nginx)"
+			fi
+		done
+		[ "$linked" = 1 ] || echo "  => the bench file is NOT linked into nginx"
+		grep -nE 'listen .*443|ssl_certificate' "${BENCH}/config/nginx.conf" | sed 's/^/    leftover in bench file: /' || true
+	else
+		echo "  ${BENCH}/config/nginx.conf does not exist"
+	fi
+
+	say "Earlier HTTPS attempt"
+	ls -ld "${BACKUP_ROOT}"/nginx.before-https.* 2>/dev/null | sed 's/^/  /' || echo "  no nginx.before-https backup found"
+	for f in "${BACKUP_ROOT}"/nginx.before-https.*; do
+		[ -e "$f" ] || continue
+		if [ -f "$f" ] && [ -f "${BENCH}/config/nginx.conf" ]; then
+			if cmp -s "$f" "${BENCH}/config/nginx.conf"; then
+				echo "  bench file is identical to $f (the earlier change was fully reverted)"
+			else
+				echo "  bench file differs from $f:"
+				diff "$f" "${BENCH}/config/nginx.conf" | head -20 | sed 's/^/    /' || true
+			fi
+		fi
+	done
+	echo "  ssl / domain / host_name keys in the site configs (bench SSL keys should be absent):"
+	local keys
+	keys="$(grep -nE 'ssl_certificate|"domains"|host_name' "${BENCH}/sites/${SITE}/site_config.json" \
+		"${BENCH}/sites/common_site_config.json" 2>/dev/null || true)"
+	if [ -n "$keys" ]; then echo "$keys" | sed 's/^/    /'; else echo "    none"; fi
+
+	say "Listeners on 80 / 443"
+	ss -Hltnp 2>/dev/null | grep -E ':(80|443)\s' | sed 's/^/  /' || echo "  none"
+
+	say "nginx logs"
+	journalctl -u nginx --since '-7 days' --no-pager 2>/dev/null | grep -iE 'emerg|alert|crit|error|fail|reload' | tail -15 | sed 's/^/  /' || true
+	grep -E 'emerg|alert|crit|443|ssl' /var/log/nginx/error.log 2>/dev/null | tail -15 | sed 's/^/  /' || true
+
+	say "Certificate ${CERT_NAME}"
+	cert_report && echo "  => usable" || echo "  => NOT usable as is"
+
+	say "Existing renewal schedules"
+	systemctl list-timers --all --no-pager 2>/dev/null | grep -iE 'certbot|letsencrypt|acme|sidra' | sed 's/^/  /' || echo "  no timers"
+	grep -rIlE 'certbot|letsencrypt' /etc/cron.d /etc/cron.daily /etc/cron.hourly /etc/cron.weekly /etc/crontab \
+		/var/spool/cron/crontabs 2>/dev/null | sed 's/^/  cron: /' || echo "  no cron entries"
+	ls -l /etc/letsencrypt/renewal-hooks/deploy/ 2>/dev/null | sed 's/^/  /' || true
+
+	say "Host firewall"
+	if command -v ufw >/dev/null 2>&1; then ufw status verbose 2>/dev/null | sed 's/^/  /'; else echo "  ufw not installed"; fi
+	if command -v nft >/dev/null 2>&1; then
+		echo "  nftables rules: $(nft list ruleset 2>/dev/null | grep -c . || true) lines"
+		nft list ruleset 2>/dev/null | grep -E 'policy drop|dport' | head -15 | sed 's/^/    /' || true
+	fi
+	echo "  sshd: $(ss -Hltnp 2>/dev/null | grep -E 'sshd' | awk '{print $4}' | tr '\n' ' ')"
+	echo "  public address on this host: $(ip -4 -o addr show scope global 2>/dev/null | awk '{print $4}' | tr '\n' ' ')"
+}
+
+# ------------------------------------------------------------------ apply
+
+backup() {
+	BACKUP_DIR="${BACKUP_ROOT}/https-ip-$(date +%Y%m%d-%H%M%S)"
+	install -d -m 0700 "$BACKUP_ROOT" "$BACKUP_DIR"
+	tar -C / -czf "${BACKUP_DIR}/etc-nginx.tar.gz" "${NGINX_ETC#/}"
+	nginx -T >"${BACKUP_DIR}/nginx-T.before.txt" 2>&1 || true
+	[ -f "${BENCH}/config/nginx.conf" ] && cp -p "${BENCH}/config/nginx.conf" "${BACKUP_DIR}/bench-nginx.conf"
+	[ -f "${BENCH}/sites/${SITE}/site_config.json" ] && cp -p "${BENCH}/sites/${SITE}/site_config.json" "${BACKUP_DIR}/site_config.json"
+	[ -f "/etc/letsencrypt/renewal/${CERT_NAME}.conf" ] && cp -p "/etc/letsencrypt/renewal/${CERT_NAME}.conf" "${BACKUP_DIR}/renewal-${CERT_NAME}.conf"
+	if command -v ufw >/dev/null 2>&1; then ufw status numbered >"${BACKUP_DIR}/ufw-status.txt" 2>&1 || true; fi
+	systemctl list-timers --all --no-pager >"${BACKUP_DIR}/timers.before.txt" 2>&1 || true
+	echo "  backup: ${BACKUP_DIR} (no private keys are copied)"
+}
+
+firewall() {
+	say "Host firewall"
+	if command -v ufw >/dev/null 2>&1 && ufw status 2>/dev/null | grep -q '^Status: active'; then
+		# Only adds rules. SSH rules are not touched and ufw is never enabled or reset here.
+		ufw allow 80/tcp comment 'sidra http + acme' >/dev/null
+		ufw allow 443/tcp comment 'sidra https' >/dev/null
+		echo "added" >"${BACKUP_DIR}/ufw.rules-added"
+		ufw status | grep -E '^(80|443)/tcp' | sed 's/^/  /'
+	else
+		echo "  ufw is not active: no host rule needed (and ufw is left off, so SSH is unaffected)"
+		if command -v nft >/dev/null 2>&1 && nft list ruleset 2>/dev/null | grep -q 'policy drop'; then
+			warn "another nftables/iptables ruleset drops by default; confirm it accepts tcp dport 80 and 443"
+		fi
+	fi
+}
+
+install_renewal() {
+	say "Automatic renewal"
+	install -d -m 0755 "$(dirname "$HOOK")"
+	cat >"$HOOK" <<'EOF'
+#!/bin/sh
+# Runs only after certbot has successfully renewed a certificate.
+# nginx is reloaded only if the full configuration passes its test.
+if nginx -t >/dev/null 2>&1; then
+	systemctl reload nginx
+	logger -t sidra-certbot "certificate renewed, nginx reloaded"
+else
+	logger -p user.err -t sidra-certbot "certificate renewed but nginx -t failed, nginx NOT reloaded"
+	exit 1
+fi
+EOF
+	chmod 0755 "$HOOK"
+
+	cat >"${UNIT_DIR}/${SERVICE}" <<EOF
+[Unit]
+Description=Renew the Sidra ERP IP certificate (Let's Encrypt, six-day profile)
+Documentation=file://${BENCH}/apps/sidra_realestate/docs/HTTPS-IP_v0.1.md
+After=network-online.target nginx.service
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=${CERTBOT} renew --cert-name ${CERT_NAME} --quiet --no-random-sleep-on-renew
+EOF
+	cat >"${UNIT_DIR}/${TIMER}" <<EOF
+[Unit]
+Description=Check the Sidra ERP IP certificate every 6 hours
+
+[Timer]
+OnCalendar=*-*-* 00/6:17:00
+RandomizedDelaySec=600
+Persistent=true
+
+[Install]
+WantedBy=timers.target
+EOF
+	systemctl daemon-reload
+
+	# One schedule only. Any other certbot timer or cron entry would run a
+	# second client against the same /etc/letsencrypt.
+	local t
+	for t in certbot.timer snap.certbot.renew.timer certbot-renew.timer; do
+		if systemctl is-enabled --quiet "$t" 2>/dev/null || systemctl is-active --quiet "$t" 2>/dev/null; then
+			systemctl disable --now "$t" >/dev/null 2>&1 || true
+			echo "$t" >>"${BACKUP_DIR}/timers.disabled"
+			echo "  disabled duplicate schedule ${t} (recorded in ${BACKUP_DIR}/timers.disabled)"
+		fi
+	done
+	local c
+	for c in /etc/cron.d/certbot /etc/cron.d/sidra-certbot; do
+		if [ -f "$c" ]; then
+			mv "$c" "${BACKUP_DIR}/$(basename "$c").cron"
+			echo "  moved duplicate cron file ${c} to the backup folder"
+		fi
+	done
+	if crontab -l -u root 2>/dev/null | grep -qiE 'certbot'; then
+		warn "root's crontab mentions certbot: remove that line (crontab -e) to avoid a second schedule"
+	fi
+
+	systemctl enable --now "$TIMER" >/dev/null
+	echo "  installed ${HOOK}, ${SERVICE}, ${TIMER}"
+}
+
+renewal_dry_run() {
+	say "Renewal dry run (Let's Encrypt staging, validates port 80 from the internet)"
+	local out rc=0
+	out="$("$CERTBOT" renew --cert-name "$CERT_NAME" --dry-run --run-deploy-hooks --no-random-sleep-on-renew 2>&1)" || rc=$?
+	if [ "$rc" -ne 0 ] && echo "$out" | grep -qi 'unrecognized arguments'; then
+		rc=0
+		out="$("$CERTBOT" renew --cert-name "$CERT_NAME" --dry-run 2>&1)" || rc=$?
+	fi
+	echo "$out" | tail -12 | sed 's/^/    /'
+	if [ "$rc" -eq 0 ]; then
+		ok "certbot renew --dry-run succeeded"
+	else
+		bad "certbot renew --dry-run failed (port 80 unreachable from outside, or renewal settings wrong)"
+	fi
+
+	if "$HOOK"; then
+		ok "deploy hook ran: nginx -t passed and nginx reloaded"
+	else
+		bad "deploy hook failed"
+	fi
+	sleep 3
+
+	if systemctl start "$SERVICE"; then
+		ok "${SERVICE} runs cleanly (no renewal due yet is the expected result)"
+	else
+		bad "${SERVICE} failed: journalctl -u ${SERVICE}"
+	fi
+}
+
+set_host_name() {
+	[ "$SET_HOST_NAME" = "1" ] || return 0
+	say "Frappe host_name"
+	local cfg="${BENCH}/sites/${SITE}/site_config.json" cur owner
+	[ -f "$cfg" ] || { warn "site_config.json not found; host_name not set"; return 0; }
+	cur="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1])).get("host_name",""))' "$cfg" 2>/dev/null || true)"
+	case "$cur" in
+		"https://${IP}") echo "  already https://${IP}"; return 0 ;;
+		""|"http://${IP}"|"http://${IP}/") ;;
+		*) warn "host_name is '${cur}'; left unchanged. Links in emails will use it."; return 0 ;;
+	esac
+	owner="$(stat -c '%U' "$cfg")"
+	# Same key that `bench --site ${SITE} set-config host_name ...` writes.
+	python3 - "$cfg" "https://${IP}" <<'PY'
+import json, os, sys
+path, value = sys.argv[1], sys.argv[2]
+with open(path) as f:
+	data = json.load(f)
+data["host_name"] = value
+tmp = path + ".sidra-tmp"
+with open(tmp, "w") as f:
+	json.dump(data, f, indent=1, sort_keys=True)
+	f.write("\n")
+os.chmod(tmp, os.stat(path).st_mode & 0o777)
+os.chown(tmp, os.stat(path).st_uid, os.stat(path).st_gid)
+os.replace(tmp, path)
+PY
+	echo "changed" >"${BACKUP_DIR}/host_name.changed"
+	echo "  host_name set to https://${IP} (owner ${owner}; previous file in ${BACKUP_DIR}/site_config.json)"
+	echo "  links in emails and PDFs now use HTTPS; applied on the next request, no restart needed"
+}
+
+apply() {
+	need_root
+	command -v nginx >/dev/null || die "nginx is not installed"
+	command -v python3 >/dev/null || die "python3 is not installed"
+	[ -x "$CERTBOT" ] || die "${CERTBOT} is missing"
+	[ -d "${BENCH}/sites/${SITE}" ] || die "site ${SITE} not found in ${BENCH}"
+	nginx -t >/dev/null 2>&1 || { nginx -t || true; die "the current nginx configuration is already invalid"; }
+
+	inspect
+
+	say "Backup"
+	backup
+	trap 'echo; echo "Stopped on an error. nginx file state:"; current_modes; echo "Backup: ${BACKUP_DIR}. Undo with: sudo bash $0 rollback"' ERR
+
+	install -d -m 0755 "$WEBROOT" "${WEBROOT}/.well-known" "${WEBROOT}/.well-known/acme-challenge"
+	firewall
+
+	say "Step 1: ACME challenge path on port 80 (site still served over HTTP)"
+	local https=no left
+	if cert_report >/dev/null 2>&1; then https=yes; fi
+	install_conf passthrough "$https"
+	acme_selftest
+	[ "$FAILS" -eq 0 ] || die "the ACME path does not work; nothing else was changed. See above."
+
+	say "Step 2: certificate"
+	left="$(cert_seconds_left 2>/dev/null || echo 0)"
+	if [ "$https" = yes ] && [ "$left" -gt 86400 ]; then
+		echo "  existing certificate is valid for $(( left / 3600 )) more hours: reused, nothing issued"
+	else
+		echo "  certificate missing, invalid or within 24 hours of expiry: asking certbot to renew"
+		"$CERTBOT" renew --cert-name "$CERT_NAME" --no-random-sleep-on-renew 2>&1 | tail -15 | sed 's/^/    /' || true
+		if ! cert_report >/dev/null 2>&1; then
+			echo "  renew did not produce a valid certificate; requesting it again with the original settings"
+			"$CERTBOT" certonly --non-interactive --webroot --webroot-path "$WEBROOT" \
+				--preferred-profile shortlived --ip-address "$IP" --cert-name "$CERT_NAME" \
+				2>&1 | tail -15 | sed 's/^/    /'
+		fi
+	fi
+	cert_report || die "no valid certificate for ${IP} in ${LIVE}"
+
+	say "Step 3: HTTPS on 443 (HTTP not redirected yet)"
+	install_conf passthrough yes
+	verify_https
+	[ "$FAILS" -eq 0 ] || die "HTTPS checks failed; HTTP still works and is not redirected. See above."
+
+	install_renewal
+	renewal_dry_run
+	verify_renewal
+	[ "$FAILS" -eq 0 ] || die "renewal checks failed; HTTP is not redirected yet. See above."
+
+	say "Step 4: redirect ordinary HTTP to HTTPS (ACME path stays on port 80)"
+	install_conf redirect yes
+	verify_redirect
+	verify_https
+	[ "$FAILS" -eq 0 ] || die "checks failed after the redirect. Undo the redirect: sudo bash $0 regen passthrough"
+
+	set_host_name
+
+	if [ "$(readlink -f "$0")" != "$INSTALLED" ]; then
+		install -m 0755 -o root -g root "$0" "$INSTALLED"
+		echo "  installed this script as ${INSTALLED}"
+	fi
+	trap - ERR
+
+	say "Done"
+	echo "  https://${IP} is live. Warnings: ${WARNS}. Backup: ${BACKUP_DIR}"
+	echo "  From a computer outside the server, confirm: curl -sSI https://${IP}/login"
+	echo "  If that times out while the checks above passed, the Contabo firewall (customer panel)"
+	echo "  needs: allow inbound TCP 80 and TCP 443 to ${IP} from any source."
+}
+
+regen() {
+	need_root
+	local http_mode="${1:-}" modes
+	modes="$(current_modes)"
+	[ -n "$http_mode" ] || http_mode="${modes%% *}"
+	case "$http_mode" in passthrough|redirect) ;; *) http_mode=redirect ;; esac
+	cert_report >/dev/null 2>&1 || die "no valid certificate in ${LIVE}"
+	say "Rebuilding ${OUR_CONF} from the loaded bench configuration"
+	install_conf "$http_mode" yes
+	verify_https
+	if [ "$http_mode" = redirect ]; then verify_redirect; else acme_selftest; fi
+	[ "$FAILS" -eq 0 ] || die "checks failed"
+}
+
+verify() {
+	need_root
+	say "Certificate"
+	cert_report && ok "certificate valid for ${IP}" || bad "certificate not valid"
+	nginx -t >/dev/null 2>&1 && ok "nginx -t" || bad "nginx -t"
+	verify_https
+	local modes
+	modes="$(current_modes)"
+	if [ "${modes%% *}" = redirect ]; then verify_redirect; else acme_selftest; fi
+	verify_renewal
+	echo
+	echo "Result: ${FAILS} failed, ${WARNS} warnings"
+	[ "$FAILS" -eq 0 ]
+}
+
+rollback() {
+	need_root
+	say "Rollback"
+	local last
+	last="$(ls -d "${BACKUP_ROOT}"/https-ip-* 2>/dev/null | sort | tail -1 || true)"
+	systemctl disable --now "$TIMER" >/dev/null 2>&1 || true
+	rm -f "${UNIT_DIR}/${TIMER}" "${UNIT_DIR}/${SERVICE}" "$HOOK"
+	systemctl daemon-reload
+	rm -f "$OUR_CONF"
+	if nginx -t >/dev/null 2>&1; then
+		systemctl reload nginx
+		echo "  removed ${OUR_CONF}; nginx reloaded (plain HTTP as before)"
+	else
+		nginx -t || true
+		echo "  nginx -t fails even without our file. Full copy of the old /etc/nginx: ${last}/etc-nginx.tar.gz"
+	fi
+	if [ -n "$last" ]; then
+		if [ -f "${last}/timers.disabled" ]; then
+			while read -r t; do systemctl enable --now "$t" >/dev/null 2>&1 || true; echo "  re-enabled ${t}"; done <"${last}/timers.disabled"
+		fi
+		if [ -f "${last}/ufw.rules-added" ]; then
+			echo "  ufw rules for 80/443 were left in place; remove with: ufw delete allow 443/tcp"
+		fi
+	fi
+	# host_name: put back the value from before the first run that changed it.
+	local hb cfg="${BENCH}/sites/${SITE}/site_config.json"
+	hb="$(ls -d "${BACKUP_ROOT}"/https-ip-*/host_name.changed 2>/dev/null | sort | head -1 || true)"
+	if [ -n "$hb" ] && [ -f "$(dirname "$hb")/site_config.json" ] && [ -f "$cfg" ]; then
+		python3 - "$cfg" "$(dirname "$hb")/site_config.json" "https://${IP}" <<'PY'
+import json, os, sys
+path, old_path, ours = sys.argv[1:4]
+with open(path) as f:
+	data = json.load(f)
+with open(old_path) as f:
+	old = json.load(f)
+if data.get("host_name") == ours:
+	if "host_name" in old:
+		data["host_name"] = old["host_name"]
+	else:
+		data.pop("host_name")
+	st = os.stat(path)
+	tmp = path + ".sidra-tmp"
+	with open(tmp, "w") as f:
+		json.dump(data, f, indent=1, sort_keys=True)
+		f.write("\n")
+	os.chmod(tmp, st.st_mode & 0o777)
+	os.chown(tmp, st.st_uid, st.st_gid)
+	os.replace(tmp, path)
+	print("  host_name restored to its previous value")
+PY
+	fi
+	echo "  the certificate in ${LIVE} is kept; it simply expires unused"
+}
+
+main() {
+	local cmd="${1:-}"
+	shift || true
+	case "$cmd" in
+		inspect) need_root; inspect ;;
+		apply) apply 2>&1 | tee -a "$LOG"; exit "${PIPESTATUS[0]}" ;;
+		regen) regen "$@" 2>&1 | tee -a "$LOG"; exit "${PIPESTATUS[0]}" ;;
+		verify) verify ;;
+		rollback) rollback 2>&1 | tee -a "$LOG"; exit "${PIPESTATUS[0]}" ;;
+		*) sed -n '2,12p' "$0" | sed 's/^# \{0,1\}//'; exit 2 ;;
+	esac
+}
+
+main "$@"

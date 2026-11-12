@@ -4,6 +4,9 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (deployment tooling, no app version change — HTTPS on the VPS IP address, 12 Nov 2026)
+- `deploy/sidra-https-ip.sh` and `docs/HTTPS-IP_v0.1.md`: browser-trusted HTTPS for the test VPS without a domain name (Let's Encrypt IP-address certificate, six-day profile). Adds one nginx file derived from the loaded bench server block, the ACME path on port 80, a systemd renewal timer with a guarded nginx reload, checks, backups and rollback. Rehearsed in a container only; not yet run on the VPS. No app code, DocType or business rule changes.
+
 ### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
 - Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
 - Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.
