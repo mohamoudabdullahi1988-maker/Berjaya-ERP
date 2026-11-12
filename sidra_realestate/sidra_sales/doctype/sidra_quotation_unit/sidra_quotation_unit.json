@@ -1,0 +1,75 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 20:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-12 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Sales",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "editable_grid": 1,
+ "field_order": [
+  "unit",
+  "scheme",
+  "listed_price",
+  "cash_price",
+  "installment_price"
+ ],
+ "fields": [
+  {
+   "fieldname": "unit",
+   "fieldtype": "Link",
+   "label": "Unit",
+   "options": "Sidra Unit",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "scheme",
+   "fieldtype": "Data",
+   "label": "Scheme",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2
+  },
+  {
+   "fieldname": "listed_price",
+   "fieldtype": "Currency",
+   "label": "Listed Price",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "The unit's price in force, read when the quotation is saved and frozen when it is issued"
+  },
+  {
+   "fieldname": "cash_price",
+   "fieldtype": "Currency",
+   "label": "Cash Price",
+   "options": "currency",
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Blank means the listed price. Lower is a discount and needs approval."
+  },
+  {
+   "fieldname": "installment_price",
+   "fieldtype": "Currency",
+   "label": "Installment Price",
+   "options": "currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "columns": 2,
+   "description": "Entered per quotation; not below the listed price"
+  }
+ ],
+ "istable": 1,
+ "name": "Sidra Quotation Unit",
+ "permissions": []
+}
