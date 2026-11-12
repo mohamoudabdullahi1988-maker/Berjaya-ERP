@@ -15,6 +15,10 @@ function sci_call(frm, method) {
 
 frappe.ui.form.on("Sidra Contract Import", {
 	refresh(frm) {
+		frm.add_custom_button(__("Download template"), () => {
+			window.open("/assets/sidra_realestate/templates/sidra_contract_import_template.csv", "_blank", "noopener");
+		});
+		frm.set_intro(__("Import dates use YYYY-MM-DD or DD/MM/YYYY, independently of your display settings. Imported records are registered installment contracts."));
 		if (frm.is_new() || !frm.doc.import_file) {
 			return;
 		}
@@ -24,3 +28,4 @@ frappe.ui.form.on("Sidra Contract Import", {
 		}
 	},
 });
+

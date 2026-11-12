@@ -4,6 +4,13 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.6 — Desk usability)
+- Consistent sidebar ownership, construction/collections/report links and count-chart formatting.
+- Scheme connections and permission-filtered counts, clearer identifiers, unit list columns and house-only fields.
+- Staff-facing labels without requirement codes, readable schedule columns, map fallback and import template download.
+- Missing asking prices are explicit; no prices, signed terms, legal wording or financial rules are invented.
+
+
 ### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
 - Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
 - Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.
@@ -138,3 +145,4 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 - `docs/SREMS-SRS_v1.6.md` — requirements specification v1.6
 - `docs/ERPNEXT-MAPPING_v0.1.md` — mapping of every requirement to ERPNext standard features or custom DocTypes
 - GitHub Actions CI: ruff lint and Python syntax check
+
