@@ -64,3 +64,7 @@ Google Maps URL API and Earth search links require no paid API key. This impleme
 ## Backend integration tests still required
 
 Run with actual Sidra roles and Company restrictions: denied read/write, cross-company denial, stale edits, concurrent edits, submitted parent refusal, GPS preservation, unsupported polygon preservation, saved/reopened coordinate order, KML private access, CSRF/expired session, no changes to unit status/prices/BOQ/contracts/financial documents. Current adapter tests isolate the Python boundary with a stub; they are not Frappe integration results.
+
+### Recorded sales activity (12 Nov 2026)
+
+Sales now returns `basis: "recorded_lead_status"` with counts of readable Lead records created in the selected Company and period, grouped by their actual status. Qualification and conversion remain null; a status named Converted does not establish a contract-to-lead link. No readable leads is an available empty cohort; denied Lead access is unavailable. No role changes or posting rules are introduced.

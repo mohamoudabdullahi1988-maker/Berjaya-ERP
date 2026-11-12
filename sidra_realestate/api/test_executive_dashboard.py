@@ -318,7 +318,11 @@ class TestExecutiveDashboard(IntegrationTestCase):
 		with patch("sidra_realestate.api.staff_dashboard.get_system_timezone", return_value="Asia/Kolkata"):
 			data = self.dashboard(user)
 		self.assertEqual(data["summary"]["new_leads"], 2)
-		self.assertFalse(data["sales"]["available"])
+		# Recorded lead statuses cover the same cohort; nothing is inferred about conversion.
+		self.assertTrue(data["sales"]["available"])
+		self.assertEqual(sum(row["value"] for row in data["sales"]["pipeline"]), 2)
+		self.assertIsNone(data["sales"]["conversion_rate"])
+		self.assertIsNone(data["sales"]["qualified_opportunities"])
 
 	def test_construction_company_without_units_has_a_readable_dashboard(self):
 		company = ensure_company(unique("_Test Executive Jobs"), unique("_EJ"))

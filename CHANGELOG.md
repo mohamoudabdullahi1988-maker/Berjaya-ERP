@@ -4,6 +4,10 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.11 — staff sample figures, 12 Nov 2026)
+- Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
+- Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.
+
 ### Added (v0.1.10 — buyer KYC and title transfer tracker, P1, 12 Nov 2026; decision G12; `docs/KYC-AND-TITLE_v0.1.md`)
 - **Sidra Customer KYC** (SAL-07): one restricted record per Customer with ID or passport, phone, address, guarantor details and private scans. Sales Users enter it and a Sales Manager verifies it; the General Manager reads. No other role has access. Changing a verified record returns it to Draft.
 - **Contract gate:** a contract generated from a profile can't be submitted until the buyer has verified KYC. Registered (external) contracts don't need it.

@@ -80,7 +80,9 @@ class TestStaffDashboard(IntegrationTestCase):
 		self.assertGreaterEqual(data["summary"]["confirmed_contracts"], 1)
 		self.assertFalse(data["payments"]["available"])  # never zero receipts
 		self.assertTrue(data["payments"]["reason"])
-		self.assertFalse(data["sales"]["available"])
+		if data["sales"]["available"]:
+			self.assertIsNone(data["sales"]["conversion_rate"])
+			self.assertIsNone(data["sales"]["qualified_opportunities"])
 		self.assertFalse(data["jobs"]["available"])  # Sales Manager has no construction access
 		self.assertTrue(all(loc["doctype"] == "Sidra Unit" for loc in data["locations"]))
 		mine = [c for c in data["contracts"] if c["id"] == doc.name]
@@ -168,3 +170,22 @@ class TestStaffDashboard(IntegrationTestCase):
 		with as_user(GENERAL_MANAGER):
 			jobs = get_dashboard(company=COMPANY)["jobs"]
 		self.assertEqual(jobs["overdue_milestones"] - before, 1)
+
+	def test_recorded_sales_activity_is_company_scoped(self):
+		from sidra_realestate.services.sales_activity import sales_activity
+
+		today = snapshot_time().date()
+		with as_user("Administrator"):
+			before = sales_activity(COMPANY, today, today)
+			frappe.get_doc({
+				"doctype": "Lead", "first_name": unique("_TEST-ACTIVITY"),
+				"company": COMPANY, "status": "Lead",
+			}).insert()
+			after = sales_activity(COMPANY, today, today)
+		self.assertEqual(after["basis"], "recorded_lead_status")
+		before_count = sum(row["value"] for row in before["pipeline"])
+		self.assertEqual(sum(row["value"] for row in after["pipeline"]), before_count + 1)
+		self.assertIsNone(after["conversion_rate"])
+		self.assertIsNone(after["qualified_opportunities"])
+		with as_user(PROJECT_MANAGER):
+			self.assertFalse(sales_activity(COMPANY, today, today)["available"])
