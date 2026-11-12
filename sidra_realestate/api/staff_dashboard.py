@@ -171,7 +171,7 @@ def get_dashboard(company: str | None = None, period: str = "this_month", projec
 	payload["locations"] = _locations(scope.name)
 	from sidra_realestate.services.sales_activity import sales_activity
 
-	payload["sales"] = sales_activity(scope.name, start, today)
+	payload["sales"] = sales_activity(scope.name, start, today, get_system_timezone())
 	payload["payments"] = {
 		"available": False,
 		"reason": "Payments are not recorded in ERPNext yet (Finance gate). Scheduled amounts are not receipts or arrears.",

@@ -16,7 +16,7 @@ def lead_status_summary(rows):
 	}
 
 
-def sales_activity(company, start, today):
+def sales_activity(company, start, today, site_timezone=None):
 	import frappe
 	from frappe.utils import get_system_timezone
 
@@ -25,7 +25,7 @@ def sales_activity(company, start, today):
 	missing = {"available": False, "reason": "Your role cannot read lead activity."}
 	if not frappe.has_permission("Lead", "read"):
 		return missing
-	first, last = site_period_bounds(start, today, get_system_timezone())
+	first, last = site_period_bounds(start, today, site_timezone or get_system_timezone())
 	try:
 		rows = frappe.get_list(
 			"Lead",

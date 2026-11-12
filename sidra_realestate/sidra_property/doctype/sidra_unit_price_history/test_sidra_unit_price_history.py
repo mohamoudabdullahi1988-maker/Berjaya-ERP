@@ -187,7 +187,9 @@ class TestSidraUnitPriceHistory(IntegrationTestCase):
 
 	def test_per_company_reservations(self):
 		other = self.unit(scheme=self.other_scheme)
-		ensure_user(COMPANY_SALES, ["Sidra Sales User"])
+		# Match the documented Sales Staff profile so this test reaches the Company
+		# restriction rather than failing earlier on Customer access.
+		ensure_user(COMPANY_SALES, ["Sidra Sales User", "Sales User"])
 		self._restrict_to_company(COMPANY_SALES)
 		with as_user(COMPANY_SALES):
 			with self.assertRaises(frappe.PermissionError):

@@ -4,9 +4,15 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
-### Fixed (v0.1.9 — staff sample figures, 12 Nov 2026)
+### Fixed (v0.1.10 — staff sample figures, 12 Nov 2026)
 - Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
 - Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.
+
+### Security (v0.1.8 — ERPNext hardening, 12 Nov 2026)
+
+- Bind contract-import spreadsheets to their own private File attachment and enforce File read permission before parsing.
+- Enforce Customer access on reservations and linked-unit access on cancellation; reject malformed durations and nonfinite spreadsheet amounts before writes.
+- Add regression tests, a read-only administrative site-security audit, and repeatable secret/Bandit CI checks. See `docs/SECURITY-REVIEW_v0.1.md` for findings and outstanding deployment verification; no AI runtime is bundled or added.
 
 ### Changed (v0.1.7 — Somaliland regional settings, 12 Nov 2026)
 - Sidra settings, demo Companies and native setup presets use Somaliland. Create its Country master before assigning links; retain USD, DD/MM/YYYY and Africa/Mogadishu.

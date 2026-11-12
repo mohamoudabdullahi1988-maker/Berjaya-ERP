@@ -9,11 +9,14 @@ from sidra_realestate.services.reservations import cancel_reservation, expire_re
 from sidra_realestate.services.units import UnitNotAvailable
 from sidra_realestate.tests.helpers import (
 	BUYER,
+	COMPANY,
 	OTHER_BUYER,
+	OTHER_COMPANY,
 	OUTSIDER,
 	SALES_USER,
 	as_user,
 	ensure_base_records,
+	ensure_user,
 	make_scheme,
 	make_unit,
 	unique,
@@ -51,6 +54,70 @@ class TestReservationService(IntegrationTestCase):
 		self.assertEqual(getdate(result["expires_on"]), getdate(add_days(today(), 3)))
 		with self.assertRaises(frappe.ValidationError):
 			reserve_unit(self.new_unit().name, BUYER, days=0)
+
+	def test_invalid_duration_never_changes_inventory(self):
+		for days in (True, "1.5", 1.5, "1e3", "invalid", -1, "9" * 500):
+			unit = self.new_unit()
+			with self.subTest(days=str(days)[:20]), self.assertRaises(frappe.ValidationError):
+				reserve_unit(unit.name, BUYER, days=days)
+			self.assertEqual(frappe.db.get_value("Sidra Unit", unit.name, "status"), "Available")
+			self.assertFalse(frappe.db.exists("Sidra Reservation", {"unit": unit.name}))
+
+	def test_customer_permission_is_checked_before_reserving(self):
+		unit = self.new_unit()
+		bare = ensure_user(unique("bare-sales").lower() + "@example.com", ["Sidra Sales User"])
+		with as_user(bare), self.assertRaises(frappe.PermissionError):
+			reserve_unit(unit.name, BUYER)
+		self.assertEqual(frappe.db.get_value("Sidra Unit", unit.name, "status"), "Available")
+		self.assertFalse(frappe.db.exists("Sidra Reservation", {"unit": unit.name}))
+
+	def test_customer_user_permission_cannot_be_bypassed(self):
+		unit = self.new_unit()
+		user = ensure_user(
+			unique("restricted-sales").lower() + "@example.com", ["Sidra Sales User", "Sales User"]
+		)
+		frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": user,
+				"allow": "Customer",
+				"for_value": BUYER,
+				"apply_to_all_doctypes": 1,
+			}
+		).insert(ignore_permissions=True)
+		frappe.clear_cache(user=user)
+		with as_user(user), self.assertRaises(frappe.PermissionError):
+			reserve_unit(unit.name, OTHER_BUYER)
+		self.assertEqual(frappe.db.get_value("Sidra Unit", unit.name, "status"), "Available")
+		self.assertFalse(frappe.db.exists("Sidra Reservation", {"unit": unit.name}))
+
+	def test_shared_reservation_does_not_grant_access_to_its_unit(self):
+		import frappe.share
+
+		unit = make_unit(unique("_T-RES-OTHER"), make_scheme(unique("_T-RES-SCHEME"), OTHER_COMPANY))
+		reservation = reserve_unit(unit.name, BUYER)["reservation"]
+		user = ensure_user(
+			unique("cancel-sales").lower() + "@example.com", ["Sidra Sales User", "Sales User"]
+		)
+		frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": user,
+				"allow": "Company",
+				"for_value": COMPANY,
+				"apply_to_all_doctypes": 1,
+			}
+		).insert(ignore_permissions=True)
+		frappe.share.add(
+			"Sidra Reservation", reservation, user=user, read=1, flags={"ignore_share_permission": True}
+		)
+		frappe.clear_cache(user=user)
+		with as_user(user):
+			self.assertTrue(frappe.get_doc("Sidra Reservation", reservation).has_permission("read"))
+			with self.assertRaises(frappe.PermissionError):
+				cancel_reservation(reservation)
+		self.assertEqual(frappe.db.get_value("Sidra Reservation", reservation, "status"), "Active")
+		self.assertEqual(frappe.db.get_value("Sidra Unit", unit.name, "status"), "Reserved")
 
 	def test_second_reservation_is_rejected(self):
 		unit = self.new_unit()
@@ -118,7 +185,9 @@ class TestReservationService(IntegrationTestCase):
 		unit = self.new_unit()
 		result = reserve_unit(unit.name, BUYER)
 		cancel_reservation(result["reservation"])
-		self.assertEqual(frappe.db.get_value("Sidra Reservation", result["reservation"], "status"), "Cancelled")
+		self.assertEqual(
+			frappe.db.get_value("Sidra Reservation", result["reservation"], "status"), "Cancelled"
+		)
 		self.assertEqual(frappe.db.get_value("Sidra Unit", unit.name, "status"), "Available")
 		with self.assertRaises(frappe.ValidationError):
 			cancel_reservation(result["reservation"])
