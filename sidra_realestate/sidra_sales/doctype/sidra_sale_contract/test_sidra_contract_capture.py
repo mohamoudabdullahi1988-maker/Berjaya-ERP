@@ -328,11 +328,16 @@ class TestContractCapture(IntegrationTestCase):
 			(doc.penalty_type, doc.penalty_fixed_amount, doc.notice_days, doc.title_penalty_amount),
 			("Fixed After Notice", 100, 15, 220),
 		)
+		self.assertEqual(
+			(doc.notice_last_day, doc.receipt_order, doc.title_part_month, doc.title_refund_from),
+			("Counts as Late", "Installments", "Pending Decision", "Pending Decision"),
+		)
 		doc.notice_days = 61
 		with self.assertRaises(frappe.ValidationError):
 			doc.save()
 		doc.reload()
 		doc.notice_days = 20  # editable in a draft
+		doc.title_part_month = "Charged as Full Month"  # issue #3 rules are captured terms too
 		doc.save()
 
 		before = {
@@ -342,6 +347,7 @@ class TestContractCapture(IntegrationTestCase):
 		confirmed = self.confirm(doc)
 		snapshot = json.loads(confirmed.terms_snapshot)
 		self.assertEqual((snapshot["notice_days"], snapshot["penalty_fixed_amount"]), (20, 100))
+		self.assertEqual(snapshot["title_part_month"], "Charged as Full Month")
 		self.assertEqual(
 			{
 				dt: frappe.db.count(dt)
