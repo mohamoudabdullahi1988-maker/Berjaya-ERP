@@ -4,6 +4,13 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
+- Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
+- Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.
+- The schedule bucket "Next 30 days" now covers tomorrow through day 30, the same window as the executive `due_next_30_days`; rows due today have a separate "Due today" bucket.
+- Overdue milestones use the shared `stage_overdue` rule (no actual end, completion below 100, active/on-hold jobs only), consistent with the executive stage exceptions.
+- Open spec questions, not changed here: the two contract-value totals and the construction progress % (GitHub issues labelled `spec-question`).
+
 ### Added (v0.1.4 — collections rules as profile settings, decision G9, issue #3, 12 Nov 2026)
 - Sidra Contract Profile: eleven new settings for the rules the installment engine had to assume: days before a per-day penalty starts, cap basis, whether payment on the last notice day is late, what a receipt pays first, how a payment beyond what is due is allocated, days before an installment counts as missed, what "one installment" means for the refund, whether penalties paid are in the refund base, and Profile B's title part month, refund-right start and compensation base
 - The same settings on Sidra Sale Contract: frozen from the profile on generated contracts, prefilled and editable on registered (External) contracts, kept in the terms snapshot (INS-20). Stored only; nothing is applied (`CLAUDE.md` rule 3)

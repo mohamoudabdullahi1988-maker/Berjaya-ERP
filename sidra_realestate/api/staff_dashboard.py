@@ -8,14 +8,27 @@ Groups without real data are returned as unavailable with a reason, never as zer
   obligations, not receipts or arrears;
 - sales pipeline: lead qualification stages are not defined yet.
 Agreed contract value is commercial value, not revenue.
+
+Groups whose record types the user's role cannot read are returned as null/empty, never as an
+error for the whole page, so construction-only roles still get their view. Money is summed as
+exact decimals; a missing or invalid amount makes its total unknown (null), never zero.
 """
+
+from decimal import Decimal
 
 import frappe
 from frappe import _
-from frappe.utils import flt, get_system_timezone, getdate
+from frappe.utils import get_system_timezone, getdate
 
+from sidra_realestate.api.executive_dashboard import ACTIVE_JOBS  # same scope as stage exceptions
 from sidra_realestate.api.location_geometry import extract_point, legacy_point
-from sidra_realestate.services.executive_metrics import period_window, site_period_bounds
+from sidra_realestate.services.executive_metrics import (
+	decimal_amount,
+	period_window,
+	site_period_bounds,
+	stage_overdue,
+)
+from sidra_realestate.services.executive_metrics import money as exact_money
 
 PERIODS = {"this_month", "last_30_days", "last_90_days"}
 LOCATION_DOCTYPES = ("Sidra Unit", "Sidra Construction Job")
@@ -23,8 +36,29 @@ LIST_LIMIT = 20
 LOCATION_LIMIT = 500
 
 
-def money(value) -> str:
-	return f"{flt(value, 2):.2f}"
+NO_CONTRACT_ACCESS = "Your role does not include sale contracts."
+
+
+def money(value) -> str | None:
+	"""Exact two-place decimal string; None when no amount is recorded."""
+	if value is None or str(value).strip() == "":
+		return None
+	return exact_money(value)
+
+
+def total(values) -> str | None:
+	"""Exact decimal sum; None when any amount is missing or invalid (unknown is never zero)."""
+	result = Decimal(0)
+	for value in values:
+		try:
+			result += decimal_amount(value)
+		except ValueError:
+			return None
+	return exact_money(result)
+
+
+def _can_read(doctype) -> bool:
+	return bool(frappe.has_permission(doctype, "read"))
 
 
 def _period_start(period):
@@ -151,22 +185,28 @@ def get_dashboard(company: str | None = None, period: str = "this_month", projec
 
 
 def _property_and_summary(company, start, today, currency):
-	units = frappe.get_list(
-		"Sidra Unit", filters={"company": company}, fields=["status"], limit_page_length=0
+	units = (
+		frappe.get_list("Sidra Unit", filters={"company": company}, fields=["status"], limit_page_length=0)
+		if _can_read("Sidra Unit")
+		else None
 	)
 	counts = {}
-	for u in units:
+	for u in units or []:
 		counts[u.status] = counts.get(u.status, 0) + 1
-	confirmed = frappe.get_list(
-		"Sidra Sale Contract",
-		filters={
-			"company": company,
-			"currency": currency,
-			"docstatus": 1,
-			"signed_on": ["between", [start, today]],
-		},
-		fields=["agreed_price"],
-		limit_page_length=0,
+	confirmed = (
+		frappe.get_list(
+			"Sidra Sale Contract",
+			filters={
+				"company": company,
+				"currency": currency,
+				"docstatus": 1,
+				"signed_on": ["between", [start, today]],
+			},
+			fields=["agreed_price"],
+			limit_page_length=0,
+		)
+		if _can_read("Sidra Sale Contract")
+		else None
 	)
 	try:
 		creation_start, creation_end = site_period_bounds(start, today, get_system_timezone())
@@ -186,7 +226,7 @@ def _property_and_summary(company, start, today, currency):
 	return {
 		"summary": {
 			"new_leads": new_leads,
-			"units_available": counts.get("Available", 0),
+			"units_available": None if units is None else counts.get("Available", 0),
 			"active_reservations": len(
 				frappe.get_list(
 					"Sidra Reservation",
@@ -194,19 +234,29 @@ def _property_and_summary(company, start, today, currency):
 					pluck="name",
 					limit_page_length=0,
 				)
-			),
-			"confirmed_contracts": len(confirmed),
-			"agreed_contract_value": money(sum(flt(c.agreed_price) for c in confirmed)),
+			)
+			if _can_read("Sidra Reservation")
+			else None,
+			"confirmed_contracts": None if confirmed is None else len(confirmed),
+			"agreed_contract_value": None
+			if confirmed is None
+			else total(c.agreed_price for c in confirmed),
 		},
 		"property": {
-			"total": len(units),
+			"total": None if units is None else len(units),
 			"counts": [{"status": s, "count": n} for s, n in sorted(counts.items())],
 		},
 	}
 
 
 def _schedule(company, today, currency):
-	"""Scheduled amounts of confirmed contracts from today on. Obligations, not receipts."""
+	"""Scheduled amounts of confirmed contracts from today on. Obligations, not receipts.
+
+	"Next 30 days" is tomorrow through day 30, the same window as the executive
+	`due_next_30_days`; rows due today have their own bucket so none are dropped.
+	"""
+	if not _can_read("Sidra Sale Contract"):
+		return {"available": False, "reason": NO_CONTRACT_ACCESS, "buckets": [], "upcoming": []}
 	contracts = {
 		c.name: c
 		for c in frappe.get_list(
@@ -217,7 +267,7 @@ def _schedule(company, today, currency):
 		)
 	}
 	if not contracts:
-		return {"buckets": [], "upcoming": []}
+		return {"available": True, "buckets": [], "upcoming": []}
 	rows = frappe.get_all(  # child rows of contracts the user may read (checked above)
 		"Sidra Installment Line",
 		filters={
@@ -229,13 +279,13 @@ def _schedule(company, today, currency):
 		order_by="due_date asc",
 		limit_page_length=0,
 	)
-	edges = ((_("Next 30 days"), 30), (_("31-60 days"), 60), (_("61-90 days"), 90))
-	totals = [0.0, 0.0, 0.0]
+	edges = ((_("Due today"), 0), (_("Next 30 days"), 30), (_("31-60 days"), 60), (_("61-90 days"), 90))
+	amounts = [[] for _edge in edges]
 	for r in rows:
 		days = (getdate(r.due_date) - today).days
 		for i, (_label, limit) in enumerate(edges):
 			if days <= limit:
-				totals[i] += flt(r.amount)
+				amounts[i].append(r.amount)
 				break
 	upcoming = [
 		{
@@ -250,14 +300,17 @@ def _schedule(company, today, currency):
 		for r in rows[:LIST_LIMIT]
 	]
 	return {
+		"available": True,
 		"buckets": [
-			{"label": label, "amount": money(t)} for (label, _l), t in zip(edges, totals, strict=True)
+			{"label": label, "amount": total(a)} for (label, _l), a in zip(edges, amounts, strict=True)
 		],
 		"upcoming": upcoming,
 	}
 
 
 def _contracts(company):
+	if not _can_read("Sidra Sale Contract"):
+		return []
 	rows = frappe.get_list(
 		"Sidra Sale Contract",
 		filters={"company": company, "docstatus": ["<", 2]},
@@ -346,15 +399,17 @@ def _jobs(company, today):
 	stages = frappe.get_all(
 		"Sidra Project Stage",
 		filters={"parenttype": "Sidra Construction Job", "parent": ["in", [j.name for j in jobs]]},
-		fields=["parent", "stage_name", "status", "planned_end", "completion_pct", "idx"],
+		fields=["parent", "stage_name", "status", "planned_end", "actual_end", "completion_pct", "idx"],
 		order_by="idx asc",
 	)
+	active = {j.name for j in jobs if j.status in ACTIVE_JOBS}
 	by_job = {}
 	for s in stages:
 		by_job.setdefault(s.parent, []).append(s)
-	overdue = sum(
-		1 for s in stages if s.status != "Completed" and s.planned_end and getdate(s.planned_end) < today
-	)
+	try:
+		overdue = sum(1 for s in stages if s.parent in active and stage_overdue(s, today))
+	except ValueError:
+		overdue = None  # an invalid recorded completion makes the count unknown, not zero
 	items = []
 	for j in jobs[:LIST_LIMIT]:
 		own = by_job.get(j.name, [])
@@ -365,7 +420,7 @@ def _jobs(company, today):
 				"label": j.customer or j.name,
 				"status": j.status,
 				# recorded stage completion only; no estimate is invented
-				"progress": round(sum(flt(s.completion_pct) for s in own) / len(own)) if own else None,
+				"progress": round(sum(float(s.completion_pct or 0) for s in own) / len(own)) if own else None,
 				"next_milestone": nxt.stage_name if nxt else None,
 				"due_date": str(nxt.planned_end) if nxt and nxt.planned_end else None,
 			}
