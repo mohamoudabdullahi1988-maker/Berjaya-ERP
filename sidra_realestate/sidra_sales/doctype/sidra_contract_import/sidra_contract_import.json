@@ -28,7 +28,7 @@
    "fieldtype": "Attach",
    "label": "Spreadsheet (CSV or XLSX)",
    "reqd": 1,
-   "description": "One row per schedule line. Template: /assets/sidra_realestate/templates/sidra_contract_import_template.csv"
+   "description": "Upload a private CSV/XLSX to this import. One row per schedule line. Template: /assets/sidra_realestate/templates/sidra_contract_import_template.csv"
   },
   {
    "fieldname": "create_missing_customers",

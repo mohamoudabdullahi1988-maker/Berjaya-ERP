@@ -3,6 +3,7 @@
 
 from datetime import date
 from io import BytesIO
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -40,7 +41,7 @@ class TestContractImport(IntegrationTestCase):
 				"is_private": 1,
 			}
 		).insert(ignore_permissions=True)
-		return frappe.get_doc(
+		job = frappe.get_doc(
 			{
 				"doctype": "Sidra Contract Import",
 				"company": COMPANY,
@@ -48,6 +49,48 @@ class TestContractImport(IntegrationTestCase):
 				**values,
 			}
 		).insert(ignore_permissions=True)
+		# Model the form upload's parent/field binding, not a bare File URL.
+		file_doc.db_set(
+			{
+				"attached_to_doctype": job.doctype,
+				"attached_to_name": job.name,
+				"attached_to_field": "import_file",
+			}
+		)
+		return job
+
+	def test_another_imports_file_is_not_read(self):
+		content, refs = self.two_contracts()
+		owner = self.importer(content)
+		job = self.importer("external_reference,customer\nLOCAL,Placeholder")
+		job.db_set("import_file", owner.import_file)
+		with patch("frappe.core.doctype.file.file.File.get_content") as read:
+			with self.assertRaises(frappe.PermissionError):
+				run_import(job.name)
+			read.assert_not_called()
+		self.assertEqual(self.contracts(*refs), {refs[0]: None, refs[1]: None})
+
+	def test_file_permission_is_checked_before_content_is_read(self):
+		content, _refs = self.two_contracts()
+		job = self.importer(content)
+		from frappe.core.doctype.file.file import File
+
+		with patch.object(File, "check_permission", side_effect=frappe.PermissionError):
+			with patch.object(File, "get_content") as read:
+				with self.assertRaises(frappe.PermissionError):
+					validate_import(job.name)
+				read.assert_not_called()
+
+	def test_public_spreadsheet_is_refused(self):
+		content, _refs = self.two_contracts()
+		job = self.importer(content)
+		file_doc = frappe.get_doc("File", {"file_url": job.import_file})
+		# A public upload must be re-uploaded privately before it can be processed.
+		file_doc.db_set("is_private", 0)
+		with patch("frappe.core.doctype.file.file.File.get_content") as read:
+			with self.assertRaises(frappe.PermissionError):
+				validate_import(job.name)
+			read.assert_not_called()
 
 	def two_contracts(self):
 		u1, u2, u3 = self.unit(), self.unit(), self.unit()

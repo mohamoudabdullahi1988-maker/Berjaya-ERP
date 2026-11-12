@@ -5,9 +5,11 @@ users reserving the same unit at once cannot both win. A reservation records no 
 the deposit needs a native ERPNext Payment Entry, which is outside P0.
 """
 
+import re
+
 import frappe
 from frappe import _
-from frappe.utils import add_days, cint, getdate, today
+from frappe.utils import add_days, getdate, today
 
 from sidra_realestate.services.units import UnitNotAvailable, lock_unit, set_unit_status
 
@@ -16,14 +18,30 @@ DEFAULT_DAYS = 7  # SRS v1.6 §4.2
 
 
 @frappe.whitelist(methods=["POST"])
-def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict:
+def reserve_unit(unit_name: str, customer: str, days=None) -> dict:
 	frappe.only_for(RESERVE_ROLES)
 
-	days = DEFAULT_DAYS if days in (None, "") else cint(days)
+	# Preserve the raw value: Frappe/Pydantic would coerce JSON true to integer 1
+	# before this check if days were annotated as int. Validate form strings here too.
+	if days in (None, ""):
+		days = DEFAULT_DAYS
+	elif isinstance(days, bool) or not re.fullmatch(r"[0-9]+", str(days)):
+		frappe.throw(_("Reservation days must be a whole number"))
+	else:
+		try:
+			days = int(days)
+		except ValueError:
+			frappe.throw(_("Reservation days must be a whole number"))
 	if days < 1:
 		frappe.throw(_("A reservation must last at least one day"))
 	if not customer or not frappe.db.exists("Customer", customer):
 		frappe.throw(_("Unknown customer {0}").format(customer), frappe.DoesNotExistError)
+	frappe.get_doc("Customer", customer).check_permission("read")
+	reserved_on = getdate(today())
+	try:
+		expires_on = add_days(reserved_on, days)
+	except (OverflowError, ValueError):
+		frappe.throw(_("Reservation expiry is outside the supported date range"))
 
 	unit = lock_unit(unit_name)
 	unit.check_permission("read")  # per-Company user permissions; the insert below skips them
@@ -32,7 +50,6 @@ def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict
 			_("Unit {0} is {1} and cannot be reserved").format(unit.name, unit.status), UnitNotAvailable
 		)
 
-	reserved_on = getdate(today())
 	reservation = frappe.new_doc("Sidra Reservation")
 	reservation.update(
 		{
@@ -40,7 +57,7 @@ def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict
 			"customer": customer,
 			"company": unit.company,
 			"reserved_on": reserved_on,
-			"expires_on": add_days(reserved_on, days),
+			"expires_on": expires_on,
 			"status": "Active",
 		}
 	)
@@ -57,7 +74,7 @@ def cancel_reservation(reservation: str) -> None:
 	if not reservation or not frappe.db.exists("Sidra Reservation", reservation):
 		frappe.throw(_("Unknown reservation {0}").format(reservation), frappe.DoesNotExistError)
 	frappe.get_doc("Sidra Reservation", reservation).check_permission("read")
-	if not _close(reservation, "Cancelled"):
+	if not _close(reservation, "Cancelled", check_permissions=True):
 		frappe.throw(_("Only an active reservation can be cancelled"))
 
 
@@ -73,7 +90,7 @@ def expire_reservations() -> None:
 		_close(name, "Expired")
 
 
-def _close(name: str, status: str) -> bool:
+def _close(name: str, status: str, *, check_permissions=False) -> bool:
 	"""Close an active reservation; release the unit only if this reservation still holds it.
 
 	Locks the unit, then the reservation (see services/units.py), and re-reads the
@@ -82,6 +99,11 @@ def _close(name: str, status: str) -> bool:
 	"""
 	unit = lock_unit(frappe.db.get_value("Sidra Reservation", name, "unit"))
 	reservation = frappe.get_doc("Sidra Reservation", name, for_update=True)
+	if check_permissions:
+		# Recheck the locked parents. Scheduler expiry is internal; user cancellation
+		# requires both the action role above and access to the actual unit/reservation.
+		unit.check_permission("read")
+		reservation.check_permission("read")
 	if reservation.status != "Active":
 		return False
 	reservation.status = status

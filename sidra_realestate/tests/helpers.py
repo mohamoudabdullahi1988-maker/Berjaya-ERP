@@ -29,7 +29,7 @@ def ensure_base_records():
 	ensure_company(OTHER_COMPANY, "_TSO")
 	ensure_customer(BUYER)
 	ensure_customer(OTHER_BUYER)
-	ensure_user(SALES_USER, ["Sidra Sales User"])
+	ensure_user(SALES_USER, ["Sidra Sales User", "Sales User"])
 	ensure_user(SALES_MANAGER, ["Sidra Sales Manager"])
 	ensure_user(GENERAL_MANAGER, ["Sidra General Manager"])
 	ensure_user(SYSTEM_ONLY, ["System Manager"])
