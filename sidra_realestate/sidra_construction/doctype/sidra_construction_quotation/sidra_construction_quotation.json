@@ -1,0 +1,340 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 15:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "autoname": "naming_series:",
+ "field_order": [
+  "naming_series",
+  "job",
+  "company",
+  "customer",
+  "currency",
+  "column_break_q",
+  "status",
+  "pricing_basis",
+  "fixed_fee",
+  "quoted_amount",
+  "valid_until",
+  "section_scope",
+  "scope",
+  "section_boq",
+  "boq_revision",
+  "boq",
+  "boq_total",
+  "section_terms",
+  "start_date",
+  "duration_days",
+  "end_date",
+  "column_break_terms",
+  "retention_pct",
+  "retention_period_months",
+  "milestone_note",
+  "section_acceptance",
+  "client_accepted_by",
+  "client_accepted_on",
+  "column_break_acceptance",
+  "client_acceptance_document",
+  "section_contract",
+  "contract_approved_by",
+  "contract_approved_on",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SCQ-.YYYY.-",
+   "default": "SCQ-.YYYY.-",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "job",
+   "fieldtype": "Link",
+   "label": "Construction Job",
+   "options": "Sidra Construction Job",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "fetch_from": "job.company",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "job.customer",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1,
+   "print_hide": 1
+  },
+  {
+   "fieldname": "column_break_q",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nIssued\nContracted\nCancelled",
+   "default": "Draft",
+   "read_only": 1,
+   "allow_on_submit": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "pricing_basis",
+   "fieldtype": "Select",
+   "label": "Pricing Basis",
+   "options": "\nBOQ\nFixed Fee",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "BOQ: priced from the job's current BOQ. Fixed Fee: design or inspection fee (CON-02)."
+  },
+  {
+   "fieldname": "fixed_fee",
+   "fieldtype": "Currency",
+   "label": "Fixed Fee",
+   "options": "currency",
+   "depends_on": "eval:doc.pricing_basis==\"Fixed Fee\"",
+   "mandatory_depends_on": "eval:doc.pricing_basis==\"Fixed Fee\""
+  },
+  {
+   "fieldname": "quoted_amount",
+   "fieldtype": "Currency",
+   "label": "Quoted Amount",
+   "options": "currency",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "label": "Valid Until",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_scope",
+   "fieldtype": "Section Break",
+   "label": "Scope"
+  },
+  {
+   "fieldname": "scope",
+   "fieldtype": "Text",
+   "label": "Scope of Work",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_boq",
+   "fieldtype": "Section Break",
+   "label": "Bill of Quantities",
+   "depends_on": "eval:doc.pricing_basis==\"BOQ\""
+  },
+  {
+   "fieldname": "boq_revision",
+   "fieldtype": "Link",
+   "label": "BOQ Revision",
+   "options": "Sidra BOQ Revision",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "The job's approved BOQ revision when the quotation was issued"
+  },
+  {
+   "fieldname": "boq",
+   "fieldtype": "Table",
+   "label": "BOQ",
+   "options": "Sidra BOQ Line"
+  },
+  {
+   "fieldname": "boq_total",
+   "fieldtype": "Currency",
+   "label": "BOQ Total",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "section_terms",
+   "fieldtype": "Section Break",
+   "label": "Proposed Contract Terms"
+  },
+  {
+   "fieldname": "start_date",
+   "fieldtype": "Date",
+   "label": "Start Date",
+   "reqd": 1
+  },
+  {
+   "fieldname": "duration_days",
+   "fieldtype": "Int",
+   "label": "Duration (days)",
+   "reqd": 1
+  },
+  {
+   "fieldname": "end_date",
+   "fieldtype": "Date",
+   "label": "End Date",
+   "read_only": 1
+  },
+  {
+   "fieldname": "column_break_terms",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "retention_pct",
+   "fieldtype": "Percent",
+   "label": "Retention %",
+   "description": "0 to 10 % (decision G11)"
+  },
+  {
+   "fieldname": "retention_period_months",
+   "fieldtype": "Int",
+   "label": "Retention Period (months)"
+  },
+  {
+   "fieldname": "milestone_note",
+   "fieldtype": "HTML",
+   "label": "Payment Milestones",
+   "options": "<p class='text-muted small'>Payment milestones are the job's stage Billing %, which must add up to 100 when the contract is approved.</p>"
+  },
+  {
+   "fieldname": "section_acceptance",
+   "fieldtype": "Section Break",
+   "label": "Client Acceptance"
+  },
+  {
+   "fieldname": "client_accepted_by",
+   "fieldtype": "Data",
+   "label": "Accepted by (client or representative)",
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "client_accepted_on",
+   "fieldtype": "Date",
+   "label": "Acceptance Date",
+   "allow_on_submit": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_acceptance",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "client_acceptance_document",
+   "fieldtype": "Attach",
+   "label": "Signed Client Acceptance",
+   "allow_on_submit": 1,
+   "no_copy": 1,
+   "description": "Private scan of the quotation signed by the client"
+  },
+  {
+   "fieldname": "section_contract",
+   "fieldtype": "Section Break",
+   "label": "Contract Approval"
+  },
+  {
+   "fieldname": "contract_approved_by",
+   "fieldtype": "Link",
+   "label": "Contract Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "contract_approved_on",
+   "fieldtype": "Datetime",
+   "label": "Contract Approved On",
+   "read_only": 1,
+   "no_copy": 1,
+   "allow_on_submit": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Sidra Construction Quotation",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-12 15:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Construction",
+ "name": "Sidra Construction Quotation",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Project Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "job,customer",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}

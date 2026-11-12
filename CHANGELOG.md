@@ -4,6 +4,30 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.9 — construction controls, P1, 12 Nov 2026; decision G11; `docs/CONSTRUCTION-CONTROLS_v0.2.md`)
+- **Sidra Construction Quotation** (CON-02, CON-03):
+  - priced from a frozen copy of the job's BOQ, or as a fixed fee; printed on Sidra letterhead (print format *Sidra Construction Quotation*);
+  - the Project Manager issues it; it can't be issued if the BOQ has changed since the draft or the quotation has expired; issuing moves the job to Quoted;
+  - the client's acceptance is recorded with a private signed file;
+  - **Approve Contract** is for the General Manager only. It sets the job's original contract value, start, duration, end and retention (0–10 %, period in months), and the job becomes Contracted. Stage Billing % must add up to exactly 100.
+- **Sidra BOQ Revision** (CON-02 revisions): the Project Manager approves; revisions are numbered and copy their lines to the job. Stale drafts and revisions that change nothing are refused. Never cancelled. The job's BOQ changes only through a new revision.
+- **Sidra Variation Order** (CON-06):
+  - additions only, with the client's approval recorded (who, when, private signed file);
+  - a second person approves: another Project Manager up to $1,000, the General Manager above $1,000, and cancelling follows the same rule;
+  - the job must have an approved contract.
+- **Sidra Inspection Report** (CON-05): date, inspector, stage, checklist results, overall result, defects, next action and due date, private photos. Consistency checks apply. The Inspector approves.
+- **Stage certification** (CON-04): **Certify Stage** for the Project Manager on Completed, 100 %, ended stages. A certified stage is frozen and can't be removed. Not an invoice or revenue.
+- **Sidra Construction Job:**
+  - contract section, read-only and set only by Approve Contract;
+  - Approved Variations and Current Contract Value;
+  - Milestone Amount per stage (current value × Billing %; adds up to the value exactly);
+  - Billing % locked after the contract;
+  - Approved BOQ Revision;
+  - Create buttons, Connections and Construction sidebar links.
+- `services/construction.py`: pure rules with `test_engine_construction.py`. The $1,000 limit and 10 % retention ceiling are constants that change only with an approved spec. Frappe integration tests for each new DocType, contract approval and certification.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G11.
+- Recorded only: no invoice, Sales Order amendment or posting (`CLAUDE.md` rule 3).
+
 ### Security (v0.1.8 — ERPNext hardening, 12 Nov 2026)
 
 - Bind contract-import spreadsheets to their own private File attachment and enforce File read permission before parsing.
