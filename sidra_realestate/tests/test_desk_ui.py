@@ -2,7 +2,14 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from sidra_realestate.desk_setup import repair_desk, scheme_summary
-from sidra_realestate.tests.helpers import OUTSIDER, as_user, ensure_base_records, make_scheme, make_unit, unique
+from sidra_realestate.tests.helpers import (
+	OUTSIDER,
+	as_user,
+	ensure_base_records,
+	make_scheme,
+	make_unit,
+	unique,
+)
 
 
 class TestDeskUI(IntegrationTestCase):
