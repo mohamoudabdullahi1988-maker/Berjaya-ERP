@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Variation orders (CON-06; docs/CONSTRUCTION-CONTROLS_v0.1.md §3)."""
+"""Variation orders (CON-06; decision G11; docs/CONSTRUCTION-CONTROLS_v0.2.md §4)."""
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -12,6 +12,7 @@ from sidra_realestate.tests.helpers import (
 	PROJECT_MANAGER,
 	as_user,
 	ensure_base_records,
+	make_contracted_job,
 	make_job,
 	private_file,
 )
@@ -19,6 +20,7 @@ from sidra_realestate.tests.helpers import (
 IGNORE_TEST_RECORD_DEPENDENCIES = ["Sidra Construction Job", "Customer", "Company", "User", "UOM"]
 
 JOB = "Sidra Construction Job"
+VO = "Sidra Variation Order"
 
 
 class TestSidraVariationOrder(IntegrationTestCase):
@@ -27,17 +29,13 @@ class TestSidraVariationOrder(IntegrationTestCase):
 		super().setUpClass()
 		ensure_base_records()
 
-	def contracted_job(self, **values):
-		return make_job(status="Contracted", contract_value=20000, **values)
-
-	def raise_order(self, job, variation_type="Addition", amount=1500, attach=True, **values):
+	def raise_order(self, job, amount=800, attach=True, **values):
 		"""Raised by the Project Manager with the client's approval recorded, as staff do."""
 		with as_user(PROJECT_MANAGER):
 			vo = frappe.get_doc(
 				{
-					"doctype": "Sidra Variation Order",
+					"doctype": VO,
 					"job": job.name,
-					"variation_type": variation_type,
 					"amount": amount,
 					"description": "Add a boundary wall on the east side",
 					"client_approved_by": "_Test Buyer Amina",
@@ -54,43 +52,57 @@ class TestSidraVariationOrder(IntegrationTestCase):
 
 	def approve(self, vo, user=OTHER_PROJECT_MANAGER):
 		with as_user(user):
-			doc = frappe.get_doc("Sidra Variation Order", vo.name)
+			doc = frappe.get_doc(VO, vo.name)
 			doc.submit()
 		return doc
 
 	def totals(self, job):
 		return tuple(frappe.db.get_value(JOB, job.name, ["approved_variations", "current_contract_value"]))
 
-	def test_addition_and_omission_change_contract_value(self):
-		job = self.contracted_job()
+	def milestones(self, job):
+		return [s.billing_amount for s in frappe.get_doc(JOB, job.name).stages]
+
+	def test_additions_raise_value_and_milestones(self):
+		job = make_contracted_job(20000)
 		self.assertEqual(self.totals(job), (0, 20000))
-		add = self.approve(self.raise_order(job))
-		self.assertEqual(
-			(add.signed_amount, add.contract_value_before, add.contract_value_after), (1500, 20000, 21500)
-		)
-		self.assertEqual(add.approved_by, OTHER_PROJECT_MANAGER)
-		self.assertEqual(self.totals(job), (1500, 21500))
-		omit = self.approve(self.raise_order(job, "Omission", 400.25))
-		self.assertEqual((omit.signed_amount, omit.contract_value_after), (-400.25, 21099.75))
-		self.assertEqual(self.totals(job), (1099.75, 21099.75))
+		vo = self.approve(self.raise_order(job, 800))
+		self.assertEqual((vo.contract_value_before, vo.contract_value_after), (20000, 20800))
+		self.assertEqual(vo.approved_by, OTHER_PROJECT_MANAGER)
+		self.approve(self.raise_order(job, 1500), user=GENERAL_MANAGER)
+		self.assertEqual(self.totals(job), (2300, 22300))
+		self.assertEqual(self.milestones(job), [8920, 13380])  # 40 % / 60 % of 22,300
+
+	def test_amount_must_be_positive(self):
+		job = make_contracted_job()
+		for amount in (0, -10):
+			with self.subTest(amount=amount), self.assertRaises(frappe.ValidationError):
+				self.raise_order(job, amount)
 
 	def test_second_person_must_approve(self):
-		vo = self.raise_order(self.contracted_job())
+		vo = self.raise_order(make_contracted_job())
 		with self.assertRaises(frappe.PermissionError):
 			self.approve(vo, user=PROJECT_MANAGER)
 
-	def test_general_manager_can_approve(self):
-		job = self.contracted_job()
-		self.approve(self.raise_order(job), user=GENERAL_MANAGER)
-		self.assertEqual(self.totals(job), (1500, 21500))
+	def test_limit_1000(self):
+		job = make_contracted_job()
+		self.approve(self.raise_order(job, 1000))  # a second Project Manager, up to 1,000
+		above = self.raise_order(job, 1000.01)
+		with self.assertRaises(frappe.PermissionError):
+			self.approve(above)
+		self.approve(above, user=GENERAL_MANAGER)
+		self.assertEqual(self.totals(job), (2000.01, 22000.01))
+
+	def test_general_manager_approves_small_orders_too(self):
+		job = make_contracted_job()
+		self.approve(self.raise_order(job, 300), user=GENERAL_MANAGER)
+		self.assertEqual(self.totals(job), (300, 20300))
 
 	def test_inspector_cannot_approve(self):
-		vo = self.raise_order(self.contracted_job())
 		with self.assertRaises(frappe.PermissionError):
-			self.approve(vo, user=INSPECTOR)
+			self.approve(self.raise_order(make_contracted_job()), user=INSPECTOR)
 
 	def test_client_approval_required(self):
-		job = self.contracted_job()
+		job = make_contracted_job()
 		with self.assertRaises(frappe.ValidationError):
 			self.approve(self.raise_order(job, attach=False))
 		with self.assertRaises(frappe.ValidationError):
@@ -99,9 +111,9 @@ class TestSidraVariationOrder(IntegrationTestCase):
 			self.raise_order(job, client_approved_on=add_days(today(), 1))
 
 	def test_client_approval_must_be_private_and_own(self):
-		job = self.contracted_job()
+		job = make_contracted_job()
+		vo = self.raise_order(job, attach=False)
 		with as_user(PROJECT_MANAGER):
-			vo = self.raise_order(job, attach=False)
 			vo.client_approval_document = private_file(
 				name="public.pdf", attached_to=vo, field="client_approval_document", is_private=0
 			)
@@ -116,52 +128,26 @@ class TestSidraVariationOrder(IntegrationTestCase):
 		with self.assertRaises(frappe.ValidationError):
 			self.approve(borrowed)
 
-	def test_omission_cannot_go_below_zero(self):
-		job = self.contracted_job()
-		with self.assertRaises(frappe.ValidationError):
-			self.approve(self.raise_order(job, "Omission", 20000.01))
-		self.approve(self.raise_order(job, "Omission", 20000))
-		self.assertEqual(self.totals(job), (-20000, 0))
-
-	def test_amount_must_be_positive(self):
-		with self.assertRaises(frappe.ValidationError):
-			self.raise_order(self.contracted_job(), amount=-10)
-
-	def test_job_must_be_contracted_with_value(self):
-		with self.assertRaises(frappe.ValidationError):
-			self.approve(self.raise_order(make_job(status="Quoted", contract_value=20000)))
+	def test_job_needs_approved_contract(self):
 		with self.assertRaises(frappe.ValidationError):
 			self.approve(self.raise_order(make_job(status="Contracted")))
-
-	def test_contract_value_locked_after_approval(self):
-		job = self.contracted_job()
-		job.contract_value = 21000  # editable before any variation is approved
-		job.save(ignore_permissions=True)
-		self.approve(self.raise_order(job))
-		job.reload()
-		job.contract_value = 25000
+		job = make_contracted_job()
+		frappe.db.set_value(JOB, job.name, "status", "Closed")
 		with self.assertRaises(frappe.ValidationError):
-			job.save(ignore_permissions=True)
-		job.reload()
-		job.approved_variations = 0  # a forged total is recalculated on save
-		job.save(ignore_permissions=True)
-		self.assertEqual(self.totals(job), (1500, 22500))
+			self.approve(self.raise_order(job))
 
-	def test_cancel_restores_value_but_not_below_zero(self):
-		job = self.contracted_job()
-		add = self.approve(self.raise_order(job, amount=5000))
-		self.approve(self.raise_order(job, "Omission", 24000))
-		self.assertEqual(self.totals(job), (-19000, 1000))
-		with as_user(OTHER_PROJECT_MANAGER), self.assertRaises(frappe.ValidationError):
-			frappe.get_doc("Sidra Variation Order", add.name).cancel()
-		job2 = self.contracted_job()
-		vo = self.approve(self.raise_order(job2))
-		with as_user(OTHER_PROJECT_MANAGER):
-			frappe.get_doc("Sidra Variation Order", vo.name).cancel()
-		self.assertEqual(self.totals(job2), (0, 20000))
+	def test_cancel_restores_value_with_same_approval_rule(self):
+		job = make_contracted_job()
+		big = self.approve(self.raise_order(job, 5000), user=GENERAL_MANAGER)
+		with as_user(OTHER_PROJECT_MANAGER), self.assertRaises(frappe.PermissionError):
+			frappe.get_doc(VO, big.name).cancel()
+		with as_user(GENERAL_MANAGER):
+			frappe.get_doc(VO, big.name).cancel()
+		self.assertEqual(self.totals(job), (0, 20000))
+		self.assertEqual(self.milestones(job), [8000, 12000])
 
 	def test_boq_revision_must_belong_to_job(self):
-		job = self.contracted_job(boq=[{"description": "Wall", "qty": 10, "rate": 50}])
+		job = make_contracted_job(boq=[{"description": "Wall", "qty": 10, "rate": 50}])
 		rev = frappe.get_doc({"doctype": "Sidra BOQ Revision", "job": job.name, "reason": "Wall"}).insert(
 			ignore_permissions=True
 		)
@@ -172,4 +158,4 @@ class TestSidraVariationOrder(IntegrationTestCase):
 		rev.submit()
 		self.assertEqual(self.raise_order(job, boq_revision=rev.name).boq_revision, rev.name)
 		with self.assertRaises(frappe.ValidationError):
-			self.raise_order(self.contracted_job(), boq_revision=rev.name)
+			self.raise_order(make_contracted_job(), boq_revision=rev.name)

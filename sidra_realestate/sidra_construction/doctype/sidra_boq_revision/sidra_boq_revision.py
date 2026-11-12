@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Sidra BOQ Revision (CON-02 revisions; SRS v2.0 §3.1, §4.1; docs/CONSTRUCTION-CONTROLS_v0.1.md).
+"""Sidra BOQ Revision (CON-02 revisions; SRS v2.0 §3.1, §4.1; docs/CONSTRUCTION-CONTROLS_v0.2.md).
 
 - A draft starts from the job's current BOQ and records which approved revision it was based on.
 - Approval (submit, Sidra Project Manager) is refused if another revision was approved meanwhile,

@@ -1,6 +1,6 @@
 // Copyright (c) 2026, Mohamoud Abdullahi Sheikh
 // Construction job: BOQ revisions, variation orders, inspections and stage certification
-// (CON-04, CON-05, CON-06; docs/CONSTRUCTION-CONTROLS_v0.1.md). No invoices are created here.
+// (CON-04, CON-05, CON-06; docs/CONSTRUCTION-CONTROLS_v0.2.md). No invoices are created here.
 
 frappe.ui.form.on("Sidra Construction Job", {
 	refresh(frm) {
@@ -16,16 +16,16 @@ frappe.ui.form.on("Sidra Construction Job", {
 				"blue"
 			);
 		}
-		if ((frm.doc.__onload || {}).has_approved_variations) {
-			frm.set_df_property("contract_value", "read_only", 1);
-		}
 
 		if (closed) return;
 		const make = (doctype) => frappe.new_doc(doctype, { job: frm.doc.name });
+		if (!frm.doc.contract_quotation && frappe.model.can_create("Sidra Construction Quotation")) {
+			frm.add_custom_button(__("Quotation"), () => make("Sidra Construction Quotation"), __("Create"));
+		}
 		if (frappe.model.can_create("Sidra BOQ Revision")) {
 			frm.add_custom_button(__("BOQ Revision"), () => make("Sidra BOQ Revision"), __("Create"));
 		}
-		if (frappe.model.can_create("Sidra Variation Order")) {
+		if (frm.doc.contract_quotation && frappe.model.can_create("Sidra Variation Order")) {
 			frm.add_custom_button(__("Variation Order"), () => make("Sidra Variation Order"), __("Create"));
 		}
 		if (frappe.model.can_create("Sidra Inspection Report")) {

@@ -4,17 +4,29 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
-### Added (v0.1.6 — construction controls, P1, 12 Nov 2026; `docs/CONSTRUCTION-CONTROLS_v0.1.md`)
-- **Sidra BOQ Revision** (CON-02 revisions): a draft copies the job's BOQ. The Project Manager approves it, which numbers the revision, stores the previous total and the difference, and copies the lines to the job. Stale drafts and revisions that change nothing are refused. Approved revisions are never cancelled. Once a revision is approved, the job's BOQ changes only through a new revision.
-- **Sidra Variation Order** (CON-06): Addition or Omission, with the client's approval recorded (who, when, and a private signed approval on the order's own field). A second person approves (SRS v1.6 §2): a Project Manager other than the one who raised it, or the General Manager. The job must be contracted with its original contract value entered, and the value can't go below zero.
+### Added (v0.1.6 — construction controls, P1, 12 Nov 2026; decision G11; `docs/CONSTRUCTION-CONTROLS_v0.2.md`)
+- **Sidra Construction Quotation** (CON-02, CON-03):
+  - priced from a frozen copy of the job's BOQ, or as a fixed fee; printed on Sidra letterhead (print format *Sidra Construction Quotation*);
+  - the Project Manager issues it; it can't be issued if the BOQ has changed since the draft or the quotation has expired; issuing moves the job to Quoted;
+  - the client's acceptance is recorded with a private signed file;
+  - **Approve Contract** is for the General Manager only. It sets the job's original contract value, start, duration, end and retention (0–10 %, period in months), and the job becomes Contracted. Stage Billing % must add up to exactly 100.
+- **Sidra BOQ Revision** (CON-02 revisions): the Project Manager approves; revisions are numbered and copy their lines to the job. Stale drafts and revisions that change nothing are refused. Never cancelled. The job's BOQ changes only through a new revision.
+- **Sidra Variation Order** (CON-06):
+  - additions only, with the client's approval recorded (who, when, private signed file);
+  - a second person approves: another Project Manager up to $1,000, the General Manager above $1,000, and cancelling follows the same rule;
+  - the job must have an approved contract.
 - **Sidra Inspection Report** (CON-05): date, inspector, stage, checklist results, overall result, defects, next action and due date, private photos. Consistency checks apply. The Inspector approves.
-- **Stage certification** (CON-04): **Certify Stage** for the Project Manager on Completed, 100 %, ended stages. A certified stage is frozen and can't be removed. Certification is not an invoice or revenue.
+- **Stage certification** (CON-04): **Certify Stage** for the Project Manager on Completed, 100 %, ended stages. A certified stage is frozen and can't be removed. Not an invoice or revenue.
 - **Sidra Construction Job:**
-  - new fields: Original Contract Value, Approved Variations and Current Contract Value (recalculated from submitted orders; the original value is locked after the first approved order), and Approved BOQ Revision;
-  - Create buttons and Connections for the new records;
-  - Construction sidebar links.
-- `services/construction.py`: pure rules with `test_engine_construction.py`. Frappe integration tests for each new DocType and for certification.
-- Choices to confirm: issue #37 (`spec-question`). Recorded only: no invoice, Sales Order amendment or posting (`CLAUDE.md` rule 3).
+  - contract section, read-only and set only by Approve Contract;
+  - Approved Variations and Current Contract Value;
+  - Milestone Amount per stage (current value × Billing %; adds up to the value exactly);
+  - Billing % locked after the contract;
+  - Approved BOQ Revision;
+  - Create buttons, Connections and Construction sidebar links.
+- `services/construction.py`: pure rules with `test_engine_construction.py`. The $1,000 limit and 10 % retention ceiling are constants that change only with an approved spec. Frappe integration tests for each new DocType, contract approval and certification.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G11.
+- Recorded only: no invoice, Sales Order amendment or posting (`CLAUDE.md` rule 3).
 
 ### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
 - Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).

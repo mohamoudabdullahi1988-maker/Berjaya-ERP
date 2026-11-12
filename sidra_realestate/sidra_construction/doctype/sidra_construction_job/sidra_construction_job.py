@@ -1,10 +1,13 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Sidra Construction Job (CON-01, CON-02, CON-04, CON-06; SRS v2.0 §3.1, §6).
+"""Sidra Construction Job (CON-01, CON-02, CON-03, CON-04, CON-06; SRS v2.0 §3.1, §6).
 
-Stages, BOQ and contract value. P1 controls (docs/CONSTRUCTION-CONTROLS_v0.1.md):
+Stages, BOQ and contract. P1 controls (docs/CONSTRUCTION-CONTROLS_v0.2.md; decision G11):
 - once a BOQ revision is approved, the BOQ changes only through a new Sidra BOQ Revision;
-- the original contract value is locked once a variation order is approved; approved variations
-  and the current contract value are always recalculated from submitted variation orders;
+- the contract terms (value, dates, retention) are set only when the General Manager approves an
+  accepted Sidra Construction Quotation (CON-03); stage Billing % are the payment milestones, must
+  add up to 100 and cannot change after that;
+- approved variations, the current contract value and each stage's milestone amount are
+  recalculated from submitted variation orders on every save;
 - a stage certified by the Project Manager (`certify_stage`) can no longer be changed or removed.
 Certification is a record of completion, not an invoice or revenue (CON-07 waits for P2).
 """
@@ -14,7 +17,13 @@ from frappe import _
 from frappe.model.document import Document
 from frappe.utils import flt, getdate, now_datetime, today
 
-from sidra_realestate.services.construction import CLOSED_STATUSES, boq_key, money
+from sidra_realestate.services.construction import (
+	CLOSED_STATUSES,
+	billing_pct_problem,
+	boq_key,
+	milestone_amounts,
+	money,
+)
 from sidra_realestate.services.construction_jobs import approved_variation_amounts, lock_job
 
 STAGE_FIELDS = (
@@ -31,6 +40,17 @@ STAGE_FIELDS = (
 STAGE_DATES = ("planned_start", "planned_end", "actual_start", "actual_end")
 CERTIFICATION_FIELDS = ("certified", "certified_by", "certified_on")
 BOQ_FIELDS = ("cost_code", "description", "uom", "qty", "rate")
+CONTRACT_FIELDS = (
+	"contract_quotation",
+	"contract_value",
+	"contract_start_date",
+	"contract_duration_days",
+	"contract_end_date",
+	"retention_pct",
+	"retention_period_months",
+	"contract_approved_by",
+	"contract_approved_on",
+)
 
 # SRS v1.6 §3.1 stage templates; a job copies one when it is created without stages.
 STAGE_TEMPLATES = {
@@ -51,12 +71,6 @@ STAGE_TEMPLATES = {
 
 
 class SidraConstructionJob(Document):
-	def onload(self):
-		self.set_onload(
-			"has_approved_variations",
-			bool(frappe.db.exists("Sidra Variation Order", {"job": self.name, "docstatus": 1})),
-		)
-
 	def before_insert(self):
 		if not self.stages:
 			for stage in STAGE_TEMPLATES.get(self.service_type, []):
@@ -73,7 +87,7 @@ class SidraConstructionJob(Document):
 		self.protect_certified_stages(before)
 		self.set_boq_amounts()
 		self.protect_boq(before)
-		self.protect_contract_value(before)
+		self.protect_contract(before)
 		self.set_contract_values()
 
 	def validate_project(self):
@@ -142,23 +156,36 @@ class SidraConstructionJob(Document):
 				title=_("BOQ is revision-controlled"),
 			)
 
-	def protect_contract_value(self, before):
-		if flt(self.contract_value) < 0:
-			frappe.throw(_("The contract value cannot be negative"))
-		if (
-			before
-			and money(before.contract_value) != money(self.contract_value)
-			and frappe.db.exists("Sidra Variation Order", {"job": self.name, "docstatus": 1})
-		):
+	def protect_contract(self, before):
+		"""Contract terms come only from `approve_contract` on the accepted quotation (CON-03, G11)."""
+		if not self.flags.contract_from_quotation:
+			for field in CONTRACT_FIELDS:
+				self.set(field, before.get(field) if before else None)
+		if not self.contract_quotation:
+			return
+		problem = billing_pct_problem([row.billing_pct for row in self.stages])
+		if problem:
+			frappe.throw(_("The contract's payment milestones: {0}").format(_(problem)))
+		if self.flags.contract_from_quotation or not before:
+			return
+		old = {row.name: flt(row.billing_pct, 6) for row in before.stages}
+		new = {row.name: flt(row.billing_pct, 6) for row in self.stages}
+		changed = [n for n, pct in old.items() if pct and new.get(n) != pct]
+		added = [n for n, pct in new.items() if n not in old and pct]
+		if changed or added:
 			frappe.throw(
-				_("The original contract value is locked once a variation order is approved"),
-				title=_("Contract value locked"),
+				_("Stage Billing % are the contract's payment milestones and cannot change after the contract is approved"),
+				title=_("Milestones locked"),
 			)
 
 	def set_contract_values(self):
 		approved = sum(approved_variation_amounts(self.name), money(0)) if not self.is_new() else money(0)
+		current = money(self.contract_value) + approved if self.contract_quotation else money(0)
 		self.approved_variations = flt(approved, 2)
-		self.current_contract_value = flt(money(self.contract_value) + approved, 2)
+		self.current_contract_value = flt(current, 2)
+		amounts = milestone_amounts(current, [row.billing_pct for row in self.stages])
+		for row, amount in zip(self.stages, amounts, strict=True):
+			row.billing_amount = flt(amount, 2)
 
 
 def stage_values(row):

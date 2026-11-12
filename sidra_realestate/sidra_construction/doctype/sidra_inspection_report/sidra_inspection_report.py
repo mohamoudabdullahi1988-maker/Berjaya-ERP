@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Sidra Inspection Report (CON-05; SRS v2.0 §3.1, §4.1; docs/CONSTRUCTION-CONTROLS_v0.1.md).
+"""Sidra Inspection Report (CON-05; SRS v2.0 §3.1, §4.1; docs/CONSTRUCTION-CONTROLS_v0.2.md).
 
 - Records a site inspection: date, inspector, checklist results, photos, defects, next action.
 - The checklist, overall result, defects and next action must agree (services/construction.py).

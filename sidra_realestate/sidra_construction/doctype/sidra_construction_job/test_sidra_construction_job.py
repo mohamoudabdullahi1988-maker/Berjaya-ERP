@@ -95,7 +95,7 @@ class TestSidraConstructionJob(IntegrationTestCase):
 
 
 class TestStageCertification(IntegrationTestCase):
-	"""CON-04: the Project Manager certifies completed stages (docs/CONSTRUCTION-CONTROLS_v0.1.md §5)."""
+	"""CON-04: the Project Manager certifies completed stages (docs/CONSTRUCTION-CONTROLS_v0.2.md §5)."""
 
 	@classmethod
 	def setUpClass(cls):
@@ -186,12 +186,14 @@ class TestStageCertification(IntegrationTestCase):
 
 
 class TestContractValue(IntegrationTestCase):
+	"""CON-03 / G11: contract terms come only from an approved quotation, never typed on the job."""
+
 	@classmethod
 	def setUpClass(cls):
 		super().setUpClass()
 		ensure_base_records()
 
-	def test_current_value_follows_contract_value(self):
+	def test_contract_value_cannot_be_typed(self):
 		job = frappe.get_doc(
 			{
 				"doctype": "Sidra Construction Job",
@@ -200,9 +202,13 @@ class TestContractValue(IntegrationTestCase):
 				"service_type": "Design Only",
 				"contract_value": 4500,
 				"approved_variations": 999,
+				"retention_pct": 10,
 			}
 		).insert(ignore_permissions=True)
-		self.assertEqual((job.approved_variations, job.current_contract_value), (0, 4500))
-		job.contract_value = -1
-		with self.assertRaises(frappe.ValidationError):
-			job.save(ignore_permissions=True)
+		self.assertEqual(
+			(job.contract_value or 0, job.approved_variations, job.current_contract_value, job.retention_pct or 0),
+			(0, 0, 0, 0),
+		)
+		job.contract_value = 4500
+		job.save(ignore_permissions=True)
+		self.assertEqual(job.contract_value or 0, 0)

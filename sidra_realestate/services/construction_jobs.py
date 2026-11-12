@@ -1,12 +1,11 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
 """Frappe-side helpers for construction records linked to a Sidra Construction Job.
 
-See docs/CONSTRUCTION-CONTROLS_v0.1.md. Nothing here creates an invoice or posts to the ledger.
+See docs/CONSTRUCTION-CONTROLS_v0.2.md. Nothing here creates an invoice or posts to the ledger.
 """
 
 import frappe
 from frappe import _
-from frappe.utils import flt
 
 from sidra_realestate.services.construction import CLOSED_STATUSES, money
 
@@ -87,19 +86,10 @@ def approved_variation_amounts(job, exclude=None):
 	filters = {"job": job, "docstatus": 1}
 	if exclude:
 		filters["name"] = ("!=", exclude)
-	return [money(a) for a in frappe.get_all("Sidra Variation Order", filters=filters, pluck="signed_amount")]
+	return [money(a) for a in frappe.get_all("Sidra Variation Order", filters=filters, pluck="amount")]
 
 
-def refresh_variation_totals(job):
-	"""Approved variations and current contract value on the job, from submitted variation orders."""
-	contract_value = money(frappe.db.get_value(JOB, job, "contract_value"))
-	variations = sum(approved_variation_amounts(job), money(0))
-	frappe.db.set_value(
-		JOB,
-		job,
-		{
-			"approved_variations": flt(variations, 2),
-			"current_contract_value": flt(contract_value + variations, 2),
-		},
-		update_modified=False,
-	)
+def refresh_contract_values(job):
+	"""Recalculate the job's approved variations, current value and milestone amounts (job validate)."""
+	doc = frappe.get_doc(JOB, job)
+	doc.save(ignore_permissions=True)  # the approval that called this is the authority

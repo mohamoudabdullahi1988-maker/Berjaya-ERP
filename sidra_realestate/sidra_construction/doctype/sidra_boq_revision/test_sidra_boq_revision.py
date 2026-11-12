@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""BOQ revisions (CON-02 revisions; docs/CONSTRUCTION-CONTROLS_v0.1.md §2)."""
+"""BOQ revisions (CON-02 revisions; docs/CONSTRUCTION-CONTROLS_v0.2.md §2)."""
 
 import frappe
 from frappe.tests import IntegrationTestCase

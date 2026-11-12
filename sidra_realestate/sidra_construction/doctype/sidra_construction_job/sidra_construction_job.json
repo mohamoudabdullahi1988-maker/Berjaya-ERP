@@ -22,10 +22,18 @@
   "sidra_location",
   "title_reference",
   "section_contract",
+  "contract_quotation",
   "contract_value",
-  "column_break_contract",
   "approved_variations",
   "current_contract_value",
+  "column_break_contract",
+  "contract_start_date",
+  "contract_duration_days",
+  "contract_end_date",
+  "retention_pct",
+  "retention_period_months",
+  "contract_approved_by",
+  "contract_approved_on",
   "section_stages",
   "stages",
   "section_boq",
@@ -142,18 +150,24 @@
   {
    "fieldname": "section_contract",
    "fieldtype": "Section Break",
-   "label": "Contract Value (CON-06)"
+   "label": "Contract (CON-03, CON-06)"
+  },
+  {
+   "fieldname": "contract_quotation",
+   "fieldtype": "Link",
+   "label": "Contract Quotation",
+   "options": "Sidra Construction Quotation",
+   "read_only": 1,
+   "no_copy": 1
   },
   {
    "fieldname": "contract_value",
    "fieldtype": "Currency",
    "label": "Original Contract Value",
    "options": "currency",
-   "description": "Agreed value before variations. Locked once a variation order is approved."
-  },
-  {
-   "fieldname": "column_break_contract",
-   "fieldtype": "Column Break"
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "From the quotation the client accepted, set when the General Manager approves the contract"
   },
   {
    "fieldname": "approved_variations",
@@ -168,6 +182,60 @@
    "fieldtype": "Currency",
    "label": "Current Contract Value",
    "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_contract",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_start_date",
+   "fieldtype": "Date",
+   "label": "Contract Start",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_duration_days",
+   "fieldtype": "Int",
+   "label": "Duration (days)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_end_date",
+   "fieldtype": "Date",
+   "label": "Contract End",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "retention_pct",
+   "fieldtype": "Percent",
+   "label": "Retention %",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "retention_period_months",
+   "fieldtype": "Int",
+   "label": "Retention Period (months)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_approved_by",
+   "fieldtype": "Link",
+   "label": "Contract Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_approved_on",
+   "fieldtype": "Datetime",
+   "label": "Contract Approved On",
    "read_only": 1,
    "no_copy": 1
   },
@@ -221,6 +289,11 @@
  "links": [
   {
    "group": "Construction controls",
+   "link_doctype": "Sidra Construction Quotation",
+   "link_fieldname": "job"
+  },
+  {
+   "group": "Construction controls",
    "link_doctype": "Sidra BOQ Revision",
    "link_fieldname": "job"
   },
@@ -235,7 +308,7 @@
    "link_fieldname": "job"
   }
  ],
- "modified": "2026-11-12 12:00:00.000000",
+ "modified": "2026-11-12 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Construction Job",

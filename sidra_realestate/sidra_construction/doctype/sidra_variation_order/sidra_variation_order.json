@@ -11,9 +11,7 @@
   "customer",
   "currency",
   "column_break_vo",
-  "variation_type",
   "amount",
-  "signed_amount",
   "boq_revision",
   "section_description",
   "description",
@@ -81,29 +79,13 @@
    "fieldtype": "Column Break"
   },
   {
-   "fieldname": "variation_type",
-   "fieldtype": "Select",
-   "label": "Variation Type",
-   "options": "\nAddition\nOmission",
-   "reqd": 1,
-   "in_list_view": 1,
-   "in_standard_filter": 1
-  },
-  {
    "fieldname": "amount",
    "fieldtype": "Currency",
-   "label": "Amount",
+   "label": "Addition to Contract Value",
    "options": "currency",
    "reqd": 1,
    "in_list_view": 1,
-   "description": "Enter a positive amount; an omission lowers the contract value"
-  },
-  {
-   "fieldname": "signed_amount",
-   "fieldtype": "Currency",
-   "label": "Change to Contract Value",
-   "options": "currency",
-   "read_only": 1
+   "description": "Variation orders are additions only (decision G11). Above 1,000 the General Manager approves."
   },
   {
    "fieldname": "boq_revision",
@@ -201,7 +183,7 @@
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-12 12:00:00.000000",
+ "modified": "2026-11-12 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Variation Order",
@@ -240,7 +222,8 @@
    "email": 1,
    "share": 0,
    "submit": 1,
-   "cancel": 1
+   "cancel": 1,
+   "write": 1
   },
   {
    "role": "Sidra Finance Reviewer",

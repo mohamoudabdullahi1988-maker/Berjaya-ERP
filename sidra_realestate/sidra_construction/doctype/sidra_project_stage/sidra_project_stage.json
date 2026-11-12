@@ -13,6 +13,7 @@
   "actual_end",
   "completion_pct",
   "billing_pct",
+  "billing_amount",
   "engineer",
   "certified",
   "certified_by",
@@ -66,7 +67,15 @@
    "fieldname": "billing_pct",
    "fieldtype": "Percent",
    "label": "Billing %",
-   "description": "Planning only; no invoice in P0"
+   "description": "Payment milestone: must add up to 100 across stages at contract approval; locked after it. No invoice is created."
+  },
+  {
+   "fieldname": "billing_amount",
+   "fieldtype": "Currency",
+   "label": "Milestone Amount",
+   "options": "currency",
+   "read_only": 1,
+   "description": "Current contract value × Billing %. A record of the milestone, not an invoice."
   },
   {
    "fieldname": "engineer",
@@ -102,7 +111,7 @@
  "index_web_pages_for_search": 0,
  "istable": 1,
  "links": [],
- "modified": "2026-11-12 12:00:00.000000",
+ "modified": "2026-11-12 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Project Stage",

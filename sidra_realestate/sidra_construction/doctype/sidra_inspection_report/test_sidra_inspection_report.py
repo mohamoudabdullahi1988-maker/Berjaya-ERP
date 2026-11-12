@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Site inspection reports (CON-05; docs/CONSTRUCTION-CONTROLS_v0.1.md §4)."""
+"""Site inspection reports (CON-05; docs/CONSTRUCTION-CONTROLS_v0.2.md §4)."""
 
 import frappe
 from frappe.tests import IntegrationTestCase
