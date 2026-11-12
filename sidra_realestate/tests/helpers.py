@@ -21,6 +21,9 @@ SALES_MANAGER = "sidra.manager@example.com"
 GENERAL_MANAGER = "sidra.gm@example.com"
 SYSTEM_ONLY = "sidra.sysadmin@example.com"
 OUTSIDER = "sidra.outsider@example.com"
+PROJECT_MANAGER = "sidra.pm@example.com"
+OTHER_PROJECT_MANAGER = "sidra.pm2@example.com"
+INSPECTOR = "sidra.inspector@example.com"
 
 
 def ensure_base_records():
@@ -34,6 +37,9 @@ def ensure_base_records():
 	ensure_user(GENERAL_MANAGER, ["Sidra General Manager"])
 	ensure_user(SYSTEM_ONLY, ["System Manager"])
 	ensure_user(OUTSIDER, [])
+	ensure_user(PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
+	ensure_user(OTHER_PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
+	ensure_user(INSPECTOR, ["Sidra Inspector", "Projects User"])
 	frappe.db.commit()
 
 
@@ -175,21 +181,34 @@ def _blank_pdf() -> bytes:
 	return buffer.getvalue()
 
 
-def private_file(name="signed-contract.pdf", attached_to=None, is_private=1):
-	"""A File as uploaded through a form; attached to `attached_to`'s Signed Copy field if given."""
+def private_file(
+	name="signed-contract.pdf", attached_to=None, is_private=1, field="signed_copy", content=None
+):
+	"""A File as uploaded through a form; attached to `attached_to`'s `field` (Signed Copy) if given."""
 	values = {
 		"doctype": "File",
 		"file_name": f"{frappe.generate_hash(length=8)}-{name}",
-		"content": _blank_pdf(),
+		"content": content or _blank_pdf(),
 		"is_private": is_private,
 	}
 	if attached_to is not None:
 		values.update(
 			attached_to_doctype=attached_to.doctype,
 			attached_to_name=attached_to.name,
-			attached_to_field="signed_copy",
+			attached_to_field=field,
 		)
 	return frappe.get_doc(values).insert(ignore_permissions=True).file_url
+
+
+_PNG_1PX = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+
+
+def site_photo(is_private=1):
+	"""A 1-pixel PNG with unique trailing bytes (Frappe de-duplicates identical files)."""
+	import base64
+
+	content = base64.b64decode(_PNG_1PX) + frappe.generate_hash(length=16).encode()
+	return private_file(name="site-photo.png", is_private=is_private, content=content)
 
 
 def attach_signed_copy(contract, **file_values):
@@ -237,3 +256,72 @@ def make_held_profile():
 	doc.legal_hold = 1
 	doc.legal_hold_reason = "_Test legal hold"
 	return doc.insert(ignore_permissions=True)
+
+
+def make_job(**values):
+	"""A construction job for the test Company and buyer (Full Construction, template stages)."""
+	return frappe.get_doc(
+		{
+			"doctype": "Sidra Construction Job",
+			"customer": BUYER,
+			"company": COMPANY,
+			"service_type": "Full Construction",
+			**values,
+		}
+	).insert(ignore_permissions=True)
+
+
+def issue_quotation(job, amount=20000, **values):
+	"""An issued fixed-fee quotation for `job` (CON-02), as the Project Manager would issue it."""
+	from frappe.utils import add_days, today
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Sidra Construction Quotation",
+			"job": job.name,
+			"pricing_basis": "Fixed Fee",
+			"fixed_fee": amount,
+			"scope": "Build a two-room house on the client's plot",
+			"valid_until": add_days(today(), 30),
+			"start_date": add_days(today(), 7),
+			"duration_days": 120,
+			"retention_pct": 5,
+			"retention_period_months": 12,
+			**values,
+		}
+	).insert(ignore_permissions=True)
+	doc.submit()
+	return doc
+
+
+def record_acceptance(quotation, **file_values):
+	"""The client's signed acceptance recorded on the issued quotation (private, on its own field)."""
+	from frappe.utils import today
+
+	quotation.client_accepted_by = BUYER
+	quotation.client_accepted_on = today()
+	quotation.client_acceptance_document = private_file(
+		name="signed-quotation.pdf", attached_to=quotation, field="client_acceptance_document", **file_values
+	)
+	quotation.save(ignore_permissions=True)
+	return quotation
+
+
+def make_contracted_job(contract_value=20000, **job_values):
+	"""A job whose quotation the client accepted and the General Manager approved (CON-03, G11).
+
+	Stages: Foundation 40 % and Structure 60 % billing (payment milestones)."""
+	from sidra_realestate.sidra_construction.doctype.sidra_construction_quotation.sidra_construction_quotation import (
+		approve_contract,
+	)
+
+	job_values.setdefault(
+		"stages",
+		[{"stage_name": "Foundation", "billing_pct": 40}, {"stage_name": "Structure", "billing_pct": 60}],
+	)
+	job = make_job(**job_values)
+	quotation = record_acceptance(issue_quotation(job, contract_value))
+	with as_user(GENERAL_MANAGER):
+		approve_contract(quotation.name)
+	job.reload()
+	return job
