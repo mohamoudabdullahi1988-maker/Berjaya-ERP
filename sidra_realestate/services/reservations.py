@@ -18,9 +18,11 @@ DEFAULT_DAYS = 7  # SRS v1.6 §4.2
 
 
 @frappe.whitelist(methods=["POST"])
-def reserve_unit(unit_name: str, customer: str, days: int | None = None) -> dict:
+def reserve_unit(unit_name: str, customer: str, days=None) -> dict:
 	frappe.only_for(RESERVE_ROLES)
 
+	# Preserve the raw value: Frappe/Pydantic would coerce JSON true to integer 1
+	# before this check if days were annotated as int. Validate form strings here too.
 	if days in (None, ""):
 		days = DEFAULT_DAYS
 	elif isinstance(days, bool) or not re.fullmatch(r"[0-9]+", str(days)):
