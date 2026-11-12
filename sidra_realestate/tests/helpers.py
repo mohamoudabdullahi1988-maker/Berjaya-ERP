@@ -24,6 +24,8 @@ OUTSIDER = "sidra.outsider@example.com"
 PROJECT_MANAGER = "sidra.pm@example.com"
 OTHER_PROJECT_MANAGER = "sidra.pm2@example.com"
 INSPECTOR = "sidra.inspector@example.com"
+OTHER_SALES_MANAGER = "sidra.manager2@example.com"
+NO_KYC_BUYER = "_Test Buyer Without KYC"
 
 
 def ensure_base_records():
@@ -40,6 +42,10 @@ def ensure_base_records():
 	ensure_user(PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
 	ensure_user(OTHER_PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
 	ensure_user(INSPECTOR, ["Sidra Inspector", "Projects User"])
+	ensure_user(OTHER_SALES_MANAGER, ["Sidra Sales Manager", "Sales User"])
+	ensure_customer(NO_KYC_BUYER)
+	ensure_verified_kyc(BUYER)
+	ensure_verified_kyc(OTHER_BUYER)
 	frappe.db.commit()
 
 
@@ -325,3 +331,57 @@ def make_contracted_job(contract_value=20000, **job_values):
 		approve_contract(quotation.name)
 	job.reload()
 	return job
+
+
+def ensure_verified_kyc(customer):
+	"""A verified KYC record for a test buyer (SAL-07), so generated contracts can be submitted.
+
+	Set up directly; the verification path itself is tested in test_sidra_customer_kyc.py."""
+	from frappe.utils import now_datetime
+
+	if frappe.db.exists("Sidra Customer KYC", {"customer": customer, "status": "Verified"}):
+		return
+	if frappe.db.exists("Sidra Customer KYC", customer):
+		doc = frappe.get_doc("Sidra Customer KYC", customer)
+	else:
+		doc = frappe.get_doc(
+			{
+				"doctype": "Sidra Customer KYC",
+				"customer": customer,
+				"id_type": "National ID",
+				"id_number": f"TEST-{frappe.generate_hash(length=8).upper()}",
+				"phone": "+252 63 000 0100",
+				"address": "_Test address, Hargeisa",
+			}
+		).insert(ignore_permissions=True)
+	if not doc.id_document:
+		doc.id_document = private_file(name="id-scan.pdf", attached_to=doc, field="id_document")
+	doc.status = "Verified"
+	doc.verified_by = "Administrator"
+	doc.verified_on = now_datetime()
+	doc.flags.verifying = True
+	doc.save(ignore_permissions=True)
+
+
+def make_confirmed_contract(scheme, customer=BUYER, **values):
+	"""A submitted Profile A contract for one new unit (signed 5 Nov 2026), as the signing tests build it."""
+	from sidra_realestate.install import ensure_contract_profiles
+
+	ensure_contract_profiles()
+	unit = make_unit(unique("_T-TTL"), make_scheme(scheme)).name
+	doc = frappe.get_doc(
+		{
+			"doctype": "Sidra Sale Contract",
+			"contract_type": "Installment",
+			"customer": customer,
+			"company": COMPANY,
+			"signed_on": "2026-11-05",
+			"contract_profile": "Profile A",
+			"agreed_price": 10000,
+			"units": [{"unit": unit, "allocated_price": 10000}],
+			**signing_values(),
+			**values,
+		}
+	).insert(ignore_permissions=True)
+	attach_signed_copy(doc).submit()
+	return doc
