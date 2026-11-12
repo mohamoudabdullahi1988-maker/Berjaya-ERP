@@ -1,0 +1,215 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 19:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": [
+  "customer",
+  "customer_name",
+  "column_break_status",
+  "status",
+  "verified_by",
+  "verified_on",
+  "section_identity",
+  "id_type",
+  "id_number",
+  "name_on_id",
+  "id_expiry",
+  "column_break_identity",
+  "id_document",
+  "section_contact",
+  "phone",
+  "column_break_contact",
+  "address",
+  "section_guarantor",
+  "guarantor_name",
+  "guarantor_phone",
+  "guarantor_relationship",
+  "column_break_guarantor",
+  "guarantor_id_number",
+  "guarantor_document"
+ ],
+ "fields": [
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "unique": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "set_only_once": 1
+  },
+  {
+   "fieldname": "customer_name",
+   "fieldtype": "Data",
+   "label": "Customer Name",
+   "fetch_from": "customer.customer_name",
+   "read_only": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "column_break_status",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nVerified",
+   "default": "Draft",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "verified_by",
+   "fieldtype": "Link",
+   "label": "Verified By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "verified_on",
+   "fieldtype": "Datetime",
+   "label": "Verified On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_identity",
+   "fieldtype": "Section Break",
+   "label": "Identity"
+  },
+  {
+   "fieldname": "id_type",
+   "fieldtype": "Select",
+   "label": "ID Type",
+   "options": "\nNational ID\nPassport",
+   "reqd": 1
+  },
+  {
+   "fieldname": "id_number",
+   "fieldtype": "Data",
+   "label": "ID Number",
+   "reqd": 1
+  },
+  {
+   "fieldname": "name_on_id",
+   "fieldtype": "Data",
+   "label": "Name on ID"
+  },
+  {
+   "fieldname": "id_expiry",
+   "fieldtype": "Date",
+   "label": "ID Expiry"
+  },
+  {
+   "fieldname": "column_break_identity",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "id_document",
+   "fieldtype": "Attach",
+   "label": "Scanned ID",
+   "description": "Private scan of the ID or passport, uploaded to this record"
+  },
+  {
+   "fieldname": "section_contact",
+   "fieldtype": "Section Break",
+   "label": "Contact"
+  },
+  {
+   "fieldname": "phone",
+   "fieldtype": "Data",
+   "label": "Phone",
+   "options": "Phone",
+   "reqd": 1
+  },
+  {
+   "fieldname": "column_break_contact",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "address",
+   "fieldtype": "Small Text",
+   "label": "Address",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_guarantor",
+   "fieldtype": "Section Break",
+   "label": "Guarantor",
+   "description": "Fill in when the buyer has a guarantor"
+  },
+  {
+   "fieldname": "guarantor_name",
+   "fieldtype": "Data",
+   "label": "Guarantor Name"
+  },
+  {
+   "fieldname": "guarantor_phone",
+   "fieldtype": "Data",
+   "label": "Guarantor Phone",
+   "options": "Phone"
+  },
+  {
+   "fieldname": "guarantor_relationship",
+   "fieldtype": "Data",
+   "label": "Relationship to Buyer"
+  },
+  {
+   "fieldname": "column_break_guarantor",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "guarantor_id_number",
+   "fieldtype": "Data",
+   "label": "Guarantor ID Number"
+  },
+  {
+   "fieldname": "guarantor_document",
+   "fieldtype": "Attach",
+   "label": "Guarantor Scanned ID",
+   "description": "Private scan, uploaded to this record"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-12 19:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Sales",
+ "name": "Sidra Customer KYC",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "Sidra Sales User",
+   "read": 1,
+   "write": 1,
+   "create": 1
+  },
+  {
+   "role": "Sidra Sales Manager",
+   "read": 1,
+   "write": 1,
+   "create": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1
+  }
+ ],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1,
+ "autoname": "field:customer",
+ "naming_rule": "By fieldname",
+ "title_field": "customer_name",
+ "search_fields": "customer_name"
+}
