@@ -10,7 +10,7 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 - New no-foreign-GL guard: before the first insert, refuse a Company holding any GL entry the private manifest does not own, naming the count and first vouchers; refuse on a missing, duplicated or unreadable manifest. Also run by `verify_finance_demo`.
 - Staff dashboard demo finance adapter and `demo_reporting.populate_and_verify` follow the same constant to Sidra Homes.
 - Tests: finance demo tests retargeted; new tests for the guard (refusal, count in the message, nothing written), the missing Company, the unreadable manifest, and the count and checksum of 60 existing units before and after a load.
-- `deploy/sidra-homes-verify_v0.2.sh`: test-site runbook and read-only verification sweep.
+- `deploy/sidra-homes-verify_v0.2.sh`: test-site runbook and read-only verification sweep. `deploy/sidra-homes-run_v0.1.sh`: one script that backs up, fast-forwards the app to `develop`, rebuilds, restarts and then runs it.
 
 ### Fixed (v0.1.11 — staff sample figures, 12 Nov 2026)
 - Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
