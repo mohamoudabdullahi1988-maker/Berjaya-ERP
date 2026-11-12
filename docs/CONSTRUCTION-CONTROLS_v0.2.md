@@ -1,6 +1,6 @@
 # Sidra ERP — Construction Controls v0.2
 
-**Version:** 0.2 (12 Nov 2026) · **Status:** implemented for review (PR #38) · **App version:** 0.1.6
+**Version:** 0.2 (12 Nov 2026) · **Status:** implemented for review (PR #38) · **App version:** 0.1.9
 **Scope:** P1 construction items from SRS v2.0 §3.1 and §7 and handoff "Subsequent PRs" item 4:
 - quotation to contract;
 - BOQ revisions;

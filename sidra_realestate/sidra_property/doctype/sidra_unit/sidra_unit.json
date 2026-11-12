@@ -38,7 +38,8 @@
   "column_break_house",
   "expansion_phase",
   "bedrooms",
-  "floors"
+  "floors",
+  "scheme_code"
  ],
  "fields": [
   {
@@ -69,7 +70,8 @@
   {
    "fieldname": "block",
    "fieldtype": "Data",
-   "label": "Block / Phase"
+   "label": "Block / Phase",
+   "in_list_view": 1
   },
   {
    "fieldname": "unit_type",
@@ -102,7 +104,9 @@
    "label": "Current Reservation",
    "options": "Sidra Reservation",
    "read_only": 1,
-   "no_copy": 1
+   "no_copy": 1,
+   "hidden": 0,
+   "depends_on": "eval:!!doc.current_reservation"
   },
   {
    "fieldname": "current_contract",
@@ -110,15 +114,18 @@
    "label": "Current Contract",
    "options": "Sidra Sale Contract",
    "read_only": 1,
-   "no_copy": 1
+   "no_copy": 1,
+   "hidden": 0,
+   "depends_on": "eval:!!doc.current_contract"
   },
   {
    "fieldname": "cash_price",
    "fieldtype": "Currency",
    "label": "Cash Price",
    "options": "Company:company:default_currency",
-   "description": "Current price from the price history. Set it when creating or importing a unit; change it later with a Unit Price History entry.",
-   "read_only_depends_on": "eval:!doc.__islocal"
+   "description": "Current asking price from submitted Price History. Zero means no positive asking price is configured; it is not a valuation.",
+   "read_only_depends_on": "eval:!doc.__islocal",
+   "in_list_view": 1
   },
   {
    "fieldname": "title_deed_ref",
@@ -134,7 +141,7 @@
   {
    "fieldname": "section_plot",
    "fieldtype": "Section Break",
-   "label": "Plot (SAL-12)"
+   "label": "Plot"
   },
   {
    "fieldname": "plot_fraction",
@@ -151,7 +158,8 @@
   {
    "fieldname": "area_sqm",
    "fieldtype": "Float",
-   "label": "Area (m²)"
+   "label": "Area (m²)",
+   "in_list_view": 1
   },
   {
    "fieldname": "column_break_location",
@@ -160,12 +168,18 @@
   {
    "fieldname": "district",
    "fieldtype": "Data",
-   "label": "District (Degmada)"
+   "label": "District (Degmada)",
+   "fetch_from": "scheme.district",
+   "read_only": 1,
+   "description": "Inherited from the scheme. Legacy values remain stored until the unit is saved."
   },
   {
    "fieldname": "neighbourhood",
    "fieldtype": "Data",
-   "label": "Neighbourhood (Xaafada)"
+   "label": "Neighbourhood (Xaafada)",
+   "fetch_from": "scheme.neighbourhood",
+   "read_only": 1,
+   "description": "Inherited from the scheme. Legacy values remain stored until the unit is saved."
   },
   {
    "fieldname": "land_parcel",
@@ -204,38 +218,53 @@
   {
    "fieldname": "section_house",
    "fieldtype": "Section Break",
-   "label": "House / Off-plan (SAL-14)",
-   "collapsible": 1
+   "label": "House / Off-plan",
+   "collapsible": 1,
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
   },
   {
    "fieldname": "offplan_status",
    "fieldtype": "Select",
    "label": "Off-plan Status",
-   "options": "\nReady\nOff-plan"
+   "options": "\nReady\nOff-plan",
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
   },
   {
    "fieldname": "delivery_date",
    "fieldtype": "Date",
-   "label": "Estimated Delivery Date"
+   "label": "Estimated Delivery Date",
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
   },
   {
    "fieldname": "column_break_house",
-   "fieldtype": "Column Break"
+   "fieldtype": "Column Break",
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
   },
   {
    "fieldname": "expansion_phase",
    "fieldtype": "Data",
-   "label": "Expansion Phase"
+   "label": "Expansion Phase",
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
   },
   {
    "fieldname": "bedrooms",
    "fieldtype": "Int",
-   "label": "Bedrooms"
+   "label": "Bedrooms",
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
   },
   {
    "fieldname": "floors",
    "fieldtype": "Int",
-   "label": "Floors"
+   "label": "Floors",
+   "depends_on": "eval:['House','Apartment'].includes(doc.unit_type)"
+  },
+  {
+   "fieldname": "scheme_code",
+   "fieldtype": "Data",
+   "label": "Scheme Code",
+   "fetch_from": "scheme.scheme_code",
+   "read_only": 1,
+   "hidden": 1
   }
  ],
  "index_web_pages_for_search": 0,
@@ -310,5 +339,6 @@
  "sort_field": "creation",
  "sort_order": "DESC",
  "states": [],
- "track_changes": 1
+ "track_changes": 1,
+ "title_field": "unit_code"
 }

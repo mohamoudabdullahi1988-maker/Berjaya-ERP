@@ -111,7 +111,7 @@
   {
    "fieldname": "section_checklist",
    "fieldtype": "Section Break",
-   "label": "Checklist (CON-05)"
+   "label": "Checklist"
   },
   {
    "fieldname": "checklist",

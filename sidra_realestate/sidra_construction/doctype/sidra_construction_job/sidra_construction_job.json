@@ -76,7 +76,7 @@
    "fetch_from": "company.default_currency",
    "read_only": 1,
    "print_hide": 1,
-   "description": "The company's default currency (NFR-10: USD)."
+   "description": "The company's default currency."
   },
   {
    "fieldname": "project",
@@ -115,7 +115,7 @@
   {
    "fieldname": "section_site",
    "fieldtype": "Section Break",
-   "label": "Site (CON-01)"
+   "label": "Site"
   },
   {
    "fieldname": "site_location",
@@ -150,7 +150,7 @@
   {
    "fieldname": "section_contract",
    "fieldtype": "Section Break",
-   "label": "Contract (CON-03, CON-06)"
+   "label": "Contract"
   },
   {
    "fieldname": "contract_quotation",
@@ -242,7 +242,7 @@
   {
    "fieldname": "section_stages",
    "fieldtype": "Section Break",
-   "label": "Stages (CON-04)"
+   "label": "Stages"
   },
   {
    "fieldname": "stages",
@@ -253,7 +253,7 @@
   {
    "fieldname": "section_boq",
    "fieldtype": "Section Break",
-   "label": "Bill of Quantities (CON-02)"
+   "label": "Bill of Quantities"
   },
   {
    "fieldname": "boq",

@@ -108,7 +108,7 @@
   {
    "fieldname": "section_client",
    "fieldtype": "Section Break",
-   "label": "Client Approval (CON-06)"
+   "label": "Client Approval"
   },
   {
    "fieldname": "client_approved_by",

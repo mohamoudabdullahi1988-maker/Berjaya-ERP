@@ -122,7 +122,7 @@
   {
    "fieldname": "section_boq",
    "fieldtype": "Section Break",
-   "label": "Revised Bill of Quantities (CON-02)"
+   "label": "Revised Bill of Quantities"
   },
   {
    "fieldname": "boq",

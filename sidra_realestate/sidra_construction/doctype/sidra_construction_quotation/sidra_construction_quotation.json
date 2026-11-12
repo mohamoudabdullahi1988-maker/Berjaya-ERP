@@ -175,7 +175,7 @@
   {
    "fieldname": "section_terms",
    "fieldtype": "Section Break",
-   "label": "Proposed Contract Terms (CON-03)"
+   "label": "Proposed Contract Terms"
   },
   {
    "fieldname": "start_date",

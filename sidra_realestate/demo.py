@@ -16,6 +16,8 @@ from io import BytesIO
 import frappe
 from frappe.utils import add_days, today
 
+from sidra_realestate.site_setup import REGIONAL, ensure_country
+
 COMPANY = "Sidra Demo Homes"
 SCHEME = "DEMO-HAGBAD"
 BUYERS = ("Demo Buyer Amina", "Demo Buyer Hodan", "Demo Buyer Warsame")
@@ -299,7 +301,7 @@ def _ensure_company() -> str:
 			"company_name": COMPANY,
 			"abbr": "SDH",
 			"default_currency": "USD",
-			"country": "Somalia",
+			"country": REGIONAL["country"],
 		}
 	).insert(ignore_permissions=True)
 	return COMPANY
@@ -307,6 +309,7 @@ def _ensure_company() -> str:
 
 def _ensure_presets():
 	"""Native setup prerequisites shared by the two opt-in demo loaders."""
+	ensure_country()
 	if not frappe.db.exists("Warehouse Type", "Transit"):
 		from erpnext.setup.setup_wizard.operations.install_fixtures import add_uom_data, get_preset_records
 
@@ -327,7 +330,7 @@ def _ensure_presets():
 			"Market Segment": "market_segment",
 			"Workstation Operating Component": "component_name",
 		}
-		for record in get_preset_records("Somalia"):
+		for record in get_preset_records(REGIONAL["country"]):
 			doctype = record.get("doctype")
 			if not frappe.db.exists(doctype, record.get("name") or record.get(keys.get(doctype))):
 				frappe.get_doc(record).insert(ignore_permissions=True)

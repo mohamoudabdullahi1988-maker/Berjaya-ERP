@@ -22,11 +22,33 @@ SAVEPOINT = "sidra_contract_import"
 
 class SidraContractImport(Document):
 	def read_file(self):
+		self.check_permission("write")
 		if not self.import_file:
 			frappe.throw(_("Attach the spreadsheet first"))
-		file_doc = frappe.get_doc("File", {"file_url": self.import_file})
-		content = file_doc.get_content()
+		# get_doc/get_content do not check read permissions themselves. A guessed File URL
+		# must never turn this importer into a reader for another record's attachment.
+		file_name = frappe.db.get_value(
+			"File",
+			{
+				"file_url": self.import_file,
+				"attached_to_doctype": self.doctype,
+				"attached_to_name": self.name,
+				"attached_to_field": "import_file",
+			},
+			"name",
+		)
+		if not file_name:
+			frappe.throw(
+				_("Upload the spreadsheet to this import's Spreadsheet field first"), frappe.PermissionError
+			)
+		file_doc = frappe.get_doc("File", file_name)
+		file_doc.check_permission("read")
+		if not file_doc.is_private or not (file_doc.file_url or "").startswith("/private/files/"):
+			frappe.throw(_("The import spreadsheet must be a private local file"), frappe.PermissionError)
 		name = (file_doc.file_name or self.import_file).lower()
+		if not name.endswith((".csv", ".xlsx")):
+			frappe.throw(_("Use a .csv or .xlsx file"))
+		content = file_doc.get_content()
 		if name.endswith(".xlsx"):
 			from frappe.utils.xlsxutils import read_xlsx_file_from_attached_file
 

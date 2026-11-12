@@ -15,6 +15,11 @@ MANUAL_STATUS_ROLES = {"Sidra Sales Manager", "Sidra General Manager"}
 class SidraUnit(Document):
 	def validate(self):
 		self.company = frappe.db.get_value("Sidra Scheme", self.scheme, "company")
+		self.scheme_code = frappe.db.get_value("Sidra Scheme", self.scheme, "scheme_code")
+		for field in ("district", "neighbourhood"):
+			canonical = frappe.db.get_value("Sidra Scheme", self.scheme, field)
+			if canonical:
+				self.set(field, canonical.strip())
 		self.validate_status_change()
 		self.validate_price_change()
 		self.validate_scheme_change()
@@ -92,3 +97,4 @@ class SidraUnit(Document):
 			frappe.throw(
 				_("Only a Sales Manager or General Manager can block or release a unit"), frappe.PermissionError
 			)
+

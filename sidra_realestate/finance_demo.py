@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import frappe
 
 from sidra_realestate.services.executive_metrics import decimal_amount, money
+from sidra_realestate.site_setup import REGIONAL
 
 COMPANY = "Sidra Finance Demo - Fictional"
 ABBR = "SFD"
@@ -145,7 +146,9 @@ def _create():
 	# Match the staff report's business day even when the site's timezone differs.
 	today = datetime.now(ZoneInfo("Africa/Mogadishu")).date()
 	start = today - timedelta(days=45)
-	company = _insert("Company", company_name=COMPANY, abbr=ABBR, default_currency="USD", country="Somalia")
+	company = _insert(
+		"Company", company_name=COMPANY, abbr=ABBR, default_currency="USD", country=REGIONAL["country"]
+	)
 	years = []
 	for year in range(start.year, today.year + 1):
 		name = f"SFD Fictional FY {year}"
