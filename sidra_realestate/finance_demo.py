@@ -1,6 +1,8 @@
 """Explicitly opted-in, fictional native accounting data. Never run from hooks or HTTP.
 
-See docs/FINANCE-DEMO_v0.1.md. This does not enable Sidra contract posting.
+See docs/FINANCE-DEMO_v0.2.md (decision G11). This does not enable Sidra contract posting.
+
+COMPANY is the only place the target Company is named; the adapter, reporting and tests import it.
 """
 
 import json
@@ -12,14 +14,15 @@ from zoneinfo import ZoneInfo
 import frappe
 
 from sidra_realestate.services.executive_metrics import decimal_amount, money
-from sidra_realestate.site_setup import REGIONAL
 
-COMPANY = "Sidra Finance Demo - Fictional"
-ABBR = "SFD"
-CUSTOMER = "SFD Fictional Buyer"
-SUPPLIER = "SFD Fictional Supplier"
-ITEM = "SFD Fictional Service"
-PRICE_LIST = "SFD Fictional USD"
+COMPANY = "Sidra Homes"
+# "SHD" identities, so the v0.1 "SFD" records on a site that ran the old loader are left alone.
+CUSTOMER = "SHD Fictional Buyer"
+SUPPLIER = "SHD Fictional Supplier"
+ITEM = "SHD Fictional Service"
+PRICE_LIST = "SHD Fictional USD"
+SCHEME = "SHD-FICTIONAL"
+ACCOUNT_PREFIX = "Fictional Demo "
 MANIFEST = "sidra-finance-demo-v1.json"
 FLAGS = ("sidra_allow_demo_data", "sidra_finance_demo_site", "sidra_allow_finance_demo_vouchers")
 VOUCHERS = {"Sales Invoice": 3, "Purchase Invoice": 2, "Payment Entry": 4, "Journal Entry": 1}
@@ -39,30 +42,69 @@ def enabled(company):
 
 def _guard():
 	if not enabled(COMPANY):
-		frappe.throw("Finance demo requires all three staging-only flags; see FINANCE-DEMO_v0.1.md.")
+		frappe.throw("Finance demo requires all three staging-only flags; see FINANCE-DEMO_v0.2.md.")
 	if frappe.session.user != "Administrator":
 		frappe.throw(
 			"Run the finance demo using Administrator through bench execute.", frappe.PermissionError
 		)
 
 
-def _manifest():
-	files = frappe.get_all(
-		"File",
-		filters={
-			"attached_to_doctype": "Company",
-			"attached_to_name": COMPANY,
-			"file_name": MANIFEST,
-			"is_private": 1,
-		},
-		pluck="name",
-	)
-	if len(files) != 1:
-		frappe.throw("Finance demo ownership manifest is missing or ambiguous; no existing data was changed.")
-	data = json.loads(frappe.get_doc("File", files[0]).get_content())
-	if data.get("schema") != 1 or data.get("company") != COMPANY:
-		frappe.throw("Invalid finance demo ownership manifest.")
+def _manifest(required=True):
+	"""The private ownership registry. Any doubt about it is a refusal, never "proceed"."""
+	try:
+		files = frappe.get_all(
+			"File",
+			filters={
+				"attached_to_doctype": "Company",
+				"attached_to_name": COMPANY,
+				"file_name": MANIFEST,
+				"is_private": 1,
+			},
+			pluck="name",
+		)
+		if not files and not required:
+			return None
+		if len(files) != 1:
+			raise ValueError("missing or ambiguous")
+		data = json.loads(frappe.get_doc("File", files[0]).get_content())
+		if data.get("schema") != 2 or data.get("company") != COMPANY:
+			raise ValueError("not for this Company")
+		for doctype in VOUCHERS:
+			if not all(isinstance(name, str) for name in data["vouchers"][doctype]):
+				raise ValueError("voucher registry")
+	except Exception as exc:
+		frappe.throw(
+			f"Refusing: the finance demo ownership manifest of Company '{COMPANY}' is missing, ambiguous "
+			f"or unreadable ({type(exc).__name__}). No data was changed."
+		)
 	return data
+
+
+def _refuse_foreign_gl(data):
+	"""Decision G11: never post into, or vouch for, a Company with ledger rows we do not own.
+
+	`data` is the manifest, or None on a first run, when any GL row at all is foreign.
+	"""
+	owned = (
+		{(doctype, name) for doctype, names in data["vouchers"].items() for name in names} if data else set()
+	)
+	rows = frappe.get_all(
+		"GL Entry",
+		filters={"company": COMPANY, "is_cancelled": 0},
+		fields=["voucher_type", "voucher_no"],
+		order_by="creation asc",
+		limit_page_length=0,
+	)
+	foreign = [
+		(row.voucher_type, row.voucher_no) for row in rows if (row.voucher_type, row.voucher_no) not in owned
+	]
+	if foreign:
+		first = ", ".join(f"{doctype} {name}" for doctype, name in list(dict.fromkeys(foreign))[:3])
+		frappe.throw(
+			f"Refusing: Company '{COMPANY}' has {len(foreign)} GL entries not owned by the finance demo "
+			f"manifest (first: {first}). The finance demo will not post into a Company with foreign "
+			"ledger activity."
+		)
 
 
 def report_links(data):
@@ -92,26 +134,35 @@ def report_links(data):
 
 
 def create_finance_demo_data():
-	"""Create once and commit ten submitted vouchers in our new, fixed demo Company.
+	"""Create once and commit ten submitted vouchers in the existing Company named by COMPANY.
 
 	Reruns verify the existing dataset and return its original dates; never add or repair entries.
 	All setup/posting is one transaction. No caller-controlled Company or amounts.
+	The Company itself is never created, renamed or edited.
 	"""
 	_guard()
-	if frappe.db.exists("Company", COMPANY):
-		data = _manifest()
+	if not frappe.db.exists("Company", COMPANY):
+		frappe.throw(f"Refusing: Company '{COMPANY}' does not exist. The finance demo never creates it.")
+	# First read of the run, before any insert: the only protection of this Company's books.
+	data = _manifest(required=False)
+	_refuse_foreign_gl(data)
+	if data:
 		verify_finance_demo(data)
 		return {**data, "reports": report_links(data), "created": False}
 	for doctype, filters in (
-		("Company", {"abbr": ABBR}),
 		("Customer", {"customer_name": CUSTOMER}),
 		("Supplier", {"supplier_name": SUPPLIER}),
 		("Item", {"item_code": ITEM}),
 		("Price List", {"price_list_name": PRICE_LIST}),
-		("Sidra Scheme", {"scheme_code": "SFD-FICTIONAL"}),
+		("Sidra Scheme", {"scheme_code": SCHEME}),
+		("Account", {"company": COMPANY, "account_name": ("like", ACCOUNT_PREFIX + "%")}),
 	):
 		if frappe.db.exists(doctype, filters):
 			frappe.throw(f"Reserved demo identity already exists: {doctype}. No data was changed.")
+	for doctype in VOUCHERS:
+		# A draft or cancelled voucher has no live GL row, but it is still not ours.
+		if frappe.db.exists(doctype, {"company": COMPANY}):
+			frappe.throw(f"Refusing: Company '{COMPANY}' already has {doctype} records. No data was changed.")
 	try:
 		data = _create()
 		verify_finance_demo(data)
@@ -128,9 +179,35 @@ def create_finance_demo_data():
 	except Exception:
 		# This manual entrypoint owns its transaction, including private File rollback callbacks.
 		frappe.db.rollback()
+		frappe.cache.delete_value("fiscal_years")  # ERPNext may have cached a rolled-back year
 		raise
 	frappe.db.commit()
 	return {**data, "reports": report_links(data), "created": True}
+
+
+def _fiscal_year(day):
+	"""Use the Company's own Fiscal Year for `day`; add a Company-only one if it has none."""
+	for name in frappe.get_all(
+		"Fiscal Year",
+		filters={"disabled": 0, "year_start_date": ("<=", day), "year_end_date": (">=", day)},
+		order_by="year_start_date asc",
+		pluck="name",
+	):
+		companies = frappe.get_all("Fiscal Year Company", filters={"parent": name}, pluck="company")
+		if not companies or COMPANY in companies:
+			return name, False
+	name = f"SHD Fictional FY {day.year}"
+	if frappe.db.exists("Fiscal Year", name):
+		frappe.throw("Reserved demo Fiscal Year already exists; refusing to adopt it.")
+	# ERPNext refuses this if it overlaps a Fiscal Year that also applies to the Company.
+	_insert(
+		"Fiscal Year",
+		year=name,
+		year_start_date=date(day.year, 1, 1),
+		year_end_date=date(day.year, 12, 31),
+		companies=[{"company": COMPANY}],
+	)
+	return name, True
 
 
 def _insert(doctype, **values):
@@ -146,23 +223,21 @@ def _create():
 	# Match the staff report's business day even when the site's timezone differs.
 	today = datetime.now(ZoneInfo("Africa/Mogadishu")).date()
 	start = today - timedelta(days=45)
-	company = _insert(
-		"Company", company_name=COMPANY, abbr=ABBR, default_currency="USD", country=REGIONAL["country"]
+	company = frappe.db.get_value(
+		"Company", COMPANY, ["abbr", "default_currency", "cost_center"], as_dict=True
 	)
-	years = []
-	for year in range(start.year, today.year + 1):
-		name = f"SFD Fictional FY {year}"
-		if frappe.db.exists("Fiscal Year", name):
-			frappe.throw("Reserved demo Fiscal Year already exists; refusing to adopt it.")
-		_insert(
-			"Fiscal Year",
-			year=name,
-			year_start_date=date(year, 1, 1),
-			year_end_date=date(year, 12, 31),
-			companies=[{"company": COMPANY}],
+	if company.default_currency != "USD" or not company.cost_center:
+		frappe.throw(
+			f"Refusing: Company '{COMPANY}' needs USD and a default cost center. No data was changed."
 		)
-		years.append(name)
-	accounts = {}
+	years, created_years = [], []
+	for day in (start, today):
+		name, created = _fiscal_year(day)
+		if name not in years:
+			years.append(name)
+			if created:
+				created_years.append(name)
+	accounts, groups = {}, {}
 	for label, root_type, account_type in (
 		("Bank", "Asset", "Bank"),
 		("Receivables", "Asset", "Receivable"),
@@ -171,27 +246,38 @@ def _create():
 		("Revenue", "Income", "Income Account"),
 		("Expenses", "Expense", "Expense Account"),
 	):
-		roots = frappe.get_all(
-			"Account",
-			filters={"company": COMPANY, "root_type": root_type, "is_group": 1},
-			fields=["name", "parent_account"],
-		)
-		root = next(row.name for row in roots if not row.parent_account)
+		if root_type not in groups:
+			roots = frappe.get_all(
+				"Account",
+				filters={
+					"company": COMPANY,
+					"root_type": root_type,
+					"is_group": 1,
+					"parent_account": ("is", "not set"),
+				},
+				pluck="name",
+			)
+			if len(roots) != 1:
+				frappe.throw(f"Refusing: Company '{COMPANY}' has no single {root_type} root account.")
+			# A clearly marked parent per root, so the demo never sits among the Company's own accounts.
+			groups[root_type] = _insert(
+				"Account",
+				account_name=f"{ACCOUNT_PREFIX}Accounts ({root_type})",
+				company=COMPANY,
+				parent_account=roots[0],
+				account_currency="USD",
+				is_group=1,
+			).name
 		accounts[label] = _insert(
 			"Account",
-			account_name="Fictional Demo " + label,
+			account_name=ACCOUNT_PREFIX + label,
 			company=COMPANY,
-			parent_account=root,
+			parent_account=groups[root_type],
 			account_type=account_type,
 			account_currency="USD",
 			is_group=0,
 		).name
-	company.default_receivable_account = accounts["Receivables"]
-	company.default_payable_account = accounts["Payables"]
-	company.default_income_account = accounts["Revenue"]
-	company.default_expense_account = accounts["Expenses"]
-	company.default_bank_account = accounts["Bank"]
-	company.save()
+	# The Company's own default accounts are left as they are; every voucher names its accounts.
 	customer = _insert(
 		"Customer",
 		customer_name=CUSTOMER,
@@ -284,31 +370,34 @@ def _create():
 			vouchers["Payment Entry"].append(payment.name)
 	operational = _operational(customer, today)
 	return {
-		"schema": 1,
+		"schema": 2,
 		"company": COMPANY,
 		"currency": "USD",
 		"as_of": str(today),
 		"from_date": str(start),
 		"fiscal_years": years,
+		"created_fiscal_years": created_years,
 		"accounts": accounts,
+		"account_groups": groups,
 		"vouchers": vouchers,
 		"expected_net_debits": EXPECTED,
 		"operational": operational,
-		"notice": "Fictional vouchers saved in a separate demo Company. Not Sidra production accounts.",
+		"notice": "Fictional sample vouchers on a marked test site (decision G11). Not real Sidra transactions.",
 	}
 
 
 def _operational(customer, today):
-	"""Reuse existing contract capture and stage records; no contract-to-ledger mapping."""
-	scheme = _insert(
-		"Sidra Scheme", scheme_code="SFD-FICTIONAL", scheme_name="Fictional Demo Plots", company=COMPANY
-	)
+	"""Reuse existing contract capture and stage records; no contract-to-ledger mapping.
+
+	Three new fictional plots in their own scheme: the Company's existing units are never touched.
+	"""
+	scheme = _insert("Sidra Scheme", scheme_code=SCHEME, scheme_name="Fictional Demo Plots", company=COMPANY)
 	units = []
 	for index, price in enumerate((30000, 11000, 11000), start=1):
 		units.append(
 			_insert(
 				"Sidra Unit",
-				unit_code=f"SFD-FICTIONAL-{index}",
+				unit_code=f"{SCHEME}-{index}",
 				scheme=scheme.name,
 				unit_type="Plot",
 				cash_price=price,
@@ -319,7 +408,7 @@ def _operational(customer, today):
 		company=COMPANY,
 		customer=customer,
 		source="External (registered)",
-		external_reference="SFD-FICTIONAL-EXTERNAL-001",
+		external_reference="SHD-FICTIONAL-EXTERNAL-001",
 		contract_type="Installment",
 		signed_on=today,
 		agreed_price=30000,
@@ -337,7 +426,7 @@ def _operational(customer, today):
 		attached_to_name=contract.name,
 		attached_to_field="signed_copy",
 		content="FICTIONAL DEMO ORIGINAL - not a real or legally signed agreement.\n"
-		f"Reference SFD-FICTIONAL-EXTERNAL-001; buyer {customer}; seller Fictional Demo Seller.\n"
+		f"Reference SHD-FICTIONAL-EXTERNAL-001; buyer {customer}; seller Fictional Demo Seller.\n"
 		f"Unit {units[0]}; USD 30,000; three USD 10,000 installments, due "
 		+ ", ".join(str(today + timedelta(days=offset)) for offset in (5, 35, 65))
 		+ ". No deposit, fee, tax or interest. This commercial example is independent of the service invoices.\n",
@@ -377,6 +466,7 @@ def verify_finance_demo(data=None):
 	"""Read-only native-voucher and GL checks; refuse to repair an altered demo."""
 	_guard()
 	data = data or _manifest()
+	_refuse_foreign_gl(data)
 	for doctype, count in VOUCHERS.items():
 		rows = frappe.get_all(doctype, filters={"company": COMPANY}, fields=["name", "docstatus"])
 		if (

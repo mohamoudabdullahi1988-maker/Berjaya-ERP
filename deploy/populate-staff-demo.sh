@@ -17,5 +17,5 @@ bench --site sidra.local execute sidra_realestate.demo_reporting.populate_and_ve
 bench --site sidra.local clear-cache
 
 echo "Open https://5.253.233.218/sidra-staff/"
-echo "Select Sidra Finance Demo - Fictional; period Last 90 days; refresh."
+echo "Select Sidra Homes; period Last 90 days; refresh."
 echo "For financial statements, use the exact Company and original dates printed above."

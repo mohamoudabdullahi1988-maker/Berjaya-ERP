@@ -4,6 +4,14 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Changed (v0.1.11 — sample data under Sidra Homes on the test site, decision G11, 12 Nov 2026)
+- Decision G11 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
+- Finance demo loader posts the same ten vouchers (237,000 / 237,000) into the existing Company **Sidra Homes**, named in one constant. It never creates or edits the Company; demo accounts sit under marked `Fictional Demo Accounts` groups; identities are `SHD`, so the v0.1 `SFD` records and both old demo Companies are untouched.
+- New no-foreign-GL guard: before the first insert, refuse a Company holding any GL entry the private manifest does not own, naming the count and first vouchers; refuse on a missing, duplicated or unreadable manifest. Also run by `verify_finance_demo`.
+- Staff dashboard demo finance adapter and `demo_reporting.populate_and_verify` follow the same constant to Sidra Homes.
+- Tests: finance demo tests retargeted; new tests for the guard (refusal, count in the message, nothing written), the missing Company, the unreadable manifest, and the count and checksum of 60 existing units before and after a load.
+- `deploy/sidra-homes-verify_v0.2.sh`: test-site runbook and read-only verification sweep.
+
 ### Fixed (v0.1.10 — staff sample figures, 12 Nov 2026)
 - Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
 - Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.

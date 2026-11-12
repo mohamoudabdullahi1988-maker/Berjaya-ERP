@@ -13,7 +13,9 @@ def populate_and_verify():
 	dashboard = get_dashboard(company=COMPANY, period="last_90_days")
 	payments = dashboard["payments"]
 	if not payments.get("available"):
-		frappe.throw("Posted demo vouchers exist but payment data is unavailable: " + payments.get("reason", "unknown"))
+		frappe.throw(
+			"Posted demo vouchers exist but payment data is unavailable: " + payments.get("reason", "unknown")
+		)
 	return {
 		"company_to_select": COMPANY,
 		"report_from_date": data["from_date"],
@@ -26,5 +28,6 @@ def populate_and_verify():
 		"construction": dashboard["jobs"],
 		"summary": dashboard["summary"],
 		"reports": data["reports"],
-		"note": "Choose this Company in every report. Do not consolidate fictional entries with Sidra Homes. Reruns retain original dates; use the returned report date range.",
+		"note": "Test site only (decision G11): the fictional entries are in this Company. "
+		"Choose it in every report. Reruns retain original dates; use the returned report date range.",
 	}
