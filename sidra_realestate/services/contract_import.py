@@ -82,11 +82,14 @@ def parse_money(value) -> Decimal:
 	text = _text(value).replace(",", "").replace("$", "")
 	try:
 		amount = Decimal(text)
+		if not amount.is_finite():
+			raise ValueError("Amounts must be finite numbers")
+		rounded = amount.quantize(CENT, rounding=ROUND_HALF_UP)
 	except InvalidOperation:
 		raise ValueError(f"'{_text(value)}' is not an amount") from None
-	if amount != amount.quantize(CENT, rounding=ROUND_HALF_UP):
+	if amount != rounded:
 		raise ValueError(f"'{text}' has more than two decimals")
-	return amount.quantize(CENT)
+	return rounded
 
 
 def parse_rows(rows) -> tuple[list[ImportedContract], list[str]]:

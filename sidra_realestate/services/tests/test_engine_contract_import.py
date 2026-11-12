@@ -4,7 +4,7 @@ import unittest
 from datetime import date, datetime
 from decimal import Decimal
 
-from sidra_realestate.services.contract_import import parse_rows
+from sidra_realestate.services.contract_import import parse_money, parse_rows
 
 HEADER = [
 	"External Reference",
@@ -20,6 +20,16 @@ HEADER = [
 
 
 class TestContractImportReader(unittest.TestCase):
+	def test_nonfinite_and_out_of_range_amounts_are_validation_errors(self):
+		for value in ("NaN", "sNaN", "Infinity", "-Infinity", "1e999999", "1e-999999"):
+			with self.subTest(value=value), self.assertRaises(ValueError):
+				parse_money(value)
+		for column in ("Agreed Price", "Unit Price", "Amount"):
+			row = ["EXT-INVALID", "Buyer A", "2026-01-15", "100", "U-1", "100", "", "2026-02-10", "100"]
+			row[HEADER.index(column)] = "NaN"
+			_, errors = parse_rows([HEADER, row])
+			self.assertTrue(any(error.startswith("Row 2:") for error in errors))
+
 	def test_groups_rows_into_contracts(self):
 		contracts, errors = parse_rows(
 			[

@@ -1,0 +1,76 @@
+# Sidra ERPNext security review v0.1
+
+12 November 2026 (Africa/Mogadishu). Scope: the versioned Sidra custom app, shared staff clients, Insights export generator, and repository CI. Baseline: `develop` at `fd02323550801fd1fcfb35406aa4da56ae3ee587`. Requested by the owner. This is an application review and hardening change, not a certification or a production penetration-test result.
+
+## ERPNext scope, not an AI deployment
+
+No model SDK, model invocation, prompt execution pipeline, agent tool executor, JWT authentication implementation, or custom AI service was found in this app or its declared dependencies. `pyproject.toml` has no additional runtime dependencies; Frappe/ERPNext supplies the application platform. The Insights integration is a reporting workbook generator, not a bundled AI agent. Installed apps, Server Scripts, optional Insights features and third-party services on the VPS still require an operator inventory.
+
+An AI firewall, model-output execution filter, agent permission tiers and AI container are therefore not introduced. They would not protect the ERPNext paths reviewed here. No assurance about a model vendor's training policy or ISO 42001 status is inferred: there is no identified model vendor in this source scope. If an AI integration is later proposed, separately approve its data processing/retention agreement, training opt-out, access scope, allowed tools, outbound destinations, and human approval of consequential actions before connecting ERP data. Never give a coding assistant or future agent unrestricted production Administrator/API credentials.
+
+## Findings and changes
+
+| ID / severity | Evidence before the fix | Change and regression coverage |
+| --- | --- | --- |
+| SID-SEC-01 / High | Contract Import loaded any File identified by a supplied URL and called `get_content()` without a File permission check. Pinned Frappe `get_doc()` and `File.get_content()` do not themselves require read permission. A writable import could reference another record's file and parse its contents or disclose them in row errors. | Require import write permission, a File attached to that exact import and `import_file` field, File read permission, and a private local URL before opening contents. Tests cover foreign attachments, denied File access and public files, with no content read and no contracts created. Existing unbound/public spreadsheets must be re-uploaded privately through the import form; no existing files are moved or deleted. |
+| SID-SEC-02 / Medium | `reserve_unit` checked its sales role and unit read permission but only checked Customer existence before the permission-bypassing service insert. A caller could select an unreadable/restricted Customer. | Check Customer document read/User Permissions before reserving. Tests cover a bare custom sales role without ERPNext Customer access and a real Customer User Permission restriction; inventory remains unchanged on denial. The existing Sidra Sales Staff role profile, including ERPNext Sales User, remains the intended account configuration. |
+| SID-SEC-03 / Medium | Cancellation checked reservation access but did not check the linked unit. A shared reservation could grant an action over a unit outside the user's Company scope. | Recheck both locked unit and reservation permissions before a user cancellation. Internal scheduled expiry retains its system scope. A real Company restriction plus a reservation-only share is the negative regression case. Reservation writes remain service-only by design; adding blanket DocType write permission would weaken that design. |
+| SID-SEC-04 / Low | Nonfinite/oversized decimal representations could escape as Decimal exceptions; fractional reservation durations were silently truncated by `cint`. | Reject nonfinite/unrepresentable amounts as row validation errors, preserve the two-decimal rule, require integral reservation days and report date overflow before writes. Tests include NaN, sNaN, infinities, extreme exponents, fractions, booleans and an extreme duration. No financial formula, price, default reservation length or business approval limit changes. |
+
+The app adds an administrative, read-only `sidra_realestate.security.audit_site` function for effective configuration inspection. It is **not whitelisted** and creates no HTTP/debug endpoint, accounts, permissions or records. It returns named status flags without site configuration values, user data or credentials. Tests reject unrelated users before settings access and verify a synthetic credential value cannot appear in the result.
+
+## Other code checks
+
+- Custom runtime SQL in Contract Settings uses `%s` parameters with a separate values tuple. Migration SQL is parameterized or fixed literal SQL. No request-built raw SQL was found in the custom HTTP entrypoints. ORM access is not automatically authorized: this is why the two service/file checks above matter.
+- `Sources`, staff dashboards and executive evidence use permission-filtered parent queries. Child `get_all` calls are scoped to those parent IDs and parent type/field. Guest access is not enabled on custom whitelisted methods. Mutations are POST-only; reads are GET-only. Native Frappe document actions also remain subject to framework permissions. Existing cross-Company, outsider, restricted-source and financial-gate tests remain part of bench CI.
+- The Insights generator deliberately emits six static SQL templates. All scope strings go through `literal()` (quote doubling, rejection of backslashes/control characters); dates parse to ISO dates. This is an offline administrative export, not request SQL. Bandit reports six B608 medium-severity/low-confidence findings here; these are retained visibly for manual review, not suppressed. Regression tests execute generated queries, including hostile scope strings. Raw SQL BI does **not** inherit ERPNext document/User Permissions: keep workbooks private, restrict source/team/query editing, and perform the acceptance checks in `INSIGHTS-CEO_v0.1.md` before sharing.
+- Bandit also reports B405 (low severity/high confidence) for `xml.etree.ElementTree`: this module builds KML with XML element constructors and never parses untrusted XML; the geometry input parser is JSON. No XML parser is added.
+- Staff HTML builds DOM text nodes; import result messages and native report text are escaped. Coordinates and same-origin record/report routes are constrained. Location mutations check the actual parent permission, optimistic timestamp and draft state; KML uses XML escaping. Native shells require HTTPS and do not embed API credentials. These checks do not establish real-device or deployed-session behavior.
+- Production financial posting/refunds/penalties/title transfer remain gated. The explicitly authorized finance-demo loader is non-whitelisted, Administrator-only, staging-flag gated and tied to a fixed fictional Company/ownership manifest. This review does not broaden that exception.
+
+## Repeatable source checks
+
+Use Python 3.14, matching the app:
+
+```sh
+python -m venv /tmp/sidra-security
+/tmp/sidra-security/bin/pip install -r tools/security-requirements.txt
+PATH=/tmp/sidra-security/bin:$PATH /tmp/sidra-security/bin/python tools/security_scan.py
+ruff check sidra_realestate tools/security_scan.py
+python -m unittest discover -s sidra_realestate -p 'test_engine_*.py' -t . -v
+python -m unittest discover -s integrations/insights/tests -v
+bench --site <isolated-test-site> run-tests --app sidra_realestate
+```
+
+`Security source checks` runs on PRs and develop/main pushes, with read-only GitHub permissions. The gate rejects new detected secrets, any unscanned/parser-error file, and Bandit medium/high severity **and** medium/high confidence findings. Lower-confidence results remain visible for review. A green scan is not proof that there are no vulnerabilities. Scanner dependencies are isolated from the deployed app. Secret candidates are never sent to providers for validation (`--no-verify`); the wrapper never prints source lines or candidate values.
+
+`.secrets.baseline` contains only hashes for three reviewed false positives: the two disposable GitHub CI MariaDB test passwords and the pinned public Insights commit SHA. Only the baseline file itself (which contains detector hashes) is excluded by exact filename; this is not a blanket test/docs exclusion. The security-audit test has one annotated, obviously synthetic leak sentinel. Do not baseline a real credential: revoke/rotate it and follow repository history/incident procedures. This scan covers current tracked files, not complete Git history, uploaded files, database records or server secret stores.
+
+Local evidence: Python 3.14.0 pure tests, Ruff and syntax checks are run on this change. Real Frappe permission tests require the pinned bench CI; see the PR for final commands, counts and run links. No production data or deployed permissions are altered by local checks. The source scan requires local process-pool IPC, so it runs outside the command sandbox in this environment. An older Bandit release could not handle Python 3.14's removed AST aliases; tooling is pinned to the compatible 1.9.4 release rather than ignoring parse failures.
+
+## Deployment evidence still required
+
+Run the following as an authorized administrator on the actual site, retain the result privately, and re-run after configuration changes:
+
+```sh
+bench version
+bench --site <site> list-apps
+bench --site <site> execute sidra_realestate.security.audit_site
+```
+
+The audit reports configuration only. `pass` means the named setting was observed, not that live behavior was tested. Demo flags intentionally enabled on staging are reported as production-readiness failures; do not disable them or change live settings blindly. No configuration or operational credentials were available in this workspace.
+
+| Control | Required operator verification / current limit |
+| --- | --- |
+| HTTPS and cookies | PR #36 already owns the HTTPS-IP deployment tooling; it was open and explicitly not applied when this review began. Preserve that work. Verify the actual hostname/IP certificate, HTTP redirect, HSTS after a stable HTTPS rollout, Secure/HttpOnly/SameSite session cookies, protected downloads and WebSocket behavior. The unauthenticated HTTPS probe from this managed environment failed hostname verification and reported a certificate for `openai.com`; that path result cannot establish the VPS origin certificate or working HTTPS. Certificate verification was not disabled. |
+| CSRF/CORS | Keep `ignore_csrf` disabled and same-origin staff hosting; leave CORS unset unless an approved exact-origin integration needs it. Reject wildcard grants. Test missing/invalid session CSRF on every POST and untrusted Origin/preflight responses on the deployed proxy/site. CORS alone does not authorize a request. |
+| Sessions and authentication | Verify finite server session expiry, logout/revocation, MFA for privileged users, password policy and login throttling. This application uses Frappe session cookies and native API authentication, not custom JWTs: do not bolt on a JWT layer. If another installed app uses JWTs, separately test signature/issuer/audience/exp/nbf and revocation. |
+| Rate limits | Audit the effective Frappe `rate_limit` configuration and reverse-proxy abuse controls. Frappe's `limit` is a **request-time budget in seconds per window**, not a request count. Agree the budget, upload limits and login protections with the site operator and verify actual 429/Retry-After behavior without load-testing production. |
+| Server/configuration exposure | On production keep developer mode, `allow_tests`, `ignore_csrf`, Server Scripts unless separately approved, and all demo flags disabled. Inspect actual installed apps, API keys/scopes and framework settings; disable unused accounts and revoke stale keys. Do not print `site_config.json`, environment variables or private credentials into chat/logs. |
+| Infrastructure/containers | The repository deploys a normal non-root bench/nginx/supervisor stack; no AI container or app Docker deployment is defined. Verify the actual firewall allows only required web ports and restricted SSH; MariaDB/Redis/worker services must not be publicly exposed. If operations uses containers, verify non-root users, read-only root filesystems where supported, explicit writable volumes, `no-new-privileges`, dropped capabilities, no privileged/host-network/docker-socket mounts, resource limits, pinned image digests and network separation against that deployment. No invented Compose file is supplied. |
+| Outbound calls | No agent/model outbound HTTP executor was found. Inventory installed apps' email/webhooks/Insights data sources and restrict egress to necessary destinations at the host/proxy; prohibit metadata/private-network SSRF targets in any future URL-fetching feature. Local import files do not introduce a URL-fetching facility. |
+| Dependency advisories | Compare actual Frappe/ERPNext/Insights, Python packages, node dependencies, OS and browser versions against maintained advisories/SBOM tools. Pinned versions and static analysis do not establish patch currency. Do not upgrade the shared bench automatically from this review. |
+| Secrets and privacy | Verify secret-store/file permissions and rotation, restricted backups and encrypted off-site restore, disabled debug traces/public Error Logs, private KYC/attachments, export roles and log retention. Avoid request bodies, authorization/cookie headers, file contents, query parameters containing PII and passwords in telemetry. Import validation results are permission-protected business records and may contain references/customer validation errors; they are not safe public operational logs. |
+| Correlated audit retention | Existing critical DocTypes enable Frappe `track_changes`; location writes also add comments. These database Version/Comment records are mutable by privileged operators and are **not tamper-proof**. Configure a separate access-restricted collector with immutable/WORM retention, correlate proxy request IDs with actor, action, document IDs, outcome and time, audit privileged configuration/deployments and denied actions, and alert on export/write anomalies. Exclude payload/secret values. Validate collector outage alerts, retention, clock synchronization, restore and administrator tampering resistance. No external collector or immutable-retention evidence was available, so this control remains open. |
+
+The branch does not merge or deploy the unrelated construction, Desk-usability, regional-settings or HTTPS PRs. Apply normal backup, CI and release procedures. App changes are authorization/validation tightening with no schema migration or existing-record rewrite. Rollback by reverting the release is possible but reopens the documented gaps.
