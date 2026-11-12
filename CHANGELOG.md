@@ -4,6 +4,10 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.9 — staff sample figures, 12 Nov 2026)
+- Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
+- Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.
+
 ### Changed (v0.1.7 — Somaliland regional settings, 12 Nov 2026)
 - Sidra settings, demo Companies and native setup presets use Somaliland. Create its Country master before assigning links; retain USD, DD/MM/YYYY and Africa/Mogadishu.
 - Migration updates existing site defaults, Company/Address country links, the native territory and address template. Existing contracts, vouchers and customer identities are preserved. Other country selections and the upstream country catalogue remain available.

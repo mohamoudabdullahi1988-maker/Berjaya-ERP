@@ -4,7 +4,7 @@ const $ = id => document.getElementById(id);
 const preview = new URLSearchParams(location.search).get('demo') === '1';
 const config = window.SIDRA_CONFIG;
 let data, active = 'overview', selectedLocation, aborter, loadGeneration = 0;
-const names = {overview:'Executive overview',sales:'Sales pipeline',payments:'Payments',jobs:'Construction jobs',contracts:'Contracts',schedule:'Installment schedule',locations:'Plots & site locations'};
+const names = {overview:'Executive overview',sales:'Sales activity',payments:'Payments',jobs:'Construction jobs',contracts:'Contracts',schedule:'Installment schedule',locations:'Plots & site locations'};
 function el(tag, attrs={}, children=[]) {
  const n=document.createElement(tag);
  for(const [k,v] of Object.entries(attrs)) {
@@ -66,7 +66,7 @@ function render() {
  renderContracts();
  $('upcoming').replaceChildren(table(['Contract / buyer','Due date','Type','Agreed amount'],data.schedule.upcoming.map(r=>[el('div',{},[record('Sidra Sale Contract',r.contract_id,r.external_reference||r.contract_id),el('small',{},r.customer_display)]),date(r.due_date),r.row_type,money(r.amount,r.currency)])));
  $('sales-metrics').replaceChildren(countMetric('New leads',data.summary.new_leads,'Created during the selected period'),countMetric('Qualified opportunities',data.sales?.available?data.sales.qualified_opportunities:null,'Server qualification status',data.sales?.reason),percentageMetric('Lead conversion',data.sales?.available?data.sales.conversion_rate:null,'Server-linked lead cohort'),metric('Agreed contract value',compactMoney(data.summary.agreed_contract_value,data.currency),'Commercial value · not recognized revenue',true));
- if(data.sales?.available)pipeline('pipeline',data.sales.pipeline);else $('pipeline').replaceChildren(empty(data.sales?.reason||'Lead integration is not connected yet.'));
+ if(data.sales?.available){pipeline('pipeline',data.sales.pipeline);if(data.sales.notice)$('pipeline').prepend(el('p',{class:'coordinate-caption'},data.sales.notice));if(!data.sales.pipeline.length)$('pipeline').append(empty('No readable leads created in this period.'));}else $('pipeline').replaceChildren(empty(data.sales?.reason||'Lead integration is not connected yet.'));
  const invoiceDemo = data.payments?.basis === 'native_invoice_demo';
  $('payment-metrics').replaceChildren(financialMetric(invoiceDemo?'Receipts (fictional demo)':'Payments received',data.payments,'received','Posted receipts only'),financialMetric(invoiceDemo?'Overdue invoices (demo)':'Overdue unpaid',data.payments,'overdue','After payment allocation'),percentageMetric('Collection rate',data.payments?.available?data.payments.collection_rate:null,invoiceDemo?'Settled value of invoices due through today':'Server-defined due cohort'),countMetric(invoiceDemo?'Overdue invoices':'Overdue contracts',data.payments?.available?(invoiceDemo?data.payments.overdue_invoices:data.payments.overdue_contracts):null,invoiceDemo?'Fictional invoices; not contract arrears':'With unpaid overdue obligations',data.payments?.reason));
  if(data.payments?.available)pipeline('aging',data.payments.aging,true);else $('aging').replaceChildren(empty(data.payments?.reason||'Awaiting finance integration. Schedule amounts are not evidence of payment or arrears.'));
