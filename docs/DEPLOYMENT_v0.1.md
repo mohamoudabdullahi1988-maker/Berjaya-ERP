@@ -6,6 +6,8 @@ Status (7 Nov 2026): a **test VPS** is running (Contabo, France, Ubuntu, 7.8 GB 
 
 Update (9 Nov 2026): the user's fictional finance data request has a narrowly scoped exception in [FINANCE-DEMO_v0.1.md](FINANCE-DEMO_v0.1.md). Only that guarded loader may submit its fixed, isolated demo vouchers on an explicitly marked test site. The original operational demo below remains non-posting; production Finance gates remain closed.
 
+Update (12 Nov 2026): HTTPS for the test VPS without a DNS name is prepared in [HTTPS-IP_v0.1.md](HTTPS-IP_v0.1.md) (Let's Encrypt IP-address certificate; script `deploy/sidra-https-ip.sh`). It is not yet run on the server.
+
 Boundaries on staging (CLAUDE.md, SRS v2.0 §3.4, §9):
 - synthetic data only;
 - Profile B has no legal hold since decision D4 (issue #13); it is lifted only by the seed / patch;
