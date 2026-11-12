@@ -98,7 +98,7 @@
   {
    "fieldname": "section_plan",
    "fieldtype": "Section Break",
-   "label": "Payment Plan (INS-14)"
+   "label": "Payment Plan"
   },
   {
    "fieldname": "installments",
@@ -142,7 +142,7 @@
    "fieldtype": "Percent",
    "label": "Annual Markup Rate",
    "default": "0",
-   "description": "P0 supports 0% only (single agreed price)."
+   "description": "Agreed-price sales use no additional markup."
   },
   {
    "fieldname": "early_payment",
@@ -154,8 +154,9 @@
   {
    "fieldname": "section_penalty",
    "fieldtype": "Section Break",
-   "label": "Buyer Late Penalty (INS-15) — stored only, not applied in P0",
-   "collapsible": 1
+   "label": "Buyer Late Penalty — stored only, not applied by the system",
+   "collapsible": 1,
+   "description": "Recorded contract terms only; not calculated or posted by the system."
   },
   {
    "fieldname": "penalty_type",
@@ -198,7 +199,7 @@
    "label": "Days After Due Date Before Per-Day Penalty Starts",
    "default": "0",
    "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
-   "description": "Waiting period (G2). 0 = from the day after the due date"
+   "description": "Waiting period. 0 = from the day after the due date"
   },
   {
    "fieldname": "penalty_cap_basis",
@@ -207,7 +208,7 @@
    "options": "Per Installment\nPer Installment, Each 30 Days Late\nPer Calendar Month",
    "default": "Per Installment",
    "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
-   "description": "Issue #3 item 1"
+   "description": ""
   },
   {
    "fieldname": "notice_last_day",
@@ -216,7 +217,7 @@
    "options": "Counts as Late\nCounts as On Time",
    "default": "Counts as Late",
    "depends_on": "eval:doc.penalty_type=='Fixed After Notice'",
-   "description": "Issue #3 item 2"
+   "description": ""
   },
   {
    "fieldname": "receipt_order",
@@ -224,7 +225,7 @@
    "label": "Receipt Pays First",
    "options": "Installments\nPenalties",
    "default": "Installments",
-   "description": "Issue #3 item 4"
+   "description": ""
   },
   {
    "fieldname": "extra_payment_allocation",
@@ -232,7 +233,7 @@
    "label": "Payment Beyond What Is Due",
    "options": "Cashier Chooses\nOldest First\nReduce Last Installments",
    "default": "Cashier Chooses",
-   "description": "Issue #3 item 3: Oldest First = advance payment (AT-10); Reduce Last Installments = early payment (AT-13)"
+   "description": ": Oldest First = advance payment (AT-10); Reduce Last Installments = early payment (AT-13)"
   },
   {
    "fieldname": "penalty_destination",
@@ -246,8 +247,9 @@
   {
    "fieldname": "section_default",
    "fieldtype": "Section Break",
-   "label": "Default and Refund (INS-16) — stored only, not applied in P0",
-   "collapsible": 1
+   "label": "Default and Refund — stored only, not applied by the system",
+   "collapsible": 1,
+   "description": "Recorded contract terms only; not calculated or posted by the system."
   },
   {
    "fieldname": "default_trigger_missed",
@@ -277,7 +279,7 @@
    "fieldtype": "Int",
    "label": "Days After Due Date Before an Installment Counts as Missed",
    "default": "0",
-   "description": "Issue #3 item 5. 0 = missed from the day after the due date"
+   "description": "0 = missed from the day after the due date"
   },
   {
    "fieldname": "refund_installment_basis",
@@ -286,7 +288,7 @@
    "options": "Regular Installment\nFinal Installment",
    "default": "Regular Installment",
    "depends_on": "eval:doc.refund_retention_type=='One Installment'",
-   "description": "Issue #3 item 6"
+   "description": ""
   },
   {
    "fieldname": "refund_penalties",
@@ -294,13 +296,14 @@
    "label": "Penalties Paid in Refund Base",
    "options": "Excluded\nIncluded",
    "default": "Excluded",
-   "description": "Issue #3 item 6"
+   "description": ""
   },
   {
    "fieldname": "section_title",
    "fieldtype": "Section Break",
-   "label": "Title Deadline (SAL-18) — stored only, not applied in P0",
-   "collapsible": 1
+   "label": "Title Deadline — stored only, not applied by the system",
+   "collapsible": 1,
+   "description": "Recorded contract terms only; not calculated or posted by the system."
   },
   {
    "fieldname": "title_deadline_days",
@@ -337,7 +340,7 @@
    "options": "Pending Decision\nNot Charged\nCharged as Full Month\nPro Rata by Day",
    "default": "Pending Decision",
    "depends_on": "eval:doc.title_penalty_type=='Per Month'",
-   "description": "Issue #3 item 7"
+   "description": ""
   },
   {
    "fieldname": "title_refund_after_days",
@@ -358,7 +361,7 @@
    "options": "Pending Decision\nFinal Payment\nTitle Deadline",
    "default": "Pending Decision",
    "depends_on": "title_refund_after_days",
-   "description": "Issue #3 item 8"
+   "description": ""
   },
   {
    "fieldname": "title_refund_compensation_base",
@@ -367,12 +370,12 @@
    "options": "Pending Decision\nAmount Paid\nAgreed Price",
    "default": "Pending Decision",
    "depends_on": "title_refund_after_days",
-   "description": "Issue #3 item 8"
+   "description": ""
   },
   {
    "fieldname": "section_clauses",
    "fieldtype": "Section Break",
-   "label": "Clauses (SAL-20, INS-21)",
+   "label": "Clauses",
    "collapsible": 1
   },
   {

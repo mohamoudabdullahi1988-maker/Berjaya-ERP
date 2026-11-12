@@ -4,12 +4,21 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
-## [0.1.6] — 2026-11-12
+### Security (v0.1.8 — ERPNext hardening, 12 Nov 2026)
 
-### Security
 - Bind contract-import spreadsheets to their own private File attachment and enforce File read permission before parsing.
 - Enforce Customer access on reservations and linked-unit access on cancellation; reject malformed durations and nonfinite spreadsheet amounts before writes.
 - Add regression tests, a read-only administrative site-security audit, and repeatable secret/Bandit CI checks. See `docs/SECURITY-REVIEW_v0.1.md` for findings and outstanding deployment verification; no AI runtime is bundled or added.
+
+### Changed (v0.1.7 — Somaliland regional settings, 12 Nov 2026)
+- Sidra settings, demo Companies and native setup presets use Somaliland. Create its Country master before assigning links; retain USD, DD/MM/YYYY and Africa/Mogadishu.
+- Migration updates existing site defaults, Company/Address country links, the native territory and address template. Existing contracts, vouchers and customer identities are preserved. Other country selections and the upstream country catalogue remain available.
+
+### Fixed (v0.1.6 — Desk usability)
+- Consistent sidebar ownership, construction/collections/report links and count-chart formatting.
+- Scheme connections and permission-filtered counts, clearer identifiers, unit list columns and house-only fields.
+- Staff-facing labels without requirement codes, readable schedule columns, map fallback and import template download.
+- Missing asking prices are explicit; no prices, signed terms, legal wording or financial rules are invented.
 
 
 ### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
@@ -146,3 +155,4 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 - `docs/SREMS-SRS_v1.6.md` — requirements specification v1.6
 - `docs/ERPNEXT-MAPPING_v0.1.md` — mapping of every requirement to ERPNext standard features or custom DocTypes
 - GitHub Actions CI: ruff lint and Python syntax check
+

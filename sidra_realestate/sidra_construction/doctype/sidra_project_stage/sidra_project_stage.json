@@ -63,7 +63,7 @@
    "fieldname": "billing_pct",
    "fieldtype": "Percent",
    "label": "Billing %",
-   "description": "Planning only; no invoice in P0"
+   "description": "Planning only; no invoice by the system"
   },
   {
    "fieldname": "engineer",
