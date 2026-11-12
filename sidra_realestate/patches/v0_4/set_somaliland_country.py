@@ -20,12 +20,16 @@ def execute():
 	# Native preset names are also displayed in address and customer forms.
 	# Rename through Frappe so existing links follow the master, including on reruns.
 	if frappe.db.exists("Address Template", previous):
-		frappe.db.set_value("Address Template", previous, "country", country)
+		merge_template = bool(frappe.db.exists("Address Template", country))
+		# country is unique: when the target exists, retain its country field
+		# and let the native merge move references before deleting the old row.
+		if not merge_template:
+			frappe.db.set_value("Address Template", previous, "country", country)
 		frappe.rename_doc(
 			"Address Template",
 			previous,
 			country,
-			merge=bool(frappe.db.exists("Address Template", country)),
+			merge=merge_template,
 			force=True,
 		)
 	if frappe.db.exists("Territory", previous):
