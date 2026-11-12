@@ -21,11 +21,18 @@
   "gps",
   "sidra_location",
   "title_reference",
+  "section_contract",
+  "contract_value",
+  "column_break_contract",
+  "approved_variations",
+  "current_contract_value",
   "section_stages",
   "stages",
   "section_boq",
   "boq",
-  "boq_total"
+  "boq_total",
+  "boq_revision",
+  "boq_revision_no"
  ],
  "fields": [
   {
@@ -133,6 +140,38 @@
    "label": "Title Deed Reference"
   },
   {
+   "fieldname": "section_contract",
+   "fieldtype": "Section Break",
+   "label": "Contract Value (CON-06)"
+  },
+  {
+   "fieldname": "contract_value",
+   "fieldtype": "Currency",
+   "label": "Original Contract Value",
+   "options": "currency",
+   "description": "Agreed value before variations. Locked once a variation order is approved."
+  },
+  {
+   "fieldname": "column_break_contract",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "approved_variations",
+   "fieldtype": "Currency",
+   "label": "Approved Variations",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "current_contract_value",
+   "fieldtype": "Currency",
+   "label": "Current Contract Value",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
    "fieldname": "section_stages",
    "fieldtype": "Section Break",
    "label": "Stages (CON-04)"
@@ -160,11 +199,43 @@
    "label": "BOQ Total",
    "options": "currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "boq_revision",
+   "fieldtype": "Link",
+   "label": "Approved BOQ Revision",
+   "options": "Sidra BOQ Revision",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Once a revision is approved, the BOQ changes only through a new BOQ revision"
+  },
+  {
+   "fieldname": "boq_revision_no",
+   "fieldtype": "Int",
+   "label": "BOQ Revision No.",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
- "modified": "2026-11-07 15:30:00.000000",
+ "links": [
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra BOQ Revision",
+   "link_fieldname": "job"
+  },
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra Variation Order",
+   "link_fieldname": "job"
+  },
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra Inspection Report",
+   "link_fieldname": "job"
+  }
+ ],
+ "modified": "2026-11-12 12:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Construction Job",

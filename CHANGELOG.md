@@ -4,6 +4,18 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.6 — construction controls, P1, 12 Nov 2026; `docs/CONSTRUCTION-CONTROLS_v0.1.md`)
+- **Sidra BOQ Revision** (CON-02 revisions): a draft copies the job's BOQ. The Project Manager approves it, which numbers the revision, stores the previous total and the difference, and copies the lines to the job. Stale drafts and revisions that change nothing are refused. Approved revisions are never cancelled. Once a revision is approved, the job's BOQ changes only through a new revision.
+- **Sidra Variation Order** (CON-06): Addition or Omission, with the client's approval recorded (who, when, and a private signed approval on the order's own field). A second person approves (SRS v1.6 §2): a Project Manager other than the one who raised it, or the General Manager. The job must be contracted with its original contract value entered, and the value can't go below zero.
+- **Sidra Inspection Report** (CON-05): date, inspector, stage, checklist results, overall result, defects, next action and due date, private photos. Consistency checks apply. The Inspector approves.
+- **Stage certification** (CON-04): **Certify Stage** for the Project Manager on Completed, 100 %, ended stages. A certified stage is frozen and can't be removed. Certification is not an invoice or revenue.
+- **Sidra Construction Job:**
+  - new fields: Original Contract Value, Approved Variations and Current Contract Value (recalculated from submitted orders; the original value is locked after the first approved order), and Approved BOQ Revision;
+  - Create buttons and Connections for the new records;
+  - Construction sidebar links.
+- `services/construction.py`: pure rules with `test_engine_construction.py`. Frappe integration tests for each new DocType and for certification.
+- Choices to confirm: issue #37 (`spec-question`). Recorded only: no invoice, Sales Order amendment or posting (`CLAUDE.md` rule 3).
+
 ### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
 - Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
 - Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.

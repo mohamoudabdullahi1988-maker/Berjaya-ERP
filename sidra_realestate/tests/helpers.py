@@ -19,6 +19,9 @@ SALES_MANAGER = "sidra.manager@example.com"
 GENERAL_MANAGER = "sidra.gm@example.com"
 SYSTEM_ONLY = "sidra.sysadmin@example.com"
 OUTSIDER = "sidra.outsider@example.com"
+PROJECT_MANAGER = "sidra.pm@example.com"
+OTHER_PROJECT_MANAGER = "sidra.pm2@example.com"
+INSPECTOR = "sidra.inspector@example.com"
 
 
 def ensure_base_records():
@@ -32,6 +35,9 @@ def ensure_base_records():
 	ensure_user(GENERAL_MANAGER, ["Sidra General Manager"])
 	ensure_user(SYSTEM_ONLY, ["System Manager"])
 	ensure_user(OUTSIDER, [])
+	ensure_user(PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
+	ensure_user(OTHER_PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
+	ensure_user(INSPECTOR, ["Sidra Inspector", "Projects User"])
 	frappe.db.commit()
 
 
@@ -172,21 +178,34 @@ def _blank_pdf() -> bytes:
 	return buffer.getvalue()
 
 
-def private_file(name="signed-contract.pdf", attached_to=None, is_private=1):
-	"""A File as uploaded through a form; attached to `attached_to`'s Signed Copy field if given."""
+def private_file(name="signed-contract.pdf", attached_to=None, is_private=1, field="signed_copy", content=None):
+	"""A File as uploaded through a form; attached to `attached_to`'s `field` (Signed Copy) if given."""
 	values = {
 		"doctype": "File",
 		"file_name": f"{frappe.generate_hash(length=8)}-{name}",
-		"content": _blank_pdf(),
+		"content": content or _blank_pdf(),
 		"is_private": is_private,
 	}
 	if attached_to is not None:
 		values.update(
 			attached_to_doctype=attached_to.doctype,
 			attached_to_name=attached_to.name,
-			attached_to_field="signed_copy",
+			attached_to_field=field,
 		)
 	return frappe.get_doc(values).insert(ignore_permissions=True).file_url
+
+
+_PNG_1PX = (
+	"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+)
+
+
+def site_photo(is_private=1):
+	"""A 1-pixel PNG with unique trailing bytes (Frappe de-duplicates identical files)."""
+	import base64
+
+	content = base64.b64decode(_PNG_1PX) + frappe.generate_hash(length=16).encode()
+	return private_file(name="site-photo.png", is_private=is_private, content=content)
 
 
 def attach_signed_copy(contract, **file_values):
@@ -234,3 +253,16 @@ def make_held_profile():
 	doc.legal_hold = 1
 	doc.legal_hold_reason = "_Test legal hold"
 	return doc.insert(ignore_permissions=True)
+
+
+def make_job(**values):
+	"""A construction job for the test Company and buyer (Full Construction, template stages)."""
+	return frappe.get_doc(
+		{
+			"doctype": "Sidra Construction Job",
+			"customer": BUYER,
+			"company": COMPANY,
+			"service_type": "Full Construction",
+			**values,
+		}
+	).insert(ignore_permissions=True)

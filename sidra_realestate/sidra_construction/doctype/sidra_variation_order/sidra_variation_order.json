@@ -1,0 +1,261 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "autoname": "naming_series:",
+ "field_order": [
+  "naming_series",
+  "job",
+  "company",
+  "customer",
+  "currency",
+  "column_break_vo",
+  "variation_type",
+  "amount",
+  "signed_amount",
+  "boq_revision",
+  "section_description",
+  "description",
+  "section_client",
+  "client_approved_by",
+  "client_approved_on",
+  "column_break_client",
+  "client_approval_document",
+  "section_approval",
+  "approved_by",
+  "approved_on",
+  "column_break_values",
+  "contract_value_before",
+  "contract_value_after",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SVO-.YYYY.-",
+   "default": "SVO-.YYYY.-",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "job",
+   "fieldtype": "Link",
+   "label": "Construction Job",
+   "options": "Sidra Construction Job",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "search_index": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "fetch_from": "job.company",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "fetch_from": "job.customer",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1,
+   "print_hide": 1
+  },
+  {
+   "fieldname": "column_break_vo",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "variation_type",
+   "fieldtype": "Select",
+   "label": "Variation Type",
+   "options": "\nAddition\nOmission",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "amount",
+   "fieldtype": "Currency",
+   "label": "Amount",
+   "options": "currency",
+   "reqd": 1,
+   "in_list_view": 1,
+   "description": "Enter a positive amount; an omission lowers the contract value"
+  },
+  {
+   "fieldname": "signed_amount",
+   "fieldtype": "Currency",
+   "label": "Change to Contract Value",
+   "options": "currency",
+   "read_only": 1
+  },
+  {
+   "fieldname": "boq_revision",
+   "fieldtype": "Link",
+   "label": "BOQ Revision",
+   "options": "Sidra BOQ Revision",
+   "description": "Optional: the approved BOQ revision that prices this variation"
+  },
+  {
+   "fieldname": "section_description",
+   "fieldtype": "Section Break",
+   "label": "Variation"
+  },
+  {
+   "fieldname": "description",
+   "fieldtype": "Text",
+   "label": "Description of the change",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_client",
+   "fieldtype": "Section Break",
+   "label": "Client Approval (CON-06)"
+  },
+  {
+   "fieldname": "client_approved_by",
+   "fieldtype": "Data",
+   "label": "Approved by (client or representative)"
+  },
+  {
+   "fieldname": "client_approved_on",
+   "fieldtype": "Date",
+   "label": "Client Approval Date"
+  },
+  {
+   "fieldname": "column_break_client",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "client_approval_document",
+   "fieldtype": "Attach",
+   "label": "Signed Client Approval",
+   "description": "Private scan of the client's signed approval"
+  },
+  {
+   "fieldname": "section_approval",
+   "fieldtype": "Section Break",
+   "label": "Sidra Approval"
+  },
+  {
+   "fieldname": "approved_by",
+   "fieldtype": "Link",
+   "label": "Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "approved_on",
+   "fieldtype": "Datetime",
+   "label": "Approved On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_values",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_value_before",
+   "fieldtype": "Currency",
+   "label": "Contract Value Before",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_value_after",
+   "fieldtype": "Currency",
+   "label": "Contract Value After",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Sidra Variation Order",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "is_submittable": 1,
+ "links": [],
+ "modified": "2026-11-12 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Construction",
+ "name": "Sidra Variation Order",
+ "naming_rule": "By \"Naming Series\" field",
+ "owner": "Administrator",
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  },
+  {
+   "role": "Sidra Project Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "delete": 1
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0,
+   "submit": 1,
+   "cancel": 1
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "share": 0
+  }
+ ],
+ "row_format": "Dynamic",
+ "search_fields": "job,customer",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "track_changes": 1
+}
