@@ -38,15 +38,26 @@
   "penalty_monthly_cap",
   "penalty_fixed_amount",
   "notice_days",
+  "penalty_grace_days",
+  "penalty_cap_basis",
+  "notice_last_day",
+  "receipt_order",
+  "extra_payment_allocation",
   "default_trigger_missed",
   "column_break_d6",
   "refund_retention_type",
   "refund_retention_value",
+  "missed_after_days",
+  "refund_installment_basis",
+  "refund_penalties",
   "title_deadline_days",
   "title_penalty_type",
   "title_penalty_amount",
+  "title_part_month",
   "title_refund_after_days",
   "title_refund_compensation_pct",
+  "title_refund_from",
+  "title_refund_compensation_base",
   "section_parties",
   "buyer_agent_name",
   "buyer_agent_phone",
@@ -311,6 +322,48 @@
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
+   "fieldname": "penalty_grace_days",
+   "fieldtype": "Int",
+   "label": "Days After Due Date Before Per-Day Penalty Starts",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
+   "description": "Waiting period (G2). 0 = from the day after the due date",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "penalty_cap_basis",
+   "fieldtype": "Select",
+   "label": "Cap Applies",
+   "options": "\nPer Installment\nPer Installment, Each 30 Days Late\nPer Calendar Month",
+   "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
+   "description": "Issue #3 item 1",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "notice_last_day",
+   "fieldtype": "Select",
+   "label": "Payment on the Last Notice Day",
+   "options": "\nCounts as Late\nCounts as On Time",
+   "depends_on": "eval:doc.penalty_type=='Fixed After Notice'",
+   "description": "Issue #3 item 2",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "receipt_order",
+   "fieldtype": "Select",
+   "label": "Receipt Pays First",
+   "options": "\nInstallments\nPenalties",
+   "description": "Issue #3 item 4",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "extra_payment_allocation",
+   "fieldtype": "Select",
+   "label": "Payment Beyond What Is Due",
+   "options": "\nCashier Chooses\nOldest First\nReduce Last Installments",
+   "description": "Issue #3 item 3: Oldest First = advance payment (AT-10); Reduce Last Installments = early payment (AT-13)",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
    "fieldname": "default_trigger_missed",
    "fieldtype": "Int",
    "label": "Consecutive Missed Installments for Review",
@@ -336,6 +389,30 @@
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
+   "fieldname": "missed_after_days",
+   "fieldtype": "Int",
+   "label": "Days After Due Date Before an Installment Counts as Missed",
+   "description": "Issue #3 item 5. 0 = missed from the day after the due date",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "refund_installment_basis",
+   "fieldtype": "Select",
+   "label": "One Installment Means",
+   "options": "\nRegular Installment\nFinal Installment",
+   "depends_on": "eval:doc.refund_retention_type=='One Installment'",
+   "description": "Issue #3 item 6",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "refund_penalties",
+   "fieldtype": "Select",
+   "label": "Penalties Paid in Refund Base",
+   "options": "\nExcluded\nIncluded",
+   "description": "Issue #3 item 6",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
    "fieldname": "title_deadline_days",
    "fieldtype": "Int",
    "label": "Title Deadline (days after final payment)",
@@ -358,6 +435,15 @@
    "options": "currency"
   },
   {
+   "fieldname": "title_part_month",
+   "fieldtype": "Select",
+   "label": "Part Month of Title Delay",
+   "options": "\nPending Decision\nNot Charged\nCharged as Full Month\nPro Rata by Day",
+   "depends_on": "eval:doc.title_penalty_type=='Per Month'",
+   "description": "Issue #3 item 7",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
    "fieldname": "title_refund_after_days",
    "fieldtype": "Int",
    "label": "Buyer Refund Right After (days)",
@@ -369,6 +455,24 @@
    "fieldtype": "Percent",
    "label": "Refund Compensation %",
    "depends_on": "title_refund_after_days",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "title_refund_from",
+   "fieldtype": "Select",
+   "label": "Refund Right Days Counted From",
+   "options": "\nPending Decision\nFinal Payment\nTitle Deadline",
+   "depends_on": "title_refund_after_days",
+   "description": "Issue #3 item 8",
+   "read_only_depends_on": "eval:doc.source!='External (registered)'"
+  },
+  {
+   "fieldname": "title_refund_compensation_base",
+   "fieldtype": "Select",
+   "label": "Compensation % Applies To",
+   "options": "\nPending Decision\nAmount Paid\nAgreed Price",
+   "depends_on": "title_refund_after_days",
+   "description": "Issue #3 item 8",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -522,7 +626,7 @@
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
  "links": [],
- "modified": "2026-11-07 12:00:00.000000",
+ "modified": "2026-11-09 18:03:51.000000",
  "modified_by": "Administrator",
  "module": "Sidra Sales",
  "name": "Sidra Sale Contract",

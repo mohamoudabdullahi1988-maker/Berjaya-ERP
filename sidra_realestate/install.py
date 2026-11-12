@@ -8,6 +8,9 @@ signed contract keeps its own frozen copy (INS-20).
 import frappe
 
 from sidra_realestate.branding import apply_branding
+from sidra_realestate.sidra_installments.doctype.sidra_contract_profile.sidra_contract_profile import (
+	COLLECTION_RULE_DEFAULTS,
+)
 from sidra_realestate.sidra_sales.doctype.sidra_contract_settings.sidra_contract_settings import (
 	ensure_contract_settings,
 )
@@ -42,6 +45,7 @@ PROFILES = [
 		"title_penalty_type": "Per Day",
 		"title_penalty_amount": 5,
 		"title_refund_after_days": 0,
+		**COLLECTION_RULE_DEFAULTS,
 	},
 	{
 		"profile_name": "Profile B",
@@ -66,6 +70,7 @@ PROFILES = [
 		"title_penalty_amount": 220,
 		"title_refund_after_days": 90,
 		"title_refund_compensation_pct": 10,
+		**COLLECTION_RULE_DEFAULTS,
 	},
 ]
 

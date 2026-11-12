@@ -128,6 +128,23 @@ class TestSidraSaleContract(IntegrationTestCase):
 		self.assertEqual(json.loads(doc.terms_snapshot)["installments"], 14)
 		self.assertEqual(len(doc.schedule), 14)
 
+	def test_collection_rules_frozen_with_terms(self):
+		"""Issue #3: the profile's collections rules are frozen into the contract like other terms."""
+		self.addCleanup(
+			frappe.db.set_value, "Sidra Contract Profile", "Profile A", "penalty_cap_basis", "Per Installment"
+		)
+		frappe.db.set_value("Sidra Contract Profile", "Profile A", "penalty_cap_basis", "Per Calendar Month")
+		doc = self.contract([(self.unit(), 14000)], signed_on="2025-08-31")
+		frappe.db.set_value("Sidra Contract Profile", "Profile A", "penalty_cap_basis", "Per Installment")
+
+		doc.reload()
+		doc.submit()
+		snapshot = json.loads(doc.terms_snapshot)
+		self.assertEqual(snapshot["penalty_cap_basis"], "Per Calendar Month")
+		self.assertEqual(doc.penalty_cap_basis, "Per Calendar Month")
+		self.assertEqual(snapshot["notice_last_day"], "Counts as Late")
+		self.assertEqual(snapshot["title_part_month"], "Pending Decision")
+
 	def test_profile_and_snapshot_locked_after_draft_save(self):
 		doc = self.contract([(self.unit(), 14000)])
 		doc.contract_profile = "Profile B"
