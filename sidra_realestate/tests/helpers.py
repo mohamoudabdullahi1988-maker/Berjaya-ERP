@@ -10,6 +10,8 @@ from contextlib import contextmanager
 
 import frappe
 
+from sidra_realestate.site_setup import REGIONAL, ensure_country
+
 COMPANY = "_Test Sidra Homes"
 OTHER_COMPANY = "_Test Sidra Other"
 BUYER = "_Test Buyer Amina"
@@ -40,6 +42,7 @@ def ensure_erpnext_presets():
 
 	Mirrors erpnext.tests.utils.BootStrapTestData.make_presets without its India master data.
 	"""
+	ensure_country()
 	if frappe.db.exists("Warehouse Type", "Transit"):
 		return
 	from erpnext.setup.setup_wizard.operations.install_fixtures import add_uom_data, get_preset_records
@@ -61,7 +64,7 @@ def ensure_erpnext_presets():
 		"Market Segment": "market_segment",
 		"Workstation Operating Component": "component_name",
 	}
-	for record in get_preset_records("Somalia"):
+	for record in get_preset_records(REGIONAL["country"]):
 		doctype = record.get("doctype")
 		name = record.get("name") or record.get(keys.get(doctype))
 		if not frappe.db.exists(doctype, name):
@@ -78,7 +81,7 @@ def ensure_company(name, abbr):
 				"company_name": name,
 				"abbr": abbr,
 				"default_currency": "USD",
-				"country": "Somalia",
+				"country": REGIONAL["country"],
 			}
 		).insert(ignore_permissions=True)
 	return name

@@ -4,6 +4,10 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Changed (v0.1.7 — Somaliland regional settings, 12 Nov 2026)
+- Sidra settings, demo Companies and native setup presets use Somaliland. Create its Country master before assigning links; retain USD, DD/MM/YYYY and Africa/Mogadishu.
+- Migration updates existing site defaults, Company/Address country links, the native territory and address template. Existing contracts, vouchers and customer identities are preserved. Other country selections and the upstream country catalogue remain available.
+
 ### Fixed (v0.1.6 — Desk usability)
 - Consistent sidebar ownership, construction/collections/report links and count-chart formatting.
 - Scheme connections and permission-filtered counts, clearer identifiers, unit list columns and house-only fields.
