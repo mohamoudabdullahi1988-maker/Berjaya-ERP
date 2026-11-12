@@ -328,7 +328,7 @@ verify_https() {
 		bad "openssl s_client could not verify the chain / IP identity"
 	fi
 	echo | openssl s_client -connect "${IP}:443" 2>/dev/null \
-		| openssl x509 -noout -issuer -enddate 2>/dev/null | sed 's/^/    served: /'
+		| openssl x509 -noout -issuer -enddate 2>/dev/null | sed 's/^/    served: /' || true
 
 	page="$(curl -sS -m 30 "${base}/login" || true)"
 	code="$(curl -sS -m 30 -o /dev/null -w '%{http_code}' "${base}/login" || true)"
