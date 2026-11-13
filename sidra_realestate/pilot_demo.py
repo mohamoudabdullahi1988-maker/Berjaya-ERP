@@ -490,6 +490,11 @@ def _sales(plan, profile, placeholder_scan):
 			values.pop("source", None)
 		if entry["contract_type"] == "Installment":
 			values.update(
+				# On a registered contract the captured schedule must reconcile with the amount
+				# due, and the amount due only drops by the down payment when that payment is
+				# recorded separately (CC-07, D1). The generated path regenerates its own
+				# schedule from the profile at submit, so this only matters for registered ones.
+				down_payment_mode="Recorded separately",
 				down_payment=entry["down_payment"],
 				installments=entry["installments"],
 				due_day=entry["due_day"],
