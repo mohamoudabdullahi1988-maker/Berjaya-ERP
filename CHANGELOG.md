@@ -4,6 +4,12 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.14 — one front page for staff, decision G15, 13 Nov 2026; `docs/SHELL_v0.1.md`)
+- `/sidra`: a single front page with four doors (Executive Dashboard, Financials, Real Estate Sales, Construction). Each service shows its workflow as numbered steps with counts, items waiting for action, and New buttons. Doors, steps and buttons follow the user's permissions; a step the user can't read is left out, not shown as zero.
+- Staff land on it after signing in: the app's apps-screen route is `/sidra` (desk route `/desk/sidra-sale-contract`) and System Settings Default App is set to this app when blank.
+- Read-only and server-rendered: no new HTTP API, no posting, not cached. The staff dashboard is unchanged and linked from the page.
+- `api/test_shell.py`: Frappe integration tests. `docs/DECISIONS-AND-GATES_v0.1.md`: G15.
+
 ### Changed (v0.1.13 — sample data under Sidra Homes on the test site, decision G14, 13 Nov 2026)
 - Decision G14 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
 - Finance demo loader posts the same ten vouchers (237,000 / 237,000) into the existing Company **Sidra Homes**, named in one constant. It never creates or edits the Company; demo accounts sit under marked `Fictional Demo Accounts` groups; identities are `SHD`, so the v0.1 `SFD` records and both old demo Companies are untouched.
