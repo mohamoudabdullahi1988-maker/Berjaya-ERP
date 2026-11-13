@@ -275,7 +275,7 @@ def build(as_of: date) -> Plan:
 			"down_payment": down,
 			"installments": count if installment else 0,
 			"due_day": 5,
-			"notary_reference": f"IPN/PL/{900 + index}/{signed.year}",
+			"notary_reference": f"IPN/HL/{900 + index:03d}/{signed.year}",  # SAL-19 format
 			# Three in forty-five stay draft so the pipeline is not uniformly submitted.
 			"submit": index % 15 != 0,
 			"schedule": _schedule(price, down, count, signed, 5) if installment else [],

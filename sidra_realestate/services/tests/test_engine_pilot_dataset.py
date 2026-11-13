@@ -1,5 +1,6 @@
 """Pure tests for the pilot demonstration dataset plan (decision G15). No Frappe needed."""
 
+import re
 import unittest
 from datetime import date
 from decimal import Decimal
@@ -106,6 +107,16 @@ class TestCoverage(unittest.TestCase):
 		verified = {c["name"] for c in self.plan.customers if c["verified"]}
 		for contract in self.plan.contracts:
 			self.assertIn(contract["customer"], verified)
+
+	def test_notary_references_match_the_registry_format(self):
+		"""SAL-19: the contract refuses anything that is not IPN/HL/NNN/YYYY."""
+		pattern = re.compile(r"^IPN/HL/\d{3}/\d{4}$")
+		seen = set()
+		for contract in self.plan.contracts:
+			reference = contract["notary_reference"]
+			self.assertRegex(reference, pattern, contract["reference"])
+			self.assertNotIn(reference, seen, "notary references must be unique")
+			seen.add(reference)
 
 	def test_title_dates_are_never_in_the_future(self):
 		"""The tracker refuses a future final payment, or a handover before that payment."""
