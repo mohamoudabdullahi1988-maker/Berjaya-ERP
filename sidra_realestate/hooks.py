@@ -27,8 +27,11 @@ add_to_apps_screen = [
 		"name": app_name,
 		"logo": "/assets/sidra_realestate/images/sidra-icon.png",
 		"title": "Sidra Homes",
-		# Explicit landing page, as Frappe and ERPNext declare theirs (app_home "/desk/...").
-		"route": "/desk/sidra-sale-contract",
+		# The Sidra front page (www/sidra, docs/SHELL_v0.1.md, decision G15). With System Settings
+		# "Default App" set to this app (branding.py), staff land on it after signing in.
+		"route": "/sidra",
+		# The app's door back into the desk, shown under its icon on the apps screen.
+		"desk_route": "/desk/sidra-sale-contract",
 		"has_permission": "sidra_realestate.branding.has_app_permission",
 		"sequence_id": 0,
 	}

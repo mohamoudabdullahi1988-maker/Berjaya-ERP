@@ -9,7 +9,7 @@ You are the **implementation** agent for Sidra Real Estate's ERPNext system. Rea
 - The repository stays `sidra-erp` and the app stays `sidra_realestate` (v2.0 writes `sidra_real_estate`).
 
 ## Roles
-- Current dashboard assignment (Mohamoud, 8 Nov 2026): Codex implements the dashboard backend, staff web/native clients, supporting reports and integration tests end to end. This supersedes the older dashboard role allocations below; no Claude handoff is required to continue this work. Other repository rules and business gates remain in force.
+- Current dashboard assignment (Mohamoud, 8 Nov 2026): Codex implements the dashboard backend, staff web/native clients, supporting reports and integration tests end to end. This supersedes the older dashboard role allocations below; no Claude handoff is required to continue this work. Other repository rules and business gates remain in force. The staff front page at `/sidra` (decision G15, `docs/SHELL_v0.1.md`) is Claude Code's.
 - ChatGPT: architecture, specs, acceptance criteria, security and code review.
 - Claude Code (you): code, DocTypes, UI, tests, pull requests. Confirmed by Mohamoud on 7 Nov 2026, including the contract capture brief (`docs/CONTRACT-CAPTURE_v0.3.md`), whose Codex role is superseded. When Claude Code's usage limit is reached, Codex continues the same work under the same rules (`AGENTS.md`; decision G7).
 - Mohamoud / Sidra management: final approval.
