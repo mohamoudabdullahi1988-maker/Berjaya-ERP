@@ -643,7 +643,9 @@ def revise_draft(contract: str) -> str:
 	if old.docstatus != 0:
 		frappe.throw(_("Only a draft can be revised; a signed contract keeps its terms"))
 	if old.is_external():
-		frappe.throw(_("A registered External contract is edited directly; Revise Draft is for generated contracts"))
+		frappe.throw(
+			_("A registered External contract is edited directly; Revise Draft is for generated contracts")
+		)
 
 	new = frappe.copy_doc(old)
 	new.terms_snapshot = None

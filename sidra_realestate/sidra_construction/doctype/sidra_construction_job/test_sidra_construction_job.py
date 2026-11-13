@@ -71,7 +71,9 @@ class TestSidraConstructionJob(IntegrationTestCase):
 
 	def test_stage_template_copied(self):
 		self.assertEqual(len(self.job().stages), 9)
-		self.assertEqual([s.stage_name for s in self.job(service_type="Inspection Only").stages][0], "Request")
+		self.assertEqual(
+			[s.stage_name for s in self.job(service_type="Inspection Only").stages][0], "Request"
+		)
 		self.assertEqual(self.job(service_type="Beacon / Foundation").stages, [])
 		custom = self.job(stages=[{"stage_name": "Only stage"}])
 		self.assertEqual([s.stage_name for s in custom.stages], ["Only stage"])
@@ -206,7 +208,12 @@ class TestContractValue(IntegrationTestCase):
 			}
 		).insert(ignore_permissions=True)
 		self.assertEqual(
-			(job.contract_value or 0, job.approved_variations, job.current_contract_value, job.retention_pct or 0),
+			(
+				job.contract_value or 0,
+				job.approved_variations,
+				job.current_contract_value,
+				job.retention_pct or 0,
+			),
 			(0, 0, 0, 0),
 		)
 		job.contract_value = 4500

@@ -60,7 +60,9 @@ def variation_amount(amount) -> Decimal:
 def variation_approval_problem(amount, approver: str, approver_roles, raised_by: str) -> str | None:
 	"""G11: a second person approves; up to the limit a Project Manager may, above it only the GM."""
 	if approver == raised_by:
-		return f"A variation order is approved by a second person: {raised_by} raised it and cannot approve it"
+		return (
+			f"A variation order is approved by a second person: {raised_by} raised it and cannot approve it"
+		)
 	roles = set(approver_roles)
 	if money(amount) > VARIATION_GM_LIMIT:
 		if GENERAL_MANAGER not in roles:
@@ -77,7 +79,9 @@ def contract_value_after(contract_value, approved_amounts, change=0) -> Decimal:
 	"""
 	base = money(contract_value)
 	if base <= 0:
-		raise ConstructionRuleError("The job has no approved contract value; approve its contract first (CON-03)")
+		raise ConstructionRuleError(
+			"The job has no approved contract value; approve its contract first (CON-03)"
+		)
 	return base + sum((money(a) for a in approved_amounts), Decimal("0")) + money(change)
 
 

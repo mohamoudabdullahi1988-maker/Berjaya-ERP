@@ -34,7 +34,8 @@ class TestSidraContractClause(IntegrationTestCase):
 			doc.approved = 1
 			doc.save()
 		self.assertEqual(
-			frappe.db.get_value("Sidra Contract Clause", doc.name, ["approved", "approved_by"]), (1, GENERAL_MANAGER)
+			frappe.db.get_value("Sidra Contract Clause", doc.name, ["approved", "approved_by"]),
+			(1, GENERAL_MANAGER),
 		)
 
 	def test_others_cannot_approve(self):

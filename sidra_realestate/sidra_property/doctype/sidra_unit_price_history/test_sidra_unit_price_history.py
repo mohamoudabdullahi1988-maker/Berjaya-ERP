@@ -74,7 +74,8 @@ class TestSidraUnitPriceHistory(IntegrationTestCase):
 	def test_unit_created_with_price_gets_initial_entry(self):
 		unit = self.unit(price=5500)
 		self.assertEqual(
-			[(h.price, h.previous_price, h.reason) for h in self.history(unit.name)], [(5500, 0, "Initial price")]
+			[(h.price, h.previous_price, h.reason) for h in self.history(unit.name)],
+			[(5500, 0, "Initial price")],
 		)
 		self.assertEqual(unit.cash_price, 5500)
 
@@ -180,7 +181,13 @@ class TestSidraUnitPriceHistory(IntegrationTestCase):
 					}
 				).insert()
 			entry = frappe.get_doc(
-				{"doctype": DOCTYPE, "unit": own.name, "price": 5600, "effective_from": add_days(today(), 1), "reason": "x"}
+				{
+					"doctype": DOCTYPE,
+					"unit": own.name,
+					"price": 5600,
+					"effective_from": add_days(today(), 1),
+					"reason": "x",
+				}
 			).insert()
 			entry.submit()
 		self.assertEqual(entry.company, COMPANY)

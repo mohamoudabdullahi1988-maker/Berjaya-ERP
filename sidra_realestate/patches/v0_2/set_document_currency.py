@@ -9,6 +9,8 @@ import frappe
 
 def execute():
 	for doctype in ("Sidra Sale Contract", "Sidra Construction Job"):
-		for row in frappe.get_all(doctype, filters={"currency": ("is", "not set")}, fields=["name", "company"]):
+		for row in frappe.get_all(
+			doctype, filters={"currency": ("is", "not set")}, fields=["name", "company"]
+		):
 			currency = frappe.get_cached_value("Company", row.company, "default_currency")
 			frappe.db.set_value(doctype, row.name, "currency", currency, update_modified=False)

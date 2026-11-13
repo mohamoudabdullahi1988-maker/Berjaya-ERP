@@ -31,7 +31,12 @@ from sidra_realestate.tests.helpers import (
 	unique,
 )
 
-CHILD_TABLES = ("Sidra Contract Unit", "Sidra Contract Party", "Sidra Contract Clause Line", "Sidra Installment Line")
+CHILD_TABLES = (
+	"Sidra Contract Unit",
+	"Sidra Contract Party",
+	"Sidra Contract Clause Line",
+	"Sidra Installment Line",
+)
 
 
 class TestConcurrency(IntegrationTestCase):
@@ -172,7 +177,9 @@ class TestConcurrency(IntegrationTestCase):
 				if action == "expire":
 					start = add_days(today(), -8)
 					frappe.db.set_value(
-						"Sidra Reservation", reservation, {"reserved_on": start, "expires_on": add_days(start, 7)}
+						"Sidra Reservation",
+						reservation,
+						{"reserved_on": start, "expires_on": add_days(start, 7)},
 					)
 				calls = self.record_locks()
 				if action == "cancel":
@@ -203,7 +210,9 @@ class TestConcurrency(IntegrationTestCase):
 		unit = self.unit()
 		reservation = reserve_unit(unit, BUYER)["reservation"]
 		start = add_days(today(), -8)
-		frappe.db.set_value("Sidra Reservation", reservation, {"reserved_on": start, "expires_on": add_days(start, 7)})
+		frappe.db.set_value(
+			"Sidra Reservation", reservation, {"reserved_on": start, "expires_on": add_days(start, 7)}
+		)
 		contract = self.contract([unit])
 		frappe.db.commit()
 
@@ -292,7 +301,9 @@ class TestConcurrency(IntegrationTestCase):
 		self.assertEqual(frappe.db.get_value("Sidra Sale Contract", second, "docstatus"), 0)
 		self.assertEqual(
 			frappe.get_all(
-				"Sidra Sale Contract", filters={"external_reference_key": f"{COMPANY}::{reference}"}, pluck="name"
+				"Sidra Sale Contract",
+				filters={"external_reference_key": f"{COMPANY}::{reference}"},
+				pluck="name",
 			),
 			[first],
 		)

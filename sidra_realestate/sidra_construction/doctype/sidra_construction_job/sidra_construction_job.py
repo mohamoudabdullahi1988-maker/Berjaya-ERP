@@ -136,7 +136,9 @@ class SidraConstructionJob(Document):
 				row.certified = row.certified or 0
 			if prev and prev.certified and stage_values(row) != stage_values(prev):
 				frappe.throw(
-					_("Stage {0} ({1}) is certified and can no longer be changed").format(row.idx, prev.stage_name)
+					_("Stage {0} ({1}) is certified and can no longer be changed").format(
+						row.idx, prev.stage_name
+					)
 				)
 		current = {row.name for row in self.stages}
 		for name, prev in old.items():
@@ -150,9 +152,9 @@ class SidraConstructionJob(Document):
 		self.boq_revision_no = before.boq_revision_no if before else 0
 		if before and before.boq_revision and boq_key(boq_values(self)) != boq_key(boq_values(before)):
 			frappe.throw(
-				_("This BOQ is controlled by approved revision {0}; change it through a new BOQ Revision").format(
-					before.boq_revision
-				),
+				_(
+					"This BOQ is controlled by approved revision {0}; change it through a new BOQ Revision"
+				).format(before.boq_revision),
 				title=_("BOQ is revision-controlled"),
 			)
 
@@ -174,7 +176,9 @@ class SidraConstructionJob(Document):
 		added = [n for n, pct in new.items() if n not in old and pct]
 		if changed or added:
 			frappe.throw(
-				_("Stage Billing % are the contract's payment milestones and cannot change after the contract is approved"),
+				_(
+					"Stage Billing % are the contract's payment milestones and cannot change after the contract is approved"
+				),
 				title=_("Milestones locked"),
 			)
 
@@ -225,9 +229,9 @@ def certify_stage(job: str, stage: str):
 		frappe.throw(_("Stage {0} is already certified").format(row.stage_name))
 	if row.status != "Completed" or flt(row.completion_pct, 6) != 100 or not row.actual_end:
 		frappe.throw(
-			_("Stage {0} can be certified only when it is Completed, 100% complete and has an actual end date").format(
-				row.stage_name
-			)
+			_(
+				"Stage {0} can be certified only when it is Completed, 100% complete and has an actual end date"
+			).format(row.stage_name)
 		)
 	if getdate(row.actual_end) > getdate(today()):
 		frappe.throw(_("Stage {0} ends in the future; it cannot be certified yet").format(row.stage_name))

@@ -133,7 +133,12 @@ def ensure_user(email, roles):
 def make_scheme(code, company=COMPANY):
 	if not frappe.db.exists("Sidra Scheme", code):
 		frappe.get_doc(
-			{"doctype": "Sidra Scheme", "scheme_code": code, "scheme_name": f"{code} scheme", "company": company}
+			{
+				"doctype": "Sidra Scheme",
+				"scheme_code": code,
+				"scheme_name": f"{code} scheme",
+				"company": company,
+			}
 		).insert(ignore_permissions=True)
 	return code
 

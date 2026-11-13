@@ -4,6 +4,20 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.15 — twelve-month pilot demonstration dataset, 13 Nov 2026; decision G16; `docs/PILOT-DEMO_v0.1.md`)
+- **`sidra_realestate.pilot_demo.create_pilot_demo_data`**: one guarded, manual loader that fills the existing Company **Sidra Homes** with twelve months of fictional movement, so a client demonstration opens onto populated records in every module instead of empty screens.
+  - Property: 4 schemes, 120 units across Plot / House / Apartment, ready and off-plan, with 20 submitted price reviews scheduled ahead.
+  - Sales: 40 buyers with KYC (4 left unverified so the contract gate is visible), 60 quotations across Draft / Issued / Expired with discounts above and below the 5 % limit, 25 reservations created through the Reserve Unit service, 45 contracts — Cash and Installment, generated and externally registered, 3 left draft — and 20 title transfers spread across their states.
+  - Installments: a schedule on every installment contract at 12, 18, 24 or 36 months; the rounding lands on the final row so the schedule equals the balance exactly.
+  - Construction: 25 jobs across all four service types and six statuses, each with a BOQ, five stages and billing percentages totalling 100; a draft quotation per job past Enquiry and addition-only variation orders.
+  - Finance: about 160 vouchers over twelve months — opening capital, 60 sales invoices, 35 purchase invoices and their payments — paid, part paid and open in equal thirds so AR ageing has more than one bucket.
+- **Every G14 guard is kept and none relaxed**: Administrator only, all three staging flags, a private ownership manifest (`sidra-pilot-demo-v1.json`), the no-foreign-GL guard as the first read before any insert, one transaction with full rollback, reserved-identity refusals, and a rerun that verifies and writes nothing.
+- The pilot and finance demo manifests are read together, so the two datasets coexist in Sidra Homes and each still refuses ledger rows neither owns.
+- `services/pilot_dataset.py`: the dataset plan as pure, seeded logic with `test_engine_pilot_dataset.py` — counts, dates, schedule arithmetic and the balance-sheet identity are asserted before anything is posted. Frappe integration tests cover the guards, the rollback, the foreign-GL refusal, module coverage and the rerun.
+- `docs/PILOT-DEMO_v0.1.md`, `docs/DECISIONS-AND-GATES_v0.1.md`: G16. `CLAUDE.md` and `AGENTS.md` name the pilot dataset in the scoped exception.
+- Known gap: **Sidra Brokerage has no DocTypes**, so it is not populated and its sidebar section stays empty. Inspection Reports are not created — the DocType needs an inspector User the loader does not make.
+- Production posting gates, refunds, penalties and title transfer are unchanged; ERPNext remains the only ledger.
+
 ### Added (v0.1.14 — one front page for staff, decision G15, 13 Nov 2026; `docs/SHELL_v0.1.md`)
 - `/sidra`: a single front page with four doors (Executive Dashboard, Financials, Real Estate Sales, Construction). Each service shows its workflow as numbered steps with counts, items waiting for action, and New buttons. Doors, steps and buttons follow the user's permissions; a step the user can't read is left out, not shown as zero.
 - Staff land on it after signing in: the app's apps-screen route is `/sidra` (desk route `/desk/sidra-sale-contract`) and System Settings Default App is set to this app when blank.
