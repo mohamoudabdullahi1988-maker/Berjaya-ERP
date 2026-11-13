@@ -43,8 +43,6 @@ from sidra_realestate.tests.helpers import (
 	unique,
 )
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Sidra Unit", "Customer", "Company", "Sidra Contract Profile", "User"]
-
 FINANCE_REVIEWER = "sidra.finance-reviewer@example.com"
 KEYS = [key for key, _label, _check in PROCESSES[EXTERNAL_REGISTRATION]]
 WRITE = re.compile(r"^\s*(insert|update|delete|replace|alter|create|drop|truncate)\b", re.I)
