@@ -19,6 +19,9 @@ from decimal import ROUND_HALF_UP, Decimal
 # version produce the same dataset, which is what makes the ownership manifest meaningful.
 SEED = 20261113
 MONTHS = 12
+# A notary reference is unique across the site, and the suite already fixes 042, 077-081 and
+# 901-903. The pilot takes its own block so a loaded demo cannot collide with those.
+NOTARY_BLOCK = 300
 PREFIX = "SHP"  # "Sidra Homes Pilot" — distinct from demo.py's DEMO- and finance_demo's SHD.
 
 SCHEMES = (
@@ -275,7 +278,7 @@ def build(as_of: date) -> Plan:
 			"down_payment": down,
 			"installments": count if installment else 0,
 			"due_day": 5,
-			"notary_reference": f"IPN/HL/{900 + index:03d}/{signed.year}",  # SAL-19 format
+			"notary_reference": f"IPN/HL/{NOTARY_BLOCK + index:03d}/{signed.year}",
 			# Three in forty-five stay draft so the pipeline is not uniformly submitted.
 			"submit": index % 15 != 0,
 			"schedule": _schedule(price, down, count, signed, 5) if installment else [],

@@ -111,11 +111,14 @@ class TestCoverage(unittest.TestCase):
 	def test_notary_references_match_the_registry_format(self):
 		"""SAL-19: the contract refuses anything that is not IPN/HL/NNN/YYYY."""
 		pattern = re.compile(r"^IPN/HL/\d{3}/\d{4}$")
+		# References the rest of the suite fixes; a notary reference is unique site-wide.
+		taken = {"042", "077", "078", "079", "081", "901", "902", "903"}
 		seen = set()
 		for contract in self.plan.contracts:
 			reference = contract["notary_reference"]
 			self.assertRegex(reference, pattern, contract["reference"])
 			self.assertNotIn(reference, seen, "notary references must be unique")
+			self.assertNotIn(reference.split("/")[2], taken, "collides with another test's reference")
 			seen.add(reference)
 
 	def test_title_dates_are_never_in_the_future(self):
