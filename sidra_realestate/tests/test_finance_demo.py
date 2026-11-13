@@ -133,6 +133,15 @@ class TestFinanceDemo(IntegrationTestCase):
 			self.assertEqual(existing_units(), units_before)
 			for dt, count in VOUCHERS.items():
 				self.assertEqual(frappe.db.count(dt, {"company": COMPANY, "docstatus": 1}), count)
+
+			# G19: the Company keeps its exact name and its invoices carry it, not the product name.
+			self.assertEqual(COMPANY, "Sidra Homes")
+			self.assertEqual(frappe.db.get_value("Company", COMPANY, "company_name"), "Sidra Homes")
+			invoice = frappe.get_all(
+				"Sales Invoice", filters={"company": COMPANY, "docstatus": 1}, pluck="name", limit=1
+			)[0]
+			self.assertEqual(frappe.db.get_value("Sales Invoice", invoice, "company"), "Sidra Homes")
+			self.assertNotIn("berjaya", frappe.get_print("Sales Invoice", invoice).lower())
 			self.assertEqual(
 				sorted(
 					frappe.get_all("Sales Invoice", filters={"company": COMPANY}, pluck="outstanding_amount")

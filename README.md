@@ -1,6 +1,6 @@
-<p align="center"><img src="sidra_realestate/public/images/sidra-logo.png" alt="Sidra Homes" width="320"></p>
+<p align="center"><img src="sidra_realestate/public/images/berjaya-wordmark.png" alt="Berjaya" width="320"></p>
 
-# Sidra Real Estate — ERPNext app (`sidra_realestate`)
+# Berjaya — ERPNext app (`sidra_realestate`)
 
 Custom Frappe app that runs Sidra Homes' business on **ERPNext v16**: land and house sales, Murabaha / installment contracts with configurable contract profiles, title transfer tracking, construction projects (full build, design, inspection) and land brokerage.
 
