@@ -1,4 +1,4 @@
-"""Pure tests for the pilot demonstration dataset plan (decision G15). No Frappe needed."""
+"""Pure tests for the pilot demonstration dataset plan (decision G16). No Frappe needed."""
 
 import re
 import unittest

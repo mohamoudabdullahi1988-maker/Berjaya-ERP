@@ -88,7 +88,7 @@ def _refuse_foreign_gl(data):
 	owned = (
 		{(doctype, name) for doctype, names in data["vouchers"].items() for name in names} if data else set()
 	)
-	# The pilot dataset (G15) posts into the same Company under its own manifest. Its vouchers are
+	# The pilot dataset (G16) posts into the same Company under its own manifest. Its vouchers are
 	# owned too, so a finance demo rerun after a pilot load verifies instead of falsely refusing.
 	# Imported here: pilot_demo reads COMPANY and the flags from this module.
 	from sidra_realestate.pilot_demo import MANIFEST as PILOT_MANIFEST

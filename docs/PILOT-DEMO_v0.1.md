@@ -1,6 +1,6 @@
 # Pilot demonstration dataset v0.1
 
-**Document version:** v0.1 · **Date:** 13 Nov 2026 · **Decision:** G15
+**Document version:** v0.1 · **Date:** 13 Nov 2026 · **Decision:** G16
 **Applies to:** the marked test site only — `http://5.253.233.218`, site `sidra.local`, Company **Sidra Homes**
 **Supersedes nothing.** `FINANCE-DEMO_v0.2.md` (G14) stays in force; this widens its voucher set.
 
@@ -13,7 +13,7 @@ into a single month leaves the Profit and Loss, Trial Balance, AR and AP reports
 and leaves Property, Sales, Installments and Construction with a handful of records each. The
 client sees empty screens, not a working system.
 
-**Decision G15 (Mohamoud, 13 Nov 2026).** The fictional dataset on the test site is expanded to
+**Decision G16 (Mohamoud, 13 Nov 2026).** The fictional dataset on the test site is expanded to
 twelve months of movement across every module that has DocTypes, under the Company **Sidra
 Homes**. The widened voucher set replaces the fixed ten of `FINANCE-DEMO_v0.2.md` *for this
 loader only*; the finance demo loader and its ten vouchers are unchanged and still run.

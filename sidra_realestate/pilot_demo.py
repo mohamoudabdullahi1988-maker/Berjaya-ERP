@@ -1,6 +1,6 @@
 """Explicitly opted-in, fictional pilot demonstration dataset. Never run from hooks or HTTP.
 
-See docs/PILOT-DEMO_v0.1.md (decision G15). This widens the fictional voucher set of the finance
+See docs/PILOT-DEMO_v0.1.md (decision G16). This widens the fictional voucher set of the finance
 demo so a client demonstration has twelve months of movement in every module; it does not enable
 Sidra contract posting, refunds, penalties or title transfer.
 
@@ -34,7 +34,7 @@ ACCOUNT_PREFIX = "Pilot Demo "
 PROFILE = f"{PREFIX} Pilot Installment Profile"
 VOUCHER_TYPES = ("Sales Invoice", "Purchase Invoice", "Payment Entry", "Journal Entry")
 NOTICE = (
-	"FICTIONAL PILOT DEMONSTRATION DATA (decision G15). Not real Sidra transactions, customers, "
+	"FICTIONAL PILOT DEMONSTRATION DATA (decision G16). Not real Sidra transactions, customers, "
 	"contracts or land."
 )
 

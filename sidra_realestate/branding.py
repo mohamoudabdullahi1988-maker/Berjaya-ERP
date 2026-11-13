@@ -3,6 +3,9 @@
 - Logo, favicon and system name: Navbar Settings, Website Settings and System Settings get the
   Sidra Homes name and logo on install and migrate. A value an administrator has changed to
   something other than a Frappe / ERPNext default is left alone.
+- Front page: System Settings "Default App" is set to this app when it is blank, so staff land
+  on /sidra after signing in (decision G15). A choice an administrator has made is left alone,
+  and so is each user's own default app.
 - Navigation: the app ships a Dock (`dock/`) and two Sidebars (`sidebar/`): Real Estate and
   Construction. ERPNext modules Sidra does not use are hidden for staff through the Module Profile
   "Sidra Staff" (hidden, not deleted; administrators still see them).
@@ -46,6 +49,8 @@ def _set_single(doctype, values):
 
 def apply_branding():
 	_set_single("System Settings", {"app_name": BRAND_NAME})
+	if not frappe.db.get_single_value("System Settings", "default_app"):
+		frappe.db.set_single_value("System Settings", "default_app", "sidra_realestate")
 	_set_single("Navbar Settings", {"app_logo": LOGO})
 	_set_single(
 		"Website Settings",

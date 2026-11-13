@@ -1,4 +1,4 @@
-"""Deterministic plan for the pilot demonstration dataset (decision G15). No Frappe needed.
+"""Deterministic plan for the pilot demonstration dataset (decision G16). No Frappe needed.
 
 This module decides *what* records the pilot dataset contains: how many, on which dates, for
 which amounts. `sidra_realestate.pilot_demo` turns the plan into documents inside one guarded
