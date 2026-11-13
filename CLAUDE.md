@@ -8,6 +8,12 @@ You are the **implementation** agent for Sidra Real Estate's ERPNext system. Rea
 - Working spec: `docs/SREMS-SRS_v2.0-DRAFT.md` (decided 5 Nov 2026). Business requirements and IDs come from `docs/SREMS-SRS_v1.6.md`; traceability in `docs/REQUIREMENTS-TRACEABILITY_v2.0-DRAFT.csv`. Handover v1.0 applies where v2.0 is silent.
 - The repository stays `sidra-erp` and the app stays `sidra_realestate` (v2.0 writes `sidra_real_estate`).
 
+## Product and client names (decisions G17–G19, 13 Nov 2026)
+Users see **Berjaya** as the software and **Sidra** as the company using it. Test for any string: does it name the software or the business?
+- Software (application branding, navigation, login screens, page titles, help text, product documentation) → **Berjaya**. Take the name from `sidra_realestate/branding.py`; do not scatter the literal.
+- Business (company records such as Company **Sidra Homes**, contracts, invoices, receipts, statements, letterheads) → **Sidra**. Never renamed, merged or rebranded.
+- Internal identifier a user does not read as branding (app `sidra_realestate`, site `sidra.local`, `sidra_*` flags, DocType, field and role names, naming series such as `SSC-…`, routes, the repository) → unchanged.
+
 ## Roles
 - Current dashboard assignment (Mohamoud, 8 Nov 2026): Codex implements the dashboard backend, staff web/native clients, supporting reports and integration tests end to end. This supersedes the older dashboard role allocations below; no Claude handoff is required to continue this work. Other repository rules and business gates remain in force. The staff front page at `/sidra` (decision G15, `docs/SHELL_v0.1.md`) is Claude Code's.
 - ChatGPT: architecture, specs, acceptance criteria, security and code review.
