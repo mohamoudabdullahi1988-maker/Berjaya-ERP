@@ -1,6 +1,6 @@
 # Sidra fictional financial demonstration v0.1
 
-> **Superseded by [FINANCE-DEMO_v0.2.md](FINANCE-DEMO_v0.2.md) (12 Nov 2026, decision G13).** Kept for the record; the loader no longer uses the separate Company described here.
+> **Superseded by [FINANCE-DEMO_v0.2.md](FINANCE-DEMO_v0.2.md) (12 Nov 2026, decision G14).** Kept for the record; the loader no longer uses the separate Company described here.
 
 9 Nov 2026. User request: “Can you upload sample data so that financial reports and dashboards shows something”. Implements a **demo-only exception** to the prototype's voucher restriction, not a production accounting decision (SRS §3.6, G4). ERPNext remains the only ledger.
 

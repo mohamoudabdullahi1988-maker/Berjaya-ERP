@@ -1,6 +1,6 @@
 """Explicitly opted-in, fictional native accounting data. Never run from hooks or HTTP.
 
-See docs/FINANCE-DEMO_v0.2.md (decision G13). This does not enable Sidra contract posting.
+See docs/FINANCE-DEMO_v0.2.md (decision G14). This does not enable Sidra contract posting.
 
 COMPANY is the only place the target Company is named; the adapter, reporting and tests import it.
 """
@@ -81,7 +81,7 @@ def _manifest(required=True):
 
 
 def _refuse_foreign_gl(data):
-	"""Decision G13: never post into, or vouch for, a Company with ledger rows we do not own.
+	"""Decision G14: never post into, or vouch for, a Company with ledger rows we do not own.
 
 	`data` is the manifest, or None on a first run, when any GL row at all is foreign.
 	"""
@@ -382,7 +382,7 @@ def _create():
 		"vouchers": vouchers,
 		"expected_net_debits": EXPECTED,
 		"operational": operational,
-		"notice": "Fictional sample vouchers on a marked test site (decision G13). Not real Sidra transactions.",
+		"notice": "Fictional sample vouchers on a marked test site (decision G14). Not real Sidra transactions.",
 	}
 
 

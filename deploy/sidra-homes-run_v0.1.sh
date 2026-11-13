@@ -3,7 +3,7 @@
 # sidra-homes-run_v0.1.sh
 # One script for the test server: backup, update the app code to
 # `develop`, rebuild, restart, then load and verify the Sidra Homes
-# sample data (decision G13).
+# sample data (decision G14).
 # Version: v0.1   Date: 2026-11-12   Site: sidra.local
 #
 # Run as root on the test server:

@@ -50,6 +50,7 @@ scheduler_events = {
 		"sidra_realestate.services.reservations.expire_reservations",
 		"sidra_realestate.services.prices.refresh_current_prices",
 		"sidra_realestate.sidra_sales.doctype.sidra_title_transfer.sidra_title_transfer.refresh_title_states",
+		"sidra_realestate.sidra_sales.doctype.sidra_sale_quotation.sidra_sale_quotation.expire_quotations",
 	],
 }
 

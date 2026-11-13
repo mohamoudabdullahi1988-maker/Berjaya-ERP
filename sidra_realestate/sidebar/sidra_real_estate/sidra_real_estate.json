@@ -104,6 +104,22 @@
    "indent": 0,
    "is_default_module": 1,
    "keep_closed": 0,
+   "label": "Sale Quotations",
+   "open_in_new_tab": 0,
+   "show_arrow": 0,
+   "type": "Link",
+   "link_to": "Sidra Sale Quotation",
+   "link_type": "DocType",
+   "icon": "file-text"
+  },
+  {
+   "added": 0,
+   "child": 0,
+   "collapsible": 0,
+   "hidden": 0,
+   "indent": 0,
+   "is_default_module": 1,
+   "keep_closed": 0,
    "label": "Sale Contracts",
    "open_in_new_tab": 0,
    "show_arrow": 0,
@@ -259,7 +275,7 @@
    "is_default_module": 1
   }
  ],
- "modified": "2026-11-12 19:00:00.000000",
+ "modified": "2026-11-12 20:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Property",
  "name": "Sidra Real Estate",

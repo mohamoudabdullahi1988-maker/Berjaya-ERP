@@ -28,6 +28,6 @@ def populate_and_verify():
 		"construction": dashboard["jobs"],
 		"summary": dashboard["summary"],
 		"reports": data["reports"],
-		"note": "Test site only (decision G13): the fictional entries are in this Company. "
+		"note": "Test site only (decision G14): the fictional entries are in this Company. "
 		"Choose it in every report. Reruns retain original dates; use the returned report date range.",
 	}

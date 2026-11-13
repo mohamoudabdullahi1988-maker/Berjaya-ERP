@@ -4,13 +4,24 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
-### Changed (v0.1.12 — sample data under Sidra Homes on the test site, decision G13, 12 Nov 2026)
-- Decision G13 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
+### Changed (v0.1.13 — sample data under Sidra Homes on the test site, decision G14, 13 Nov 2026)
+- Decision G14 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
 - Finance demo loader posts the same ten vouchers (237,000 / 237,000) into the existing Company **Sidra Homes**, named in one constant. It never creates or edits the Company; demo accounts sit under marked `Fictional Demo Accounts` groups; identities are `SHD`, so the v0.1 `SFD` records and both old demo Companies are untouched.
 - New no-foreign-GL guard: before the first insert, refuse a Company holding any GL entry the private manifest does not own, naming the count and first vouchers; refuse on a missing, duplicated or unreadable manifest. Also run by `verify_finance_demo`.
 - Staff dashboard demo finance adapter and `demo_reporting.populate_and_verify` follow the same constant to Sidra Homes.
 - Tests: finance demo tests retargeted; new tests for the guard (refusal, count in the message, nothing written), the missing Company, the unreadable manifest, and the count and checksum of 60 existing units before and after a load.
 - `deploy/sidra-homes-verify_v0.2.sh`: test-site runbook and read-only verification sweep. `deploy/sidra-homes-run_v0.1.sh`: one script that backs up, fast-forwards the app to `develop`, rebuilds, restarts and then runs it.
+
+### Added (v0.1.12 — sale quotation, P1, 12 Nov 2026; decision G13; `docs/SALE-QUOTATION_v0.1.md`)
+- **Sidra Sale Quotation** (SAL-05): an offer for one or more units showing the cash option and the installment option side by side, printed on Sidra letterhead (print format *Sidra Sale Quotation*).
+  - Cash option: the unit's listed price, or lower as a discount.
+  - Installment option: a price entered per unit, never below the listed price; terms from a contract profile, with the number of months adjustable from 12 to 36; an indicative schedule.
+  - Discounts need a second person before the quotation is issued: a Sales Manager up to 5 % of the unit's listed price, the General Manager above. Changing a price clears the approval.
+  - Valid 7 days unless changed; a daily job marks issued quotations Expired.
+  - Offer only: no reservation, no unit change, no contract and no posting.
+- Real Estate sidebar link for Sale Quotations.
+- `services/quotation.py`: pure rules with `test_engine_quotation.py`. The 5 % limit, the month range and the valid days are constants that change only with an approved spec. Frappe integration tests.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G13.
 
 ### Fixed (v0.1.11 — staff sample figures, 12 Nov 2026)
 - Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.

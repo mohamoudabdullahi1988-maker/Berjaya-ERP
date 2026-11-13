@@ -159,7 +159,7 @@ class TestFinanceDemo(IntegrationTestCase):
 					verify_finance_demo(data)
 
 	def _foreign_gl_refused(self):
-		"""One voucher the manifest does not own: refuse, name the count, write nothing (G13)."""
+		"""One voucher the manifest does not own: refuse, name the count, write nothing (G14)."""
 		before = (frappe.db.count("GL Entry"), demo_masters(), existing_units())
 		frappe.db.savepoint("foreign_gl")
 		try:
