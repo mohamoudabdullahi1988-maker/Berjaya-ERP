@@ -4,6 +4,14 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.19 — workflow timeline API for registered contracts, 13 Nov 2026; decisions G17, G20)
+- **`sidra_realestate.api.workflow.get_contract_timeline(contract)`**: one whitelisted, read-only method that returns the ordered stages of registering an External contract for the workflow panel of the new interface. Every state is derived from saved records on each call; nothing is stored and nothing is written.
+- Six stages, with the evidence approved by Mohamoud on 13 Nov 2026: buyer details verified (Sidra Customer KYC; informational for registered contracts under G12, never blocking), property allocation checked (re-derived from the units), external agreement attached (the contract's own private signed-copy File), installment schedule validated (D1 down payment mode, D3 tolerance; a confirmed contract keeps the tolerance frozen in its snapshot), terms approval by the Sales Manager (D7), registration finalized (submitted, external reference reserved).
+- Each stage is `completed`, `current`, `blocked` or `pending`; exactly one is current or blocked unless all are completed. A blocked stage carries the reason in words, with both amounts when the schedule does not reconcile.
+- Read permission on the contract is enforced. `allowed_actions` is computed for the signed-in user. KYC evidence is returned as unavailable to users who cannot read KYC; no contract amount is restricted today, and a figure a user may not read would be returned as unavailable, never zero.
+- Stage lists are defined in one place (`PROCESSES`) so collections and construction can add theirs. Generated and Cash contracts report that no workflow is defined yet.
+- No DocType, field, permission, hook, guard or posting gate is changed. `api/test_workflow.py`: 21 integration tests.
+
 ### Changed (v0.1.18 — Berjaya product name on the existing screens, 13 Nov 2026; decisions G17–G20)
 - **Decisions recorded** in `docs/DECISIONS-AND-GATES_v0.1.md`: G17 (interface rebuild), G18 (product name **Berjaya**), G19 (**Sidra** stays the client and company name), G20 (rollout: `/berjaya`, charcoal and terracotta, rebrand first). `CLAUDE.md` and `AGENTS.md` carry the same naming rule.
 - **Branding audit** (`docs/BERJAYA-BRANDING-AUDIT_v0.1.md`): 2,128 "sidra" lines classified — 11 product, 176 client, 1,883 internal, 58 unsure. Approved by Mohamoud on 13 Nov 2026.
