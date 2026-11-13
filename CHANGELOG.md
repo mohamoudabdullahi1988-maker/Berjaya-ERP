@@ -4,6 +4,15 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.19 — Berjaya interface shell at `/berjaya`, 13 Nov 2026; decisions G17, G20)
+- **`/berjaya`**: the new interface, a Vue 3 + Vite + Frappe UI app in `frontend/`, served by `www/berjaya.py`; `website_route_rules` sends every path under `/berjaya` to it. Existing Frappe session only: Guests go to the login page and come back to the page they asked for; signed-in people who are not Sidra staff are refused. No tokens, nothing in local storage.
+- **Shell**: charcoal navigation (collapsible; a drawer on phones) with the product wordmark at the top and the user's Company at the bottom; a flexible workspace; a right panel slot (a drawer below 1100px), empty until the workflow panel is built. Colours and fonts are defined once in `frontend/src/tokens.css`; Space Grotesk and Inter are bundled, not fetched.
+- **Navigation follows the server**: `www/berjaya.py` lists the sections the user may read (Properties: Sidra Unit; Contracts and Collections: Sidra Sale Contract; Construction: Sidra Construction Job; Finance: GL Entry, as on `/sidra`). The frontend decides no permission.
+- **Properties**: a read-only list of units and their count from Frappe's REST API, with loading, empty, error and unavailable states. A field the server does not list as readable for the user reads "Unavailable", never zero. No demo or in-memory data; a failed request shows the failure. Other sections read "Not built yet".
+- **Build**: `bench build --app sidra_realestate` now also builds the frontend through the root `package.json` (or `yarn install --frozen-lockfile && yarn build` at the repository root). The output, `public/berjaya/` and `www/berjaya.html`, is not committed.
+- Tests: `api/test_berjaya_page.py` — Guest redirect, outsider refused, navigation for two roles against their permissions, readable unit fields, the route rule, the built page rendering with its boot data.
+- **Unchanged**: every DocType, field, permission, guard, loader and posting gate; `/sidra` and `/sidra-staff/`. No migration. Known gap: `Sidra Unit.cash_price` is not a restricted field today, so every role that reads units sees it.
+
 ### Changed (v0.1.18 — Berjaya product name on the existing screens, 13 Nov 2026; decisions G17–G20)
 - **Decisions recorded** in `docs/DECISIONS-AND-GATES_v0.1.md`: G17 (interface rebuild), G18 (product name **Berjaya**), G19 (**Sidra** stays the client and company name), G20 (rollout: `/berjaya`, charcoal and terracotta, rebrand first). `CLAUDE.md` and `AGENTS.md` carry the same naming rule.
 - **Branding audit** (`docs/BERJAYA-BRANDING-AUDIT_v0.1.md`): 2,128 "sidra" lines classified — 11 product, 176 client, 1,883 internal, 58 unsure. Approved by Mohamoud on 13 Nov 2026.
