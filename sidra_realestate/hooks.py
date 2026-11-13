@@ -46,6 +46,10 @@ website_context = {
 	"splash_image": _branding.LOGO,
 }
 
+# Berjaya look for the sign-in pages (decision G20: charcoal and terracotta). The stylesheet is
+# scoped to the login page, so other website pages are unchanged; Frappe's page is not edited.
+web_include_css = ["/assets/sidra_realestate/css/berjaya-login.css"]
+
 # The Berjaya interface (www/berjaya.py, frontend/): a single-page app, so every path under
 # /berjaya is served by the one page and routed in the browser.
 website_route_rules = [

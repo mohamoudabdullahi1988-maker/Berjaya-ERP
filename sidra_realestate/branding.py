@@ -19,7 +19,8 @@ records, print letterheads and internal identifiers keep the Sidra name and are 
 import frappe
 
 BRAND_NAME = "Berjaya"
-# Plain text wordmark and letter icon; the final logo and colours are a later decision (G20).
+# Wordmark and icon in the decided colours (G20: charcoal and terracotta), the same mark the
+# /berjaya interface draws. The sign-in page is styled by public/css/berjaya-login.css (hooks.py).
 LOGO = "/assets/sidra_realestate/images/berjaya-wordmark.png"
 ICON = "/assets/sidra_realestate/images/berjaya-favicon.png"
 APP_ICON = "/assets/sidra_realestate/images/berjaya-icon.png"

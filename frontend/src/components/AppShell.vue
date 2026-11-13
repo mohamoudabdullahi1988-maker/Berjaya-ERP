@@ -1,9 +1,10 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { boot, navItems } from '../boot'
 import { PRODUCT_NAME } from '../brand'
+import { panel } from '../panel'
 
 const ICONS = {
   dashboard: 'lucide-layout-dashboard',
@@ -19,7 +20,7 @@ const route = useRoute()
 
 const navCollapsed = ref(false) // desktop: icon-only rail
 const navDrawer = ref(false) // phone: slide-over
-const panelOpen = ref(false) // desktop: column; phone: slide-over
+const panelOpen = toRef(panel, 'open') // desktop: column; phone: slide-over. Pages open it (panel.js).
 
 function closeDrawers() {
   navDrawer.value = false
@@ -89,12 +90,14 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <span class="bar__spacer" />
         <span class="bar__user" :title="boot.user.name">{{ boot.user.full_name }}</span>
         <button
+          v-if="panel.inUse"
           type="button"
           class="bar__btn"
-          :aria-label="panelOpen ? 'Close side panel' : 'Open side panel'"
+          :aria-label="panelOpen ? 'Close workflow' : 'Open workflow'"
           :aria-expanded="panelOpen"
           @click="panelOpen = !panelOpen"
         >
+          <span class="workflow-label">Workflow</span>
           <span :class="panelOpen ? 'lucide-panel-right-close' : 'lucide-panel-right-open'" aria-hidden="true" />
         </button>
       </header>
@@ -110,7 +113,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           <span class="lucide-x" aria-hidden="true" />
         </button>
       </div>
-      <!-- Filled by a later change: a page teleports its workflow panel here. -->
+      <!-- A page teleports its workflow panel here (ContractDetail.vue). -->
       <div id="berjaya-panel" class="panel__body" />
     </aside>
   </div>
@@ -299,8 +302,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .bar__btn {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-radius: 8px;
   background: none;
@@ -445,4 +448,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     display: none;
   }
 }
+</style>
+
+<style scoped>
+.bar__btn:has(.workflow-label) { display: flex; gap: 8px; padding: 8px; }
+.bar__btn > .workflow-label { width: auto; height: auto; }
 </style>
