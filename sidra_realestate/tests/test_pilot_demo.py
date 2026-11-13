@@ -66,6 +66,8 @@ class TestPilotDemo(IntegrationTestCase):
 		ensure_base_records()
 		with as_user("Administrator"), patch.dict(frappe.conf, {flag: 1 for flag in FLAGS}):
 			ensure_company(COMPANY, "SH")
+			# The loader rolls back on failure; commit so its Company survives whichever test runs first.
+			frappe.db.commit()
 		units_before = company_units()
 
 		# 1. Without the three staging flags nothing runs.
