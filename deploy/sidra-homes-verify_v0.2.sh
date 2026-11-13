@@ -3,6 +3,8 @@
 # sidra-homes-verify_v0.2.sh
 # Part 2 runbook + verification for the Sidra Homes retarget
 # Version: v0.2   Date: 2026-11-12   Site: sidra.local
+# Existing twelve-month pilot: use sidra-pilot-check.sh instead. The all and
+# populate commands below invoke the older ten-voucher finance loader.
 # v0.2: the 60-unit check leaves out the loader's three added fictional plots
 #       (scheme SHD-FICTIONAL) and reports them separately; the schedule
 #       table is `tabSidra Installment Line`.
