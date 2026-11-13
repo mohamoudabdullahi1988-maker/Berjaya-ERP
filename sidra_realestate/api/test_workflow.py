@@ -191,11 +191,29 @@ class TestWorkflowTimeline(IntegrationTestCase):
 		self.assertEqual(agreement["allowed_actions"], ["attach_agreement"])
 		self.assertIsNone(agreement["blocker"])
 
+	def own_file(self, doc):
+		return frappe.db.get_value(
+			"File",
+			{"file_url": doc.signed_copy, "attached_to_name": doc.name, "attached_to_field": "signed_copy"},
+		)
+
+	def test_agreement_not_on_the_signed_copy_field_is_blocked(self):
+		doc = self.external()
+		frappe.db.set_value("File", self.own_file(doc), "attached_to_field", None)
+		result = self.timeline(doc)
+		self.assert_stopped_at(result, "agreement_attached", BLOCKED)
+		agreement = self.stage(result, "agreement_attached")
+		self.assertIn("Signed Copy field", agreement["blocker"]["reason"])
+		self.assertEqual(agreement["blocker"]["action_key"], "attach_agreement")
+
 	def test_agreement_file_shared_with_another_record_is_blocked(self):
 		doc = self.external()
 		other = self.external(attach=False)
-		other.signed_copy = doc.signed_copy
-		other.save(ignore_permissions=True)  # Frappe links a second File record to `other`
+		# A second File row for the same stored file, attached to another contract.
+		shared = frappe.copy_doc(frappe.get_doc("File", self.own_file(doc)))
+		shared.attached_to_name = other.name
+		shared.name = frappe.generate_hash(length=10)
+		shared.db_insert()
 		result = self.timeline(doc)
 		self.assert_stopped_at(result, "agreement_attached", BLOCKED)
 		self.assertIn("another record", self.stage(result, "agreement_attached")["blocker"]["reason"])
