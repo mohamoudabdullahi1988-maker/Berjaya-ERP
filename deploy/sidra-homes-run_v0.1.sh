@@ -5,6 +5,8 @@
 # `develop`, rebuild, restart, then load and verify the Sidra Homes
 # sample data (decision G14).
 # Version: v0.1   Date: 2026-11-12   Site: sidra.local
+# Existing twelve-month pilot: use sidra-pilot-check.sh instead. This script
+# runs the older finance loader; see docs/PILOT-CHECK_v0.1.md.
 #
 # Run as root on the test server:
 #   bash sidra-homes-run_v0.1.sh

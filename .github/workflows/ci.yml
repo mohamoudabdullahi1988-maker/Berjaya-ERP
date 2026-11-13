@@ -41,6 +41,11 @@ jobs:
       - name: Pure business-rule tests (no Frappe)
         run: python -m unittest discover -s sidra_realestate -p "test_engine_*.py" -t . -v
 
+      - name: Existing pilot runbook checks (no live site)
+        run: |
+          bash -n deploy/sidra-pilot-check.sh
+          python -m unittest discover -s deploy/tests -p 'test_*.py' -v
+
   bench:
     name: ERPNext bench install and integration tests
     runs-on: ubuntu-24.04

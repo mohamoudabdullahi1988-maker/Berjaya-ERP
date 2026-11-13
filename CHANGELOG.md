@@ -4,6 +4,10 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.16 — existing pilot verification runbook, 13 Nov 2026)
+- `deploy/sidra-pilot-check.sh`: read-only checks for an already loaded pilot dataset, with unchanged staging and ownership guards, explicit voucher-count comparison and original error reporting. Never invokes either loader, changes flags or removes records. Prints the saved reporting period and identifies unverified balances and screens.
+- `docs/PILOT-CHECK_v0.1.md` explains why the older ten-voucher runbook refuses an existing pilot; old runbook headers point to the replacement verification command.
+
 ### Added (v0.1.15 — twelve-month pilot demonstration dataset, 13 Nov 2026; decision G16; `docs/PILOT-DEMO_v0.1.md`)
 - **`sidra_realestate.pilot_demo.create_pilot_demo_data`**: one guarded, manual loader that fills the existing Company **Sidra Homes** with twelve months of fictional movement, so a client demonstration opens onto populated records in every module instead of empty screens.
   - Property: 4 schemes, 120 units across Plot / House / Apartment, ready and off-plan, with 20 submitted price reviews scheduled ahead.
