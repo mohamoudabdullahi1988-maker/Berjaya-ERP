@@ -358,9 +358,10 @@ def _profile():
 		"docstatus",
 	}
 	values = {k: v for k, v in source.items() if k not in skip and not k.startswith("_")}
-	return _insert(
-		"Sidra Contract Profile", **values, profile_name=PROFILE, is_default=0, installments=24
-	).name
+	# Overrides go into the dict: Profile A already carries `installments`, so passing it
+	# alongside **values is a duplicate keyword argument.
+	values.update(profile_name=PROFILE, is_default=0, installments=24)
+	return _insert("Sidra Contract Profile", **values).name
 
 
 # ---------------------------------------------------------------- property
