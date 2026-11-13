@@ -464,10 +464,19 @@ def _sales(plan, profile, placeholder_scan):
 			"buyer_agent_name": entry["reference"],
 			"notary_name": "Pilot Notary",
 			"notary_reference": entry["notary_reference"],
+			# The signing gate (SAL-19) needs exactly one Seller, a Seller Guarantor with a
+			# pledged property, and two Witnesses with phone numbers.
 			"parties": [
 				{"role": "Seller", "full_name": "Pilot Seller Owner", "phone": "+252 63 000 4001"},
-				{"role": "Witness", "full_name": "Pilot Witness One", "phone": "+252 63 000 4002"},
-				{"role": "Witness", "full_name": "Pilot Witness Two", "phone": "+252 63 000 4003"},
+				{
+					"role": "Seller Guarantor",
+					"full_name": "Pilot Guarantor",
+					"phone": "+252 63 000 4002",
+					"id_number": f"{PREFIX}-ID-4002",
+					"pledged_property": "Pilot pledged plot",
+				},
+				{"role": "Witness", "full_name": "Pilot Witness One", "phone": "+252 63 000 4003"},
+				{"role": "Witness", "full_name": "Pilot Witness Two", "phone": "+252 63 000 4004"},
 			],
 		}
 		if entry["external_reference"]:
