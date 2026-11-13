@@ -69,7 +69,7 @@ same records. Twelve months back from the load date.
 | --- | ---: | --- |
 | Property — Schemes | 4 | Hargeisa East, Hargeisa North Ridge, Berbera Coastal, Burco West |
 | Property — Units | 120 | 30 per scheme; Plot, House and Apartment; ready and off-plan; priced 5,500–28,000 |
-| Property — Price History | 20 | Submitted price reviews dated through the year |
+| Property — Price History | 20 | Submitted price reviews scheduled 15–180 days ahead (a unit records its price the day it is created, and a new one must take effect after that) |
 | Sales — Customers + KYC | 40 | 36 verified, 4 unverified so the KYC contract gate is visible |
 | Sales — Quotations | 60 | Draft, Issued and Expired; a quarter carry discounts, some above the 5 % Sales Manager limit |
 | Sales — Reservations | 25 | Active, Converted and Expired |

@@ -167,14 +167,17 @@ def _units(rng: random.Random, as_of: date) -> tuple[list[dict], list[dict]]:
 					"cash_price": price,
 				}
 			)
-			# A price review on roughly one unit in six, so Unit Price History is not empty.
+			# A scheduled price review on roughly one unit in six, so Unit Price History is not
+			# empty. Creating a unit with a price already records one entry dated today, and the
+			# DocType requires each new price to take effect strictly after the latest one, so
+			# these are dated ahead: upcoming reviews, not back-dated history.
 			if index % 6 == 0:
 				history.append(
 					{
 						"unit": code,
-						"effective_from": add_months(as_of, -rng.randrange(1, MONTHS)),
+						"effective_from": as_of + timedelta(days=15 + rng.randrange(0, 166)),
 						"price": money(price * Decimal("1.08")),
-						"reason": "Pilot annual price review",
+						"reason": "Pilot scheduled price review",
 					}
 				)
 	return units, history

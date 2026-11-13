@@ -107,6 +107,11 @@ class TestCoverage(unittest.TestCase):
 		for contract in self.plan.contracts:
 			self.assertIn(contract["customer"], verified)
 
+	def test_price_reviews_are_scheduled_ahead(self):
+		"""A unit records a price the day it is created, and a new one must take effect after it."""
+		for entry in self.plan.price_history:
+			self.assertGreater(entry["effective_from"], AS_OF, entry["unit"])
+
 	def test_everything_is_dated_inside_the_window(self):
 		for contract in self.plan.contracts:
 			self.assertLessEqual(contract["signed_on"], AS_OF)

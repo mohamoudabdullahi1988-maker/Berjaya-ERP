@@ -6,7 +6,7 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ### Added (v0.1.14 — twelve-month pilot demonstration dataset, 13 Nov 2026; decision G15; `docs/PILOT-DEMO_v0.1.md`)
 - **`sidra_realestate.pilot_demo.create_pilot_demo_data`**: one guarded, manual loader that fills the existing Company **Sidra Homes** with twelve months of fictional movement, so a client demonstration opens onto populated records in every module instead of empty screens.
-  - Property: 4 schemes, 120 units across Plot / House / Apartment, ready and off-plan, with 20 submitted price reviews.
+  - Property: 4 schemes, 120 units across Plot / House / Apartment, ready and off-plan, with 20 submitted price reviews scheduled ahead.
   - Sales: 40 buyers with KYC (4 left unverified so the contract gate is visible), 60 quotations across Draft / Issued / Expired with discounts above and below the 5 % limit, 25 reservations, 45 contracts — Cash and Installment, generated and externally registered, 3 left draft — and 20 title transfers spread across their states.
   - Installments: a schedule on every installment contract at 12, 18, 24 or 36 months; the rounding lands on the final row so the schedule equals the balance exactly.
   - Construction: 25 jobs across all four service types and six statuses, each with a BOQ, five stages and billing percentages totalling 100; a draft quotation per job past Enquiry and addition-only variation orders.
