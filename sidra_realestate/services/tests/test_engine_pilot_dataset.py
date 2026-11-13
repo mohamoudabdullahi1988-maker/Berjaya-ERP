@@ -107,6 +107,23 @@ class TestCoverage(unittest.TestCase):
 		for contract in self.plan.contracts:
 			self.assertIn(contract["customer"], verified)
 
+	def test_title_dates_are_never_in_the_future(self):
+		"""The tracker refuses a future final payment, or a handover before that payment."""
+		signed = {c["reference"]: c["signed_on"] for c in self.plan.contracts}
+		for title in self.plan.titles:
+			self.assertLessEqual(title["final_payment_date"], AS_OF, title["reference"])
+			self.assertGreaterEqual(title["final_payment_date"], signed[title["contract"]])
+			if title["handed_over_on"]:
+				self.assertLessEqual(title["handed_over_on"], AS_OF)
+				self.assertGreaterEqual(title["handed_over_on"], title["final_payment_date"])
+
+	def test_reservations_carry_a_hold_length_not_dates(self):
+		"""The Reserve Unit service dates them; a plan date here would be silently ignored."""
+		for entry in self.plan.reservations:
+			self.assertNotIn("reserved_on", entry)
+			self.assertGreaterEqual(entry["days"], 1)
+			self.assertIn(entry["status"], {"Active", "Expired", "Cancelled"})
+
 	def test_price_reviews_are_scheduled_ahead(self):
 		"""A unit records a price the day it is created, and a new one must take effect after it."""
 		for entry in self.plan.price_history:

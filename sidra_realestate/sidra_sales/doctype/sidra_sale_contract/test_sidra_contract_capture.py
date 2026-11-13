@@ -251,7 +251,9 @@ class TestContractCapture(IntegrationTestCase):
 		frappe.db.set_single_value("Sidra Contract Settings", "schedule_tolerance", 1)
 		snapshot = json.loads(frappe.db.get_value("Sidra Sale Contract", confirmed.name, "terms_snapshot"))
 		self.assertEqual(snapshot["schedule_tolerance"], 5)
-		self.assert_refused(self.external(10000, [("Installment", "2026-02-10", 9996)]), "more than the limit")
+		self.assert_refused(
+			self.external(10000, [("Installment", "2026-02-10", 9996)]), "more than the limit"
+		)
 
 	# ------------------------------------------------------------ D4 and holds
 	def test_contract_b_type_registration_confirms(self):

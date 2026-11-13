@@ -15,7 +15,7 @@ manifests do not own, one transaction with full rollback, and a rerun that chang
 """
 
 import json
-from datetime import datetime
+from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 
 import frappe
@@ -438,17 +438,18 @@ def _sales(plan, profile, placeholder_scan):
 		)
 		created["quotations"].append(doc.name)
 
+	# A Sidra Reservation refuses to be written directly: it is created and closed by the
+	# Reserve Unit service, which also moves the unit's status. The loader uses that service
+	# rather than setting its bypass flag, so the demo data follows the same path as a user.
+	from sidra_realestate.services.reservations import _close, reserve_unit
+
 	for entry in plan.reservations:
-		doc = _insert(
-			"Sidra Reservation",
-			unit=entry["unit"],
-			customer=CUSTOMER_PREFIX + entry["customer"],
-			company=COMPANY,
-			reserved_on=entry["reserved_on"],
-			expires_on=entry["expires_on"],
-			notes=NOTICE,
-		)
-		created["reservations"].append(doc.name)
+		name = reserve_unit(entry["unit"], CUSTOMER_PREFIX + entry["customer"], days=entry["days"])[
+			"reservation"
+		]
+		if entry["status"] != "Active":
+			_close(name, entry["status"])
+		created["reservations"].append(name)
 
 	by_reference = {}
 	for entry in plan.contracts:
@@ -550,7 +551,7 @@ def _construction(plan):
 				job=job.name,
 				company=COMPANY,
 				pricing_basis="BOQ",
-				valid_until=entry["started_on"],
+				valid_until=plan.as_of + timedelta(days=30),
 				scope=f"{NOTICE} Pilot scope for {entry['reference']}.",
 				boq=entry["boq"],
 				start_date=entry["started_on"],

@@ -144,4 +144,3 @@ def ensure_contract_profiles():
 		doc.update(values)
 		doc.flags.seeding = True
 		doc.insert(ignore_permissions=True)
-

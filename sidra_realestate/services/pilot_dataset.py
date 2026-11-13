@@ -238,17 +238,17 @@ def build(as_of: date) -> Plan:
 			}
 		)
 
+	# Reservations exist only through the Reserve Unit service, which dates them today and opens
+	# them Active; the loader then closes some through the same service. So the plan carries the
+	# hold length and the state to end in, never dates of its own.
 	for index in range(25):
-		code = next(pool)
-		reserved = add_months(as_of, -(index % MONTHS) - 1)
 		plan.reservations.append(
 			{
 				"reference": f"{PREFIX}-RES-{index + 1:03d}",
-				"unit": code,
+				"unit": next(pool),
 				"customer": verified[index % len(verified)],
-				"reserved_on": reserved,
-				"expires_on": reserved + timedelta(days=7),
-				"status": ("Converted", "Expired", "Active")[index % 3],
+				"days": (7, 14, 7)[index % 3],
+				"status": ("Active", "Expired", "Cancelled")[index % 3],
 			}
 		)
 
@@ -287,7 +287,10 @@ def build(as_of: date) -> Plan:
 		unit = contract["units"][0]["unit"]
 		# Spread the tracker across its states: in progress, due soon, overdue, handed over.
 		stage = index % 4
-		final_payment = add_months(contract["signed_on"], 2)
+		# The tracker refuses a final payment in the future or before the contract, and a
+		# handover before the final payment, so both are clamped to the load date.
+		final_payment = min(add_months(contract["signed_on"], 2), as_of)
+		handover = min(add_months(final_payment, 1), as_of)
 		plan.titles.append(
 			{
 				"reference": f"{PREFIX}-TTL-{index + 1:03d}",
@@ -295,7 +298,7 @@ def build(as_of: date) -> Plan:
 				"unit": unit,
 				"final_payment_date": final_payment,
 				"deed_number": f"{PREFIX}-DEED-{4000 + index}" if stage == 3 else None,
-				"handed_over_on": add_months(final_payment, 1) if stage == 3 else None,
+				"handed_over_on": handover if stage == 3 else None,
 				"land_office_reference": f"{PREFIX}-LO-{5000 + index}",
 				"documents": ["Title deed copy", "Sale agreement", "Buyer ID copy"],
 			}

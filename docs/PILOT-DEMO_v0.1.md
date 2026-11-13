@@ -72,7 +72,7 @@ same records. Twelve months back from the load date.
 | Property — Price History | 20 | Submitted price reviews scheduled 15–180 days ahead (a unit records its price the day it is created, and a new one must take effect after that) |
 | Sales — Customers + KYC | 40 | 36 verified, 4 unverified so the KYC contract gate is visible |
 | Sales — Quotations | 60 | Draft, Issued and Expired; a quarter carry discounts, some above the 5 % Sales Manager limit |
-| Sales — Reservations | 25 | Active, Converted and Expired |
+| Sales — Reservations | 25 | Active, Expired and Cancelled; created and closed through the Reserve Unit service, so each is dated the load day |
 | Sales — Contracts | 45 | Cash and Installment; generated and externally registered; 42 submitted, 3 draft |
 | Installments — Schedules | on every installment contract | 12, 18, 24 and 36 months; rounding lands on the final row |
 | Sales — Title Transfers | 20 | Spread across In Progress, Due Soon, Overdue and deed issued |

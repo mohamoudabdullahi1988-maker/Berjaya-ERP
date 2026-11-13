@@ -31,9 +31,9 @@ class SidraUnitPriceHistory(Document):
 		latest = latest_entry(self.unit, exclude=self.name if not self.is_new() else None)
 		if latest and getdate(self.effective_from) <= getdate(latest.effective_from):
 			frappe.throw(
-				_("Unit {0} already has a price from {1} ({2}); a new price must take effect after that date").format(
-					self.unit, frappe.format(latest.effective_from, "Date"), latest.name
-				)
+				_(
+					"Unit {0} already has a price from {1} ({2}); a new price must take effect after that date"
+				).format(self.unit, frappe.format(latest.effective_from, "Date"), latest.name)
 			)
 
 	def before_submit(self):

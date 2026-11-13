@@ -40,7 +40,7 @@ def reserve_unit(unit_name: str, customer: str, days=None) -> dict:
 	reserved_on = getdate(today())
 	try:
 		expires_on = add_days(reserved_on, days)
-	except (OverflowError, ValueError):
+	except OverflowError, ValueError:
 		frappe.throw(_("Reservation expiry is outside the supported date range"))
 
 	unit = lock_unit(unit_name)

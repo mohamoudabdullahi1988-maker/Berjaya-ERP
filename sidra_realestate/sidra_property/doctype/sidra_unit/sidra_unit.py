@@ -89,12 +89,12 @@ class SidraUnit(Document):
 			return
 		if {before.status, self.status} != MANUAL_STATUSES:
 			frappe.throw(
-				_("Unit status {0} is set by reservations and contracts; it cannot be changed to {1} by hand").format(
-					before.status, self.status
-				)
+				_(
+					"Unit status {0} is set by reservations and contracts; it cannot be changed to {1} by hand"
+				).format(before.status, self.status)
 			)
 		if not MANUAL_STATUS_ROLES.intersection(frappe.get_roles()):
 			frappe.throw(
-				_("Only a Sales Manager or General Manager can block or release a unit"), frappe.PermissionError
+				_("Only a Sales Manager or General Manager can block or release a unit"),
+				frappe.PermissionError,
 			)
-

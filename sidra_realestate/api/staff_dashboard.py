@@ -237,9 +237,7 @@ def _property_and_summary(company, start, today, currency):
 			if _can_read("Sidra Reservation")
 			else None,
 			"confirmed_contracts": None if confirmed is None else len(confirmed),
-			"agreed_contract_value": None
-			if confirmed is None
-			else total(c.agreed_price for c in confirmed),
+			"agreed_contract_value": None if confirmed is None else total(c.agreed_price for c in confirmed),
 		},
 		"property": {
 			"total": None if units is None else len(units),

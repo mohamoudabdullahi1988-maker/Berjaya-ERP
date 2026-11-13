@@ -125,7 +125,9 @@ class TestSidraUnit(IntegrationTestCase):
 		moved = self.move(unit.name, same_company)
 		self.assertEqual((moved.scheme, moved.cash_price), (same_company, 5500))
 		# the history keeps the scheme the price was set under
-		self.assertEqual(frappe.db.get_value("Sidra Unit Price History", {"unit": unit.name}, "scheme"), self.scheme)
+		self.assertEqual(
+			frappe.db.get_value("Sidra Unit Price History", {"unit": unit.name}, "scheme"), self.scheme
+		)
 
 	def draft_contract(self, unit):
 		return frappe.get_doc(

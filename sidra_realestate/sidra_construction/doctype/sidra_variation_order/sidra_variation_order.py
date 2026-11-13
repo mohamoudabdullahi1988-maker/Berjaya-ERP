@@ -79,9 +79,9 @@ class SidraVariationOrder(Document):
 		job = lock_job(self.job)
 		if not frappe.db.get_value("Sidra Construction Job", self.job, "contract_quotation"):
 			frappe.throw(
-				_("Job {0} has no approved contract; approve its quotation as the contract first (CON-03)").format(
-					self.job
-				)
+				_(
+					"Job {0} has no approved contract; approve its quotation as the contract first (CON-03)"
+				).format(self.job)
 			)
 		if job.status not in VARIATION_STATUSES:
 			frappe.throw(

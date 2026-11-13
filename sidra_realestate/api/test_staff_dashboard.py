@@ -161,7 +161,12 @@ class TestStaffDashboard(IntegrationTestCase):
 			[
 				{"stage_name": "Late, incomplete", "planned_end": past, "completion_pct": 40},
 				{"stage_name": "Late, at 100%", "planned_end": past, "completion_pct": 100},
-				{"stage_name": "Finished late", "planned_end": past, "actual_end": past, "completion_pct": 100},
+				{
+					"stage_name": "Finished late",
+					"planned_end": past,
+					"actual_end": past,
+					"completion_pct": 100,
+				},
 			],
 		)
 		self.construction_job(
@@ -177,10 +182,14 @@ class TestStaffDashboard(IntegrationTestCase):
 		today = snapshot_time().date()
 		with as_user("Administrator"):
 			before = sales_activity(COMPANY, today, today)
-			frappe.get_doc({
-				"doctype": "Lead", "first_name": unique("_TEST-ACTIVITY"),
-				"company": COMPANY, "status": "Lead",
-			}).insert()
+			frappe.get_doc(
+				{
+					"doctype": "Lead",
+					"first_name": unique("_TEST-ACTIVITY"),
+					"company": COMPANY,
+					"status": "Lead",
+				}
+			).insert()
 			after = sales_activity(COMPANY, today, today)
 		self.assertEqual(after["basis"], "recorded_lead_status")
 		before_count = sum(row["value"] for row in before["pipeline"])
