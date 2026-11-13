@@ -91,10 +91,11 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         <button
           type="button"
           class="bar__btn"
-          :aria-label="panelOpen ? 'Close side panel' : 'Open side panel'"
+          :aria-label="panelOpen ? 'Close workflow' : 'Open workflow'"
           :aria-expanded="panelOpen"
           @click="panelOpen = !panelOpen"
         >
+          <span class="workflow-label">Workflow</span>
           <span :class="panelOpen ? 'lucide-panel-right-close' : 'lucide-panel-right-open'" aria-hidden="true" />
         </button>
       </header>
@@ -299,8 +300,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 .bar__btn {
   display: inline-grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
+  min-width: 44px;
+  min-height: 44px;
   border: 0;
   border-radius: 8px;
   background: none;
@@ -445,4 +446,9 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     display: none;
   }
 }
+</style>
+
+<style scoped>
+.bar__btn:has(.workflow-label) { display: flex; gap: 8px; padding: 8px; }
+.bar__btn > .workflow-label { width: auto; height: auto; }
 </style>
