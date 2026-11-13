@@ -318,6 +318,13 @@ class TestFinanceDemo(IntegrationTestCase):
 		)
 		with as_user(finance_user):
 			self.assertTrue(demo_financials(COMPANY, "USD", today, today)["available"])
+		operational_finance_user = ensure_user(
+			"sidra.finance-operations-test@example.com", ["Accounts Manager", "Sidra Finance Reviewer"]
+		)
+		with as_user(operational_finance_user):
+			operational = get_dashboard(company=COMPANY)
+			self.assertFalse(operational["executive"]["available"])
+			self.assertTrue(operational["payments"]["available"], operational["payments"])
 		permission = frappe.get_doc(
 			{
 				"doctype": "User Permission",

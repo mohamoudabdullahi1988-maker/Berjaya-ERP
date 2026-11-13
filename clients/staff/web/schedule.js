@@ -68,7 +68,7 @@ export function createSchedule({el, empty, record, metric, financialMetric, requ
       const children = [el('button', {class: 'calendar-date', type: 'button', 'aria-label': `Show schedule for ${date(day)}`, onclick: () => choose(day)}, String(Number(day.slice(-2))))];
       if (rows.length) {
         // Daily monetary totals are supplied by the server and apply to the whole day.
-        if (!filters.state && !filters.search) children.push(el('small', {class: 'calendar-total'}, money(daily.get(day)?.amount, data.currency)));
+        if (!filters.state && !filters.search) children.push(el('small', {class: 'calendar-total', title: money(daily.get(day)?.amount, data.currency)}, compactMoney(daily.get(day)?.amount, data.currency)));
         children.push(...rows.slice(0, 2).map(row => el('button', {class: `calendar-event ${row.date_state}`, title: `${row.customer_display} · ${money(row.amount, row.currency)}`, onclick: () => choose(day)}, row.external_reference || row.contract_id)));
         if (rows.length > 2) children.push(el('button', {class: 'calendar-more', onclick: () => choose(day)}, `+${rows.length - 2} more`));
       }

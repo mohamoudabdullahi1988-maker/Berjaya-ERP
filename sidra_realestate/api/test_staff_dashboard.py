@@ -11,6 +11,7 @@ from sidra_realestate.tests.helpers import (
 	BUYER,
 	COMPANY,
 	GENERAL_MANAGER,
+	OTHER_COMPANY,
 	OUTSIDER,
 	SALES_MANAGER,
 	as_user,
@@ -201,24 +202,28 @@ class TestStaffDashboard(IntegrationTestCase):
 			self.assertFalse(sales_activity(COMPANY, today, today)["available"])
 
 	def test_calendar_includes_complete_month_and_rejects_other_scopes(self):
-		today = snapshot_time().date()
-		doc = self.confirmed_contract(schedule=[(0, 1)] * 25)
-		with as_user(SALES_MANAGER):
-			data = get_installment_calendar(COMPANY, today.strftime("%Y-%m"))
-			mine = [row for row in data["events"] if row["contract_id"] == doc.name]
-			self.assertEqual(len(mine), 25, "Calendar must not inherit the 20-row upcoming preview limit")
-			self.assertEqual(len({row["id"] for row in mine}), 25)
-			self.assertTrue(all(row["date_state"] == "today" for row in mine))
-			self.assertFalse(data["allocation_available"])
-			with self.assertRaises(frappe.PermissionError):
-				get_installment_calendar("_No Such Company", today.strftime("%Y-%m"))
-			with self.assertRaises(frappe.ValidationError):
-				get_installment_calendar(COMPANY, "2026-13")
-		self.construction_job("Enquiry", [{"stage_name": "Survey", "completion_pct": 0}])
-		with as_user(PROJECT_MANAGER):
-			self.assertFalse(get_installment_calendar(COMPANY, today.strftime("%Y-%m"))["available"])
-		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
-			get_installment_calendar(COMPANY, today.strftime("%Y-%m"))
+		frappe.db.savepoint("calendar_completeness")
+		try:
+			today = snapshot_time().date()
+			doc = self.confirmed_contract(schedule=[(0, 1)] * 25)
+			with as_user(SALES_MANAGER):
+				data = get_installment_calendar(COMPANY, today.strftime("%Y-%m"))
+				mine = [row for row in data["events"] if row["contract_id"] == doc.name]
+				self.assertEqual(len(mine), 25, "Calendar must not inherit the 20-row upcoming preview limit")
+				self.assertEqual(len({row["id"] for row in mine}), 25)
+				self.assertTrue(all(row["date_state"] == "today" for row in mine))
+				self.assertFalse(data["allocation_available"])
+				with self.assertRaises(frappe.PermissionError):
+					get_installment_calendar("_No Such Company", today.strftime("%Y-%m"))
+				with self.assertRaises(frappe.ValidationError):
+					get_installment_calendar(COMPANY, "2026-13")
+			self.construction_job("Enquiry", [{"stage_name": "Survey", "completion_pct": 0}])
+			with as_user(PROJECT_MANAGER):
+				self.assertFalse(get_installment_calendar(COMPANY, today.strftime("%Y-%m"))["available"])
+			with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
+				get_installment_calendar(COMPANY, today.strftime("%Y-%m"))
+		finally:
+			frappe.db.rollback(save_point="calendar_completeness")
 
 	def test_legacy_demo_companies_are_hidden_but_preserved(self):
 		with as_user("Administrator"):
@@ -229,6 +234,24 @@ class TestStaffDashboard(IntegrationTestCase):
 			self.assertNotIn("Sidra Finance Demo - Fictional", [row["id"] for row in data["companies"]])
 			self.assertTrue(frappe.db.exists("Company", "Sidra Demo Homes"))
 			self.assertTrue(frappe.db.exists("Company", "Sidra Finance Demo - Fictional"))
+
+	def test_calendar_obeys_company_user_permissions(self):
+		permission = frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": SALES_MANAGER,
+				"allow": "Company",
+				"for_value": COMPANY,
+				"apply_to_all_doctypes": 1,
+			}
+		).insert(ignore_permissions=True)
+		frappe.clear_cache(user=SALES_MANAGER)
+		try:
+			with as_user(SALES_MANAGER), self.assertRaises(frappe.PermissionError):
+				get_installment_calendar(OTHER_COMPANY, snapshot_time().strftime("%Y-%m"))
+		finally:
+			frappe.delete_doc("User Permission", permission.name, ignore_permissions=True)
+			frappe.clear_cache(user=SALES_MANAGER)
 
 	def test_open_jobs_include_enquiries_without_claiming_active_work(self):
 		with as_user(GENERAL_MANAGER):
