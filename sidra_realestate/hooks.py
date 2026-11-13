@@ -42,6 +42,12 @@ website_context = {
 	"splash_image": "/assets/sidra_realestate/images/sidra-logo.png",
 }
 
+# The Berjaya interface (www/berjaya.py, frontend/): a single-page app, so every path under
+# /berjaya is served by the one page and routed in the browser.
+website_route_rules = [
+	{"from_route": "/berjaya/<path:app_path>", "to_route": "berjaya"},
+]
+
 after_install = "sidra_realestate.install.after_install"
 after_migrate = "sidra_realestate.install.after_migrate"
 

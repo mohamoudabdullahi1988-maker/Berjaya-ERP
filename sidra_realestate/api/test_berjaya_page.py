@@ -1,0 +1,83 @@
+# Copyright (c) 2026, Mohamoud Abdullahi Sheikh
+"""The /berjaya page: existing session only, staff only, and a boot that follows permissions."""
+
+import os
+
+import frappe
+from frappe.tests import IntegrationTestCase
+from frappe.website.serve import get_response
+
+from sidra_realestate.tests.helpers import (
+	OUTSIDER,
+	PROJECT_MANAGER,
+	SALES_MANAGER,
+	as_user,
+	ensure_base_records,
+)
+from sidra_realestate.www import berjaya as page
+
+
+def _nav_keys(user):
+	with as_user(user):
+		return [item["key"] for item in page.get_boot()["nav"]]
+
+
+class TestBerjayaPage(IntegrationTestCase):
+	@classmethod
+	def setUpClass(cls):
+		super().setUpClass()
+		ensure_base_records()
+
+	def test_guest_is_sent_to_login_with_a_return_to_berjaya(self):
+		with as_user("Guest"), self.assertRaises(frappe.Redirect):
+			page.get_context(frappe._dict())
+		self.assertEqual(frappe.local.flags.redirect_location, "/login?redirect-to=%2Fberjaya")
+
+	def test_signed_in_outsider_is_refused(self):
+		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
+			page.get_context(frappe._dict())
+
+	def test_navigation_follows_the_users_permissions(self):
+		sales = _nav_keys(SALES_MANAGER)
+		project = _nav_keys(PROJECT_MANAGER)
+		for keys in (sales, project):
+			self.assertIn("dashboard", keys)
+		self.assertIn("properties", sales)
+		self.assertIn("contracts", sales)
+		self.assertNotIn("properties", project)
+		self.assertNotIn("contracts", project)
+		self.assertIn("construction", project)
+		for key, _label, doctype in page.NAV:
+			if doctype:
+				for user, keys in ((SALES_MANAGER, sales), (PROJECT_MANAGER, project)):
+					with as_user(user):
+						self.assertEqual(
+							key in keys, bool(frappe.has_permission(doctype, "read")), (user, key)
+						)
+
+	def test_boot_lists_only_readable_unit_fields(self):
+		with as_user(SALES_MANAGER):
+			boot = page.get_boot()
+		self.assertEqual(boot["user"]["name"], SALES_MANAGER)
+		self.assertTrue(set(boot["properties"]["readable_fields"]) <= set(page.UNIT_LIST_FIELDS))
+		self.assertIn("unit_code", boot["properties"]["readable_fields"])
+		with as_user(PROJECT_MANAGER):
+			self.assertEqual(page.get_boot()["properties"]["readable_fields"], [])
+		self.assertEqual(set(boot), {"user", "company", "nav", "properties", "currencies"})
+
+	def test_every_path_under_berjaya_reaches_the_page(self):
+		rules = frappe.get_hooks("website_route_rules")
+		self.assertIn({"from_route": "/berjaya/<path:app_path>", "to_route": "berjaya"}, rules)
+
+	def test_built_page_renders_with_the_session_boot(self):
+		template = os.path.join(frappe.get_app_path("sidra_realestate"), "www", "berjaya.html")
+		if not os.path.exists(template):
+			self.skipTest("frontend not built (bench build --app sidra_realestate)")
+		with as_user(SALES_MANAGER):
+			frappe.local.session.data.csrf_token = "test-csrf-token"
+			response = get_response("berjaya")
+		self.assertEqual(response.status_code, 200)
+		html = response.get_data(as_text=True)
+		self.assertIn('window["berjaya_boot"]', html)
+		self.assertIn("/assets/sidra_realestate/berjaya/assets/", html)
+		self.assertIn(SALES_MANAGER, html)

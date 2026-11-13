@@ -1,0 +1,57 @@
+@import './tokens.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body,
+#app {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--bj-ground);
+  color: var(--bj-ink);
+  font-family: var(--bj-font-body);
+  -webkit-font-smoothing: antialiased;
+}
+
+h1,
+h2,
+h3,
+.bj-heading {
+  font-family: var(--bj-font-heading);
+}
+
+:focus-visible {
+  outline: 2px solid var(--bj-terracotta);
+  outline-offset: 2px;
+}
+
+/* Page frame shared by every screen. */
+.page {
+  padding: 24px;
+  max-width: 1280px;
+  margin: 0 auto;
+}
+.page__title {
+  margin: 0;
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  color: var(--bj-ink);
+}
+.page__card {
+  margin-top: 16px;
+  background: var(--bj-card);
+  border: 1px solid var(--bj-line);
+  border-radius: 10px;
+  overflow: hidden;
+}
+@media (max-width: 640px) {
+  .page {
+    padding: 16px;
+  }
+}
