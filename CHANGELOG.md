@@ -4,6 +4,13 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.17 — staff dashboard pilot sources and installment calendar, 13 Nov 2026)
+- Read opted-in native financial data from either the twelve-month pilot manifest, the earlier finance demo manifest, or both. Preserve complete permission-filtered invoice/payment cohorts, currency checks and ownership validation; no grants, postings or loader calls.
+- Remove the two historical demo Companies from the staff dashboard selector and prefer Sidra Homes, without changing any Company or historical record.
+- Add a complete, permission-filtered monthly installment endpoint and responsive Calendar/List views with month navigation, day selection, search, date filters and exact server schedule cards. Scheduled obligations and past dates remain explicitly unreconciled; posted receipts and overdue invoice balances use their separate native sources.
+- Show open construction jobs including enquiries and a status breakdown; replace the unconnected project-baseline headline with recorded overdue milestones, preserving the unavailable baseline API field. Label the existing stage-percentage average explicitly.
+
+
 ### Added (v0.1.15 — twelve-month pilot demonstration dataset, 13 Nov 2026; decision G16; `docs/PILOT-DEMO_v0.1.md`)
 - **`sidra_realestate.pilot_demo.create_pilot_demo_data`**: one guarded, manual loader that fills the existing Company **Sidra Homes** with twelve months of fictional movement, so a client demonstration opens onto populated records in every module instead of empty screens.
   - Property: 4 schemes, 120 units across Plot / House / Apartment, ready and off-plan, with 20 submitted price reviews scheduled ahead.

@@ -11,6 +11,27 @@ from sidra_realestate.finance_demo import COMPANY, _manifest, enabled
 from sidra_realestate.services.executive_metrics import decimal_amount, money
 
 
+def _datasets():
+	"""Either guarded demo may exist alone; never require the older ten-voucher load."""
+	from sidra_realestate.pilot_demo import MANIFEST, SCHEMA, VOUCHER_TYPES, _read_manifest
+
+	datasets = [
+		data for data in (_manifest(required=False), _read_manifest(MANIFEST, SCHEMA, required=False)) if data
+	]
+	if not datasets:
+		raise ValueError("No demo ownership manifest is available")
+	seen = {doctype: set() for doctype in VOUCHER_TYPES}
+	for data in datasets:
+		for doctype in VOUCHER_TYPES:
+			names = data["vouchers"][doctype]
+			if not isinstance(names, list) or any(not isinstance(name, str) or not name for name in names):
+				raise ValueError("Invalid voucher registry")
+			if len(names) != len(set(names)) or seen[doctype].intersection(names):
+				raise ValueError("Ambiguous voucher ownership")
+			seen[doctype].update(names)
+	return datasets, seen
+
+
 def demo_financials(company, currency, start, today):
 	if not enabled(company):
 		return None  # Production Finance gate remains closed.
@@ -23,7 +44,7 @@ def demo_financials(company, currency, start, today):
 	):
 		return missing
 	try:
-		data = _manifest()
+		datasets, owned = _datasets()
 		invoices = frappe.get_list(
 			"Sales Invoice",
 			filters={"company": COMPANY, "docstatus": 1},
@@ -44,8 +65,8 @@ def demo_financials(company, currency, start, today):
 			limit_page_length=0,
 		)
 		if (
-			{r.name for r in invoices} != set(data["vouchers"]["Sales Invoice"])
-			or {r.name for r in payments} != set(data["vouchers"]["Payment Entry"])
+			{r.name for r in invoices} != owned["Sales Invoice"]
+			or {r.name for r in payments} != owned["Payment Entry"]
 			or any(
 				r.currency != "USD"
 				or r.grand_total is None
@@ -62,13 +83,12 @@ def demo_financials(company, currency, start, today):
 				or r.base_received_amount is None
 				for r in payments
 			)
-			or getdate(data["as_of"]) > today
+			or any(getdate(data["as_of"]) > today for data in datasets)
 		):
 			return missing
 		receipts = [r for r in payments if r.payment_type == "Receive"]
-		if any(
-			r.paid_to != data["accounts"]["Bank"] or r.paid_to_account_currency != "USD" for r in receipts
-		):
+		banks = {data["accounts"]["Bank"] for data in datasets}
+		if any(r.paid_to not in banks or r.paid_to_account_currency != "USD" for r in receipts):
 			return missing
 		if any(
 			decimal_amount(r.outstanding_amount) < 0
@@ -122,7 +142,7 @@ def demo_financials(company, currency, start, today):
 		return {
 			"available": True,
 			"basis": "native_invoice_demo",
-			"notice": data["notice"],
+			"notice": "Fictional staging data from permitted native invoices and payments; not contract collections.",
 			"received": money(received),
 			"overdue": money(sum((decimal_amount(r.outstanding_amount) for r in overdue), Decimal(0))),
 			"collection_rate": float((cohort - unpaid) / cohort * 100) if cohort else None,

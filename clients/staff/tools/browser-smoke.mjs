@@ -1,4 +1,5 @@
 import {executiveBrowser} from './executive-browser.mjs';
+import {scheduleBrowser} from './schedule-browser.mjs';
 import {spawn} from 'node:child_process';
 import fs from 'node:fs/promises';
 import os from 'node:os';
@@ -49,6 +50,7 @@ try{
  await call('Page.navigate',{url:'http://127.0.0.1:4173/'});await wait('document.querySelector("#alert") && !document.querySelector("#alert").hidden');
  assert((await js('document.querySelector("#demo-banner").hidden')).value,'Failed live request must not switch to fictional data');
  await executiveBrowser({call,js,wait,shot});
+ await scheduleBrowser({call,js,wait,shot});
  assert.deepEqual(exceptions, [], 'Unhandled browser exceptions');
  console.log('Browser smoke passed: executive cards/evidence, trends, decisions, exposure, fixed preview, scope requests, stale/missing/restricted data, late responses, 320/390px layout; dashboard, payments, web pin, invalid GPS, mobile width, explicit live failure.');
 }catch(error){if(evaluate)console.error('Browser failure page:',(await evaluate('({url:location.href,state:document.readyState,text:document.body?.innerText,html:document.documentElement?.outerHTML.slice(0,1500)})')).value);throw error;}finally{socket?.close();chrome.kill();await fs.rm(profile,{recursive:true,force:true}).catch(()=>{});}

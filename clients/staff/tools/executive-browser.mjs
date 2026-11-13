@@ -10,7 +10,7 @@ export async function executiveBrowser({call, js, wait, shot}) {
   assert.equal((await js('document.querySelectorAll(".decision-item").length')).value, 3);
   assert.equal((await js('document.querySelectorAll(".exposure-item").length')).value, 4);
   assert((await js('["company","project","period"].every(id => document.getElementById(id).disabled)')).value);
-  for (const [index, count] of [26, 26, 6, 8, 9, 42].entries()) {
+  for (const [index, count] of [26, 26, 6, 8, 3, 42].entries()) {
     await js(`document.querySelectorAll('#metrics a')[${index}].click()`);
     assert((await js('document.querySelector("#evidence-dialog").open')).value);
     assert.equal((await js('document.querySelectorAll("#evidence-body tbody tr").length')).value, count);
@@ -85,7 +85,7 @@ export async function executiveBrowser({call, js, wait, shot}) {
     // PR #28 can supply lead counts before qualification stages, and null inspection counts.
     await js(`window.__executiveTest.payload.sales={available:false,reason:'Qualification stages are not defined'};
       window.__executiveTest.payload.summary.new_leads=4;
-      Object.assign(window.__executiveTest.payload.jobs,{active:0,overdue_milestones:0,awaiting_inspection:null,completed:0});
+      Object.assign(window.__executiveTest.payload.jobs,{open:0,active:0,overdue_milestones:0,awaiting_inspection:null,completed:0});
       window.__executiveTest.payload.payments={available:true,received:'0',overdue:' ',collection_rate:null,overdue_contracts:null,aging:[]};
       document.querySelector('#refresh').click()`);
     await wait('!document.querySelector("#refresh").disabled');
@@ -94,7 +94,7 @@ export async function executiveBrowser({call, js, wait, shot}) {
     assert.equal((await values('sales-metrics'))[1], 'Unavailable');
     assert.equal((await values('sales-metrics'))[2], 'Unavailable');
     assert((await js('document.querySelector("#pipeline").textContent')).value.includes('Qualification stages are not defined'));
-    assert.deepEqual(await values('job-metrics'), ['0','0','Unavailable','0']);
+    assert.deepEqual(await values('job-metrics'), ['0','0','0','0']);
     assert((await js('document.querySelector("#job-metrics").textContent')).value.includes('Current records · selected company'));
     const payments = await values('payment-metrics');
     assert.equal(payments[0], 'US$0');
@@ -109,7 +109,7 @@ export async function executiveBrowser({call, js, wait, shot}) {
     await wait('!document.querySelector("#refresh").disabled');
     assert.equal((await values('sales-metrics'))[0], 'Unavailable');
     assert.deepEqual(await values('job-metrics'), Array(4).fill('Unavailable'));
-    assert((await js('document.querySelector("#payment-metrics").textContent')).value.includes('Awaiting finance integration'));
+    assert((await js('document.querySelector("#payment-metrics").textContent')).value.includes('Unavailable'));
     assert((await js('document.querySelector("#aging").textContent')).value.includes('Payments are not recorded yet'));
 
     await js(`window.__executiveTest.payload.executive.metrics.due_next_30_days.basis='gross_schedule';
