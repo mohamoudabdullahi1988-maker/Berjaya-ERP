@@ -96,6 +96,7 @@ class TestPilotDemo(IntegrationTestCase):
 			# 4. The real load.
 			data = create_pilot_demo_data()
 			self.assertTrue(data["created"])
+			self._dashboard_reads_pilot_without_old_finance_manifest(data)
 			self.assertEqual(manifest_file(), 1)
 			self.assertEqual(company_units(), units_before, "the Company's own units must not change")
 
@@ -159,6 +160,39 @@ class TestPilotDemo(IntegrationTestCase):
 		finally:
 			frappe.db.rollback(save_point="pilot_foreign_gl")
 		self.assertEqual(frappe.db.count("GL Entry"), before[0])
+
+	def _dashboard_reads_pilot_without_old_finance_manifest(self, data):
+		from frappe.utils import getdate
+
+		from sidra_realestate.api.finance_demo_snapshot import demo_financials
+		from sidra_realestate.api.staff_dashboard import get_dashboard
+
+		original = frappe.get_list
+
+		def pilot_only(doctype, *args, **kwargs):
+			rows = original(doctype, *args, **kwargs)
+			if doctype in ("Sales Invoice", "Payment Entry"):
+				return [row for row in rows if row.name in data["vouchers"][doctype]]
+			return rows
+
+		with (
+			patch("sidra_realestate.api.finance_demo_snapshot._manifest", return_value=None),
+			patch("sidra_realestate.api.finance_demo_snapshot.frappe.get_list", side_effect=pilot_only),
+		):
+			result = demo_financials(COMPANY, "USD", getdate(data["from_date"]), getdate(data["as_of"]))
+			self.assertTrue(result["available"], result)
+			self.assertGreater(Decimal(result["received"]), 0)
+			self.assertGreater(Decimal(result["overdue"]), 0)
+			self.assertIsNone(result["overdue_contracts"])
+			dashboard = get_dashboard(company=COMPANY)
+			self.assertTrue(dashboard["payments"]["available"], dashboard["payments"])
+			self.assertTrue(dashboard["executive"]["metrics"]["cash_collected"]["available"])
+			with as_user("sidra.manager@example.com"):
+				self.assertFalse(
+					demo_financials(COMPANY, "USD", getdate(data["from_date"]), getdate(data["as_of"]))[
+						"available"
+					]
+				)
 
 	def _every_module_is_populated(self, data):
 		"""The point of the dataset: no module opens empty in front of a client."""

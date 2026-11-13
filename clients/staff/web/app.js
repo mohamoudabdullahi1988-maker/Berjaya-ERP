@@ -1,5 +1,6 @@
 import {coordinates,mapLinks,money,compactMoney,date,recordPath,requireDashboard,request} from './core.js';
 import {renderExecutive} from './executive.js';
+import {createSchedule} from './schedule.js';
 const $ = id => document.getElementById(id);
 const preview = new URLSearchParams(location.search).get('demo') === '1';
 const config = window.SIDRA_CONFIG;
@@ -32,7 +33,7 @@ function arrow() {const s=document.createElementNS('http://www.w3.org/2000/svg',
 function metric(label,value,note,accent=false,unavailable=false) {return el('article',{class:'metric'+(accent?' accent':'')},[el('div',{class:'metric-label'},[label,arrow()]),el('div',{class:unavailable?'metric-value metric-unavailable':'metric-value'},value),el('div',{class:'metric-sub'},note)]);}
 function unavailable(group) {return !group?.available;}
 function financialMetric(label,group,key,note) {
- if(unavailable(group))return metric(label,'Awaiting finance integration',group?.reason||'Posted payment data has not been connected.',false,true);
+ if(unavailable(group))return metric(label,'Unavailable',group?.reason||'Posted payment data has not been connected.',false,true);
  const value=compactMoney(group[key],data.currency),known=value!=='—';
  return metric(label,known?value:'Unavailable',known?note:'This amount is unavailable.',false,!known);
 }
@@ -64,14 +65,15 @@ function render() {
  $('project').disabled=preview||!projects.length;
  renderExecutive(data,{el,empty,preview});
  renderContracts();
- $('upcoming').replaceChildren(table(['Contract / buyer','Due date','Type','Agreed amount'],data.schedule.upcoming.map(r=>[el('div',{},[record('Sidra Sale Contract',r.contract_id,r.external_reference||r.contract_id),el('small',{},r.customer_display)]),date(r.due_date),r.row_type,money(r.amount,r.currency)])));
+ scheduleView.refresh();
  $('sales-metrics').replaceChildren(countMetric('New leads',data.summary.new_leads,'Created during the selected period'),countMetric('Qualified opportunities',data.sales?.available?data.sales.qualified_opportunities:null,'Server qualification status',data.sales?.reason),percentageMetric('Lead conversion',data.sales?.available?data.sales.conversion_rate:null,'Server-linked lead cohort'),metric('Agreed contract value',compactMoney(data.summary.agreed_contract_value,data.currency),'Commercial value · not recognized revenue',true));
  if(data.sales?.available){pipeline('pipeline',data.sales.pipeline);if(data.sales.notice)$('pipeline').prepend(el('p',{class:'coordinate-caption'},data.sales.notice));if(!data.sales.pipeline.length)$('pipeline').append(empty('No readable leads created in this period.'));}else $('pipeline').replaceChildren(empty(data.sales?.reason||'Lead integration is not connected yet.'));
  const invoiceDemo = data.payments?.basis === 'native_invoice_demo';
  $('payment-metrics').replaceChildren(financialMetric(invoiceDemo?'Receipts (fictional demo)':'Payments received',data.payments,'received','Posted receipts only'),financialMetric(invoiceDemo?'Overdue invoices (demo)':'Overdue unpaid',data.payments,'overdue','After payment allocation'),percentageMetric('Collection rate',data.payments?.available?data.payments.collection_rate:null,invoiceDemo?'Settled value of invoices due through today':'Server-defined due cohort'),countMetric(invoiceDemo?'Overdue invoices':'Overdue contracts',data.payments?.available?(invoiceDemo?data.payments.overdue_invoices:data.payments.overdue_contracts):null,invoiceDemo?'Fictional invoices; not contract arrears':'With unpaid overdue obligations',data.payments?.reason));
  if(data.payments?.available)pipeline('aging',data.payments.aging,true);else $('aging').replaceChildren(empty(data.payments?.reason||'Awaiting finance integration. Schedule amounts are not evidence of payment or arrears.'));
- $('job-metrics').replaceChildren(...[['Active jobs','active'],['Overdue milestones','overdue_milestones'],['Awaiting inspection','awaiting_inspection'],['Completed jobs','completed']].map(([label,key])=>countMetric(label,data.jobs?.available?data.jobs[key]:null,'Current records · selected company',data.jobs?.reason)));
- $('jobs-table').replaceChildren(data.jobs?.available?table(['Job','Status','Progress','Next milestone','Due date'],data.jobs.items.map(r=>[record('Sidra Construction Job',r.id,r.label),r.status,r.progress==null?'—':`${r.progress}%`,r.next_milestone,date(r.due_date)])):empty('Job reporting is supplied by the server.'));
+ $('job-metrics').replaceChildren(...[['Open jobs','open'],['Active jobs','active'],['Overdue milestones','overdue_milestones'],['Completed jobs','completed']].map(([label,key])=>countMetric(label,data.jobs?.available?data.jobs[key]:null,'Current records · selected company',data.jobs?.reason)));
+ $('job-statuses').textContent=(data.jobs?.status_counts||[]).map(r=>`${r.count} ${r.status}`).join(' · ');
+ $('jobs-table').replaceChildren(data.jobs?.available?table(['Job','Status','Average recorded stage %','Next milestone','Due date'],data.jobs.items.map(r=>[record('Sidra Construction Job',r.id,r.label),r.status,r.progress==null?'—':`${r.progress}%`,r.next_milestone,date(r.due_date)])):empty('Job reporting is supplied by the server.'));
  renderLocations();
 }
 function renderContracts() {if(!data)return;const q=$('contract-search').value.toLocaleLowerCase();$('contracts-table').replaceChildren(contracts(data.contracts.filter(r=>[r.reference,r.customer_display,r.unit_label].some(v=>String(v||'').toLocaleLowerCase().includes(q)))));}
@@ -119,7 +121,8 @@ async function load() {
  $('evidence-dialog').close();$('evidence-body').replaceChildren();
  aborter?.abort();aborter=new AbortController();$('refresh').disabled=true;$('project').disabled=true;message('');data=null;
  $('connection').textContent='Connecting to server';$('updated').textContent='Awaiting server data';
- for(const id of ['contracts-table','upcoming','locations','sales-metrics','pipeline','payment-metrics','aging','job-metrics','jobs-table']) $(id).replaceChildren();
+ for(const id of ['contracts-table','locations','sales-metrics','pipeline','payment-metrics','aging','job-metrics','jobs-table']) $(id).replaceChildren();
+ scheduleView.clear();$('job-statuses').textContent='';
  $('location-detail').replaceChildren(empty('Loading the selected scope…'));
  renderExecutive(null,{el,empty,preview});
  try {
@@ -134,6 +137,7 @@ async function load() {
   renderExecutive(null,{el,empty,preview});
  }finally{if(generation===loadGeneration)$('refresh').disabled=false;}
 }
+const scheduleView=createSchedule({el,empty,record,metric,financialMetric,request,preview,getData:()=>data});
 $('signout').addEventListener('click',async()=>{try{await request('logout',{}, {write:true});location.assign('/login');}catch(error){message(error.message);}});
 $('period').addEventListener('change',()=>{load();if(preview)message('Preview uses one fixed fictional reporting period. The live server applies the selected period.');});
 $('refresh').addEventListener('click',load);$('company').addEventListener('change',()=>{$('project').value='';load();});$('project').addEventListener('change',load);$('contract-search').addEventListener('input',renderContracts);$('location-search').addEventListener('input',renderLocations);$('location-kind').addEventListener('change',renderLocations);

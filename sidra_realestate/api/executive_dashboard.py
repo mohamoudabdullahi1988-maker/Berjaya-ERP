@@ -361,6 +361,18 @@ def executive_snapshot(company, currency, period, now=None):
 			"Recorded stage dates do not establish an approved schedule baseline. Review recorded date exceptions below."
 		)
 	)
+	stages = rows["stage_exceptions"]
+	metrics["overdue_milestones"] = (
+		unavailable(missing)
+		if stages is None
+		else {
+			"available": True,
+			"value": len(stages),
+			"basis": "recorded_stage_dates",
+			"detail": "Incomplete recorded stages past their planned end on active/on-hold jobs. An approved project baseline is not inferred.",
+			"drilldown": link("stage_exceptions"),
+		}
+	)
 
 	months = []
 	for first in month_starts(today):

@@ -34,6 +34,7 @@ PERIODS = {"this_month", "last_30_days", "last_90_days"}
 LOCATION_DOCTYPES = ("Sidra Unit", "Sidra Construction Job")
 LIST_LIMIT = 20
 LOCATION_LIMIT = 500
+HIDDEN_DASHBOARD_COMPANIES = {"Sidra Demo Homes", "Sidra Finance Demo - Fictional"}
 
 
 NO_CONTRACT_ACCESS = "Your role does not include sale contracts."
@@ -101,6 +102,9 @@ def _companies():
 				),
 			)
 		rows = [known[name] for name in sorted(known)]
+	# Selector preference only: preserve the Company masters and their historical records.
+	rows = [row for row in rows if row.name not in HIDDEN_DASHBOARD_COMPANIES]
+	rows.sort(key=lambda row: (row.name != "Sidra Homes", row.name))
 	for row in rows:
 		row.company_name = row.company_name or row.name
 	return rows
@@ -178,8 +182,14 @@ def get_dashboard(company: str | None = None, period: str = "this_month", projec
 	}
 	payload["jobs"] = _jobs(scope.name, today)
 	payload["executive"] = executive_snapshot(scope.name, scope.default_currency, period, now)
-	if payload["executive"].get("finance_demo") is not None:
-		payload["payments"] = payload["executive"].pop("finance_demo")
+	finance = payload["executive"].pop("finance_demo", None)
+	if finance is None:
+		# Financially permitted staff need payments even without executive-management access.
+		from sidra_realestate.api.finance_demo_snapshot import demo_financials
+
+		finance = demo_financials(scope.name, scope.default_currency, start, today)
+	if finance is not None:
+		payload["payments"] = finance
 	return payload
 
 
@@ -305,6 +315,77 @@ def _schedule(company, today, currency):
 	}
 
 
+@frappe.whitelist(methods=["GET"])
+def get_installment_calendar(company: str, month: str) -> dict:
+	"""One complete calendar month of readable submitted installment contracts."""
+	from sidra_realestate.api.executive_dashboard import snapshot_time
+	from sidra_realestate.services.schedule_dashboard import calendar_snapshot, month_bounds
+
+	_staff_only()
+	permitted = {row.name: row for row in _companies()}
+	if company not in permitted:
+		frappe.throw(_("Company is not available to you"), frappe.PermissionError)
+	if not _can_read("Sidra Sale Contract"):
+		return {"available": False, "reason": NO_CONTRACT_ACCESS, "events": []}
+	try:
+		start, end = month_bounds(month)
+	except ValueError as exc:
+		frappe.throw(str(exc))
+	today = snapshot_time().date()
+	scope = permitted[company]
+	if not scope.default_currency:
+		frappe.throw(_("Company currency metadata is unavailable"))
+	parents = {
+		row.name: row
+		for row in frappe.get_list(
+			"Sidra Sale Contract",
+			filters={
+				"company": company,
+				"currency": scope.default_currency,
+				"docstatus": 1,
+				"contract_type": "Installment",
+				"signed_on": ["<=", today],
+			},
+			fields=["name", "external_reference", "customer"],
+			limit_page_length=0,
+		)
+	}
+	rows = (
+		frappe.get_all(
+			"Sidra Installment Line",
+			filters={
+				"parenttype": "Sidra Sale Contract",
+				"parentfield": "schedule",
+				"parent": ["in", list(parents)],
+				"due_date": ["between", [start, end]],
+			},
+			fields=["name", "parent", "due_date", "amount", "row_type"],
+			order_by="due_date asc, name asc",
+			limit_page_length=0,
+		)
+		if parents
+		else []
+	)
+	events = [
+		{
+			"id": row.name,
+			"contract_id": row.parent,
+			"external_reference": parents[row.parent].external_reference,
+			"customer_display": parents[row.parent].customer,
+			"due_date": str(row.due_date),
+			"amount": row.amount,
+			"row_type": row.row_type or "Installment",
+			"currency": scope.default_currency,
+		}
+		for row in rows
+	]
+	return {
+		**calendar_snapshot(events, month, today),
+		"company_id": company,
+		"currency": scope.default_currency,
+	}
+
+
 def _contracts(company):
 	if not _can_read("Sidra Sale Contract"):
 		return []
@@ -398,6 +479,7 @@ def _jobs(company, today):
 		filters={"parenttype": "Sidra Construction Job", "parent": ["in", [j.name for j in jobs]]},
 		fields=["parent", "stage_name", "status", "planned_end", "actual_end", "completion_pct", "idx"],
 		order_by="idx asc",
+		limit_page_length=0,
 	)
 	active = {j.name for j in jobs if j.status in ACTIVE_JOBS}
 	by_job = {}
@@ -424,6 +506,12 @@ def _jobs(company, today):
 		)
 	return {
 		"available": True,
+		"total": len(jobs),
+		"open": sum(1 for j in jobs if j.status not in ("Completed", "Cancelled")),
+		"status_counts": [
+			{"status": status, "count": sum(j.status == status for j in jobs)}
+			for status in sorted({j.status for j in jobs})
+		],
 		"active": sum(1 for j in jobs if j.status in ("Contracted", "In Progress")),
 		"overdue_milestones": overdue,
 		"awaiting_inspection": None,  # no inspection records exist yet
