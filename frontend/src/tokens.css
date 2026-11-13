@@ -1,0 +1,26 @@
+/* Berjaya design tokens — the single source. Decided 13 Nov 2026
+   (BERJAYA-PARALLEL-WORKSTREAMS v0.1). Reference these everywhere; never repeat a hex value. */
+:root {
+  --bj-charcoal: #23272b; /* navigation, dark surfaces */
+  --bj-ink: #1f2326; /* body text */
+  --bj-terracotta: #a84a28; /* primary buttons, links, active nav */
+  --bj-terracotta-light: #d9825f; /* logo bars, secondary chart series */
+  --bj-terracotta-tint: #f8ece6; /* selected rows, soft highlights */
+  --bj-ground: #f4f6f3; /* page */
+  --bj-card: #ffffff; /* cards */
+  --bj-line: #e3e7e4; /* borders */
+  --bj-muted: #56636b; /* secondary text */
+
+  /* Workflow states. Current is blue, not terracotta, so it cannot be read as blocked. */
+  --bj-state-completed: #1b7a4a;
+  --bj-state-current: #1d5fa8;
+  --bj-state-blocked: #b42318;
+  --bj-state-pending: #9aa6a0;
+
+  --bj-font-heading: 'Space Grotesk Variable', system-ui, sans-serif;
+  --bj-font-body: 'Inter Variable', system-ui, sans-serif;
+
+  --bj-nav-width: 220px;
+  --bj-nav-width-collapsed: 64px;
+  --bj-panel-width: 300px;
+}

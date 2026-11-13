@@ -1,0 +1,9 @@
+{
+  "name": "sidra_realestate",
+  "private": true,
+  "description": "Root scripts so `bench build --app sidra_realestate` builds the Berjaya frontend (frontend/).",
+  "scripts": {
+    "postinstall": "cd frontend && yarn install --frozen-lockfile",
+    "build": "cd frontend && yarn build"
+  }
+}
