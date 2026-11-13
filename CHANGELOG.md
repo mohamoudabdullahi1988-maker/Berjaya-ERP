@@ -12,7 +12,7 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 - A plain text wordmark and letter icon (`berjaya-wordmark.png`, `berjaya-icon.png`, `berjaya-favicon.png`) replace the company logo as the software's navbar logo, splash and favicon. Colours are unchanged.
 - A site this app had branded "Sidra Homes" is rebranded on migrate: only that exact earlier value in System, Website and Navbar Settings is replaced. An administrator's own value is still left alone.
 - **Unchanged**: Company **Sidra Homes** and every record in it; the Sidra Homes logo and letterhead on the contract and quotation prints; app, module, site, flag, DocType, role and report names; naming series; the routes `/sidra` and `/sidra-staff/`; the Desk sidebar names; the native Android and macOS apps; every guard, loader, posting gate and permission. No patch, no data migration.
-- Tests: product-name source, hooks and apps-screen tile; login page and front page render Berjaya; earlier branding replaced; Company list and name unchanged by branding; contract print and a Sidra Homes sales invoice print carry no product name.
+- Tests: product-name source, hooks and apps-screen tile; the login page context and the front page carry Berjaya; earlier branding replaced; Company list and name unchanged by branding; contract print and a Sidra Homes sales invoice print carry no product name.
 
 ### Fixed (v0.1.17 — staff dashboard pilot sources and installment calendar, 13 Nov 2026)
 - Read opted-in native financial data from either the twelve-month pilot manifest, the earlier finance demo manifest, or both. Preserve complete permission-filtered invoice/payment cohorts, currency checks and ownership validation; no grants, postings or loader calls.

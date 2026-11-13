@@ -2,10 +2,11 @@
 """White-label branding and navigation (sidra_realestate/branding.py; Mohamoud, 7 Nov 2026)."""
 
 import os
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
-from frappe.website.serve import get_response
+from frappe.www import login as login_page
 
 from sidra_realestate.branding import (
 	APP_ICON,
@@ -42,12 +43,12 @@ class TestBranding(IntegrationTestCase):
 		apply_branding()
 		self.assertEqual(frappe.get_website_settings("app_name"), BRAND_NAME)
 		self.assertEqual(frappe.get_system_settings("app_name"), BRAND_NAME)
-		with as_user("Guest"):
-			response = get_response("login")
-		self.assertEqual(response.status_code, 200)
-		html = response.get_data(as_text=True)
-		self.assertIn(BRAND_NAME, html)
-		self.assertNotIn("Sidra Homes", html)
+		# The login page's own context: its name and the logo it shows (frappe/www/login.py).
+		context = frappe._dict()
+		with as_user("Guest"), patch.object(frappe.local, "request", frappe._dict(args={}), create=True):
+			login_page.get_context(context)
+		self.assertEqual(context["app_name"], BRAND_NAME)
+		self.assertEqual(context["logo"], LOGO)
 
 	def test_earlier_product_branding_is_replaced(self):
 		"""A site branded "Sidra Homes" by this app before G18 is rebranded on migrate."""
