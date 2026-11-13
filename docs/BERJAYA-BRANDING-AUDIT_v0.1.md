@@ -2,7 +2,7 @@
 
 **Document version:** v0.1 · **Date:** 13 Nov 2026 · **Prepared for:** Mohamoud Abdullahi Sheikh · recorded by Claude Code
 **Decisions:** G17–G19 (`docs/DECISIONS-AND-GATES_v0.1.md`) · **Branch:** `feature/berjaya-rebrand` · **Baseline:** `develop` @ `5508f13`, app v0.1.17
-**Status:** awaiting approval. No branding has been changed. Only rows approved as PRODUCT are edited.
+**Status:** approved by Mohamoud on 13 Nov 2026 — P1–P5 and the recommendations for U1–U7 as stated. Applied in app v0.1.18; outcomes in section 7.
 
 ## 1. Method
 
@@ -72,3 +72,15 @@ Tests follow the constant: `tests/test_branding.py` already asserts against `BRA
 | 3 | The prompt asks for D-A, D-B and D-C. The evening's rollout decisions (route `/berjaya`, colours, rebrand first) are recorded as **G20** so other chats read them in the repository; remove G20 if you want it recorded elsewhere. |
 | 4 | Colours are approved (G20) but this PR leaves existing colours as they are, as the prompt says. |
 | 5 | No product branding was found in system email templates or notifications: the app ships none. The website footer value is covered by P2. |
+
+## 7. Outcome after approval (v0.1.18)
+
+| Row | Outcome |
+| --- | --- |
+| P1–P5 | Changed to Berjaya, read from `sidra_realestate.branding.BRAND_NAME`. The static staff page cannot read a Python constant, so it holds the literal and a test compares it with the constant. |
+| U1 | New `berjaya-wordmark.png`, `berjaya-icon.png`, `berjaya-favicon.png`. The Sidra Homes logo files and the three print formats are untouched. The README header image is the wordmark. |
+| U2 | Applied: only the exact earlier values are replaceable. |
+| U3 | **Not changed.** Checked against Frappe v16.55.2: the Sidebar DocType is named by its `title` (`autoname: field:title`), so a new title would rename the record. Both stay. |
+| U4 | Not changed. |
+| U5 | `hooks.py` description changed; `pyproject.toml` left. |
+| U6, U7 | Not changed. |

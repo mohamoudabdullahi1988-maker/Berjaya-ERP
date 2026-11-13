@@ -4,6 +4,16 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Changed (v0.1.18 — Berjaya product name on the existing screens, 13 Nov 2026; decisions G17–G20)
+- **Decisions recorded** in `docs/DECISIONS-AND-GATES_v0.1.md`: G17 (interface rebuild), G18 (product name **Berjaya**), G19 (**Sidra** stays the client and company name), G20 (rollout: `/berjaya`, charcoal and terracotta, rebrand first). `CLAUDE.md` and `AGENTS.md` carry the same naming rule.
+- **Branding audit** (`docs/BERJAYA-BRANDING-AUDIT_v0.1.md`): 2,128 "sidra" lines classified — 11 product, 176 client, 1,883 internal, 58 unsure. Approved by Mohamoud on 13 Nov 2026.
+- **Rules audit** (`docs/BERJAYA-RULES-AUDIT_v0.1.md`): every rule held in Desk form scripts or field conditions, with its server check. Document only; no rule moved.
+- **Surfaces rebranded**: the app name on the apps screen, the system and website name (browser tab titles, login page, website footer), the `/sidra` front page title and header, the `/sidra-staff/` page title and sidebar brand, the README title and the app description. The name comes from one constant, `sidra_realestate.branding.BRAND_NAME`.
+- A plain text wordmark and letter icon (`berjaya-wordmark.png`, `berjaya-icon.png`, `berjaya-favicon.png`) replace the company logo as the software's navbar logo, splash and favicon. Colours are unchanged.
+- A site this app had branded "Sidra Homes" is rebranded on migrate: only that exact earlier value in System, Website and Navbar Settings is replaced. An administrator's own value is still left alone.
+- **Unchanged**: Company **Sidra Homes** and every record in it; the Sidra Homes logo and letterhead on the contract and quotation prints; app, module, site, flag, DocType, role and report names; naming series; the routes `/sidra` and `/sidra-staff/`; the Desk sidebar names; the native Android and macOS apps; every guard, loader, posting gate and permission. No patch, no data migration.
+- Tests: product-name source, hooks and apps-screen tile; login page and front page render Berjaya; earlier branding replaced; Company list and name unchanged by branding; contract print and a Sidra Homes sales invoice print carry no product name.
+
 ### Fixed (v0.1.17 — staff dashboard pilot sources and installment calendar, 13 Nov 2026)
 - Read opted-in native financial data from either the twelve-month pilot manifest, the earlier finance demo manifest, or both. Preserve complete permission-filtered invoice/payment cohorts, currency checks and ownership validation; no grants, postings or loader calls.
 - Remove the two historical demo Companies from the staff dashboard selector and prefer Sidra Homes, without changing any Company or historical record.

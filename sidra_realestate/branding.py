@@ -1,8 +1,13 @@
-"""Sidra Homes branding and navigation (white-label; no Frappe or ERPNext core edits).
+"""Product branding and navigation (white-label; no Frappe or ERPNext core edits).
+
+The software is **Berjaya**; **Sidra** is the company using it (decisions G17-G19). `BRAND_NAME`
+is the single source of the product name: hooks, pages and tests read it from here. Company
+records, print letterheads and internal identifiers keep the Sidra name and are not touched here.
 
 - Logo, favicon and system name: Navbar Settings, Website Settings and System Settings get the
-  Sidra Homes name and logo on install and migrate. A value an administrator has changed to
-  something other than a Frappe / ERPNext default is left alone.
+  product name and wordmark on install and migrate. A value an administrator has changed to
+  something other than a Frappe / ERPNext default, or this app's own earlier branding, is left
+  alone.
 - Front page: System Settings "Default App" is set to this app when it is blank, so staff land
   on /sidra after signing in (decision G15). A choice an administrator has made is left alone,
   and so is each user's own default app.
@@ -13,9 +18,21 @@
 
 import frappe
 
-BRAND_NAME = "Sidra Homes"
-LOGO = "/assets/sidra_realestate/images/sidra-logo.png"
-ICON = "/assets/sidra_realestate/images/favicon.png"
+BRAND_NAME = "Berjaya"
+# Plain text wordmark and letter icon; the final logo and colours are a later decision (G20).
+LOGO = "/assets/sidra_realestate/images/berjaya-wordmark.png"
+ICON = "/assets/sidra_realestate/images/berjaya-favicon.png"
+APP_ICON = "/assets/sidra_realestate/images/berjaya-icon.png"
+# The company's own logo: letterhead on contracts and quotations. Client identity, never replaced.
+COMPANY_LOGO = "/assets/sidra_realestate/images/sidra-logo.png"
+
+# What this app itself wrote as product branding before G18. Only these exact settings values
+# are replaced on migrate; Company records are never read or written here.
+_PREVIOUS_BRANDING = (
+	"Sidra Homes",
+	"/assets/sidra_realestate/images/sidra-logo.png",
+	"/assets/sidra_realestate/images/favicon.png",
+)
 
 MODULE_PROFILE = "Sidra Staff"
 # Decision of 7 Nov 2026 (Mohamoud): hidden for Sidra staff. Accounts, Selling and CRM stay.
@@ -35,7 +52,9 @@ _DEFAULT_MARKERS = ("frappe", "erpnext")
 
 
 def _replaceable(value) -> bool:
-	return not value or any(marker in str(value).lower() for marker in _DEFAULT_MARKERS)
+	if not value or str(value) in _PREVIOUS_BRANDING:
+		return True
+	return any(marker in str(value).lower() for marker in _DEFAULT_MARKERS)
 
 
 def _set_single(doctype, values):
@@ -82,6 +101,6 @@ def ensure_module_profile():
 
 
 def has_app_permission() -> bool:
-	"""Show the Sidra icon to Sidra staff and system managers."""
+	"""Show the app icon to Sidra staff and system managers."""
 	roles = set(frappe.get_roles())
 	return "System Manager" in roles or any(role.startswith("Sidra ") for role in roles)

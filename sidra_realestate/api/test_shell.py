@@ -10,6 +10,7 @@ from frappe.tests import IntegrationTestCase
 from frappe.website.serve import get_response
 
 from sidra_realestate.api.shell import build_shell
+from sidra_realestate.branding import BRAND_NAME
 from sidra_realestate.tests.helpers import (
 	OUTSIDER,
 	PROJECT_MANAGER,
@@ -51,6 +52,9 @@ class TestShell(IntegrationTestCase):
 		html = response.get_data(as_text=True)
 		self.assertIn("/assets/sidra_realestate/shell/shell.css", html)
 		self.assertIn("Real Estate Sales", html)
+		self.assertIn(f"<title>{BRAND_NAME}</title>", html)
+		self.assertIn(f"<span>{BRAND_NAME}</span>", html)
+		self.assertNotIn("Sidra Homes", html)
 		self.assertIn('href="/sidra-staff/"', html)
 		self.assertIn('id="real-estate"', html)
 		for platform in ("ERPNext", "Frappe"):
