@@ -50,6 +50,24 @@ class TestBranding(IntegrationTestCase):
 		self.assertEqual(context["app_name"], BRAND_NAME)
 		self.assertEqual(context["logo"], LOGO)
 
+	def test_sign_in_page_loads_the_brand_stylesheet(self):
+		"""G20: the sign-in page takes the Berjaya look from one stylesheet scoped to that page."""
+		sheets = frappe.get_hooks("web_include_css", app_name="sidra_realestate")
+		self.assertEqual(sheets, ["/assets/sidra_realestate/css/berjaya-login.css"])
+		path = frappe.get_app_path("sidra_realestate", "public", "css", "berjaya-login.css")
+		self.assertTrue(os.path.exists(path))
+		with open(path) as handle:
+			rules = [line for line in handle.read().split("\n") if line.rstrip().endswith(("{", ","))]
+		# Every selector is scoped to the login page, so no other website page is restyled.
+		unscoped = [r for r in rules if not r.startswith(("body[data-path='login']", "@media", "\t"))]
+		self.assertEqual(unscoped, [])
+		for image in (LOGO, APP_ICON):
+			self.assertTrue(
+				os.path.exists(
+					frappe.get_app_path("sidra_realestate", "public", "images", image.rsplit("/", 1)[1])
+				)
+			)
+
 	def test_earlier_product_branding_is_replaced(self):
 		"""A site branded "Sidra Homes" by this app before G18 is rebranded on migrate."""
 		old_logo = "/assets/sidra_realestate/images/sidra-logo.png"

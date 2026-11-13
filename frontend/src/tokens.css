@@ -16,6 +16,7 @@
   --bj-state-current: #1d5fa8;
   --bj-state-blocked: #b42318;
   --bj-state-pending: #9aa6a0;
+  --bj-state-blocked-tint: #fef3f2; /* behind a blocked banner */
 
   --bj-font-heading: 'Space Grotesk Variable', system-ui, sans-serif;
   --bj-font-body: 'Inter Variable', system-ui, sans-serif;
