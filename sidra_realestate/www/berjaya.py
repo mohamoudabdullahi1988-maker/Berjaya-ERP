@@ -9,7 +9,7 @@ sections the user may open and which unit fields the user may read. The frontend
 is told and decides no permission itself. Read-only, not cached, no secret embedded; every
 record still comes through Frappe's own permission-checked REST API.
 
-"Berjaya" is the software. The company shown is the user's own Company record.
+"Berjaya" is the software (`branding.BRAND_NAME`). The company shown is the user's own Company record.
 """
 
 from urllib.parse import quote
@@ -17,6 +17,7 @@ from urllib.parse import quote
 import frappe
 from frappe import _
 
+from sidra_realestate import branding
 from sidra_realestate.api.shell import is_staff
 
 no_cache = 1
@@ -44,7 +45,7 @@ def get_context(context):
 		frappe.local.flags.redirect_location = "/login?redirect-to=" + quote(_return_path(), safe="")
 		raise frappe.Redirect
 	if not is_staff():
-		frappe.throw(_("Berjaya is for Sidra staff"), frappe.PermissionError)
+		frappe.throw(_("{0} is for Sidra staff").format(branding.BRAND_NAME), frappe.PermissionError)
 	context.boot = {
 		"csrf_token": frappe.sessions.get_csrf_token(),
 		"berjaya_boot": get_boot(),
@@ -78,6 +79,9 @@ def get_boot() -> dict:
 			if row.default_currency
 		}
 	return {
+		# The software's name and icon, from the one source (branding.py, decisions G17-G19).
+		"product_name": branding.BRAND_NAME,
+		"favicon": branding.ICON,
 		"user": {"name": user, "full_name": frappe.utils.get_fullname(user)},
 		"company": frappe.defaults.get_user_default("Company"),
 		"nav": [

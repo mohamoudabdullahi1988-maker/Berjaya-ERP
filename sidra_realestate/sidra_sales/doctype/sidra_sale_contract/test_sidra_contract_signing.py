@@ -236,8 +236,13 @@ class TestContractSigning(IntegrationTestCase):
 			"The chosen clause.",
 			"_Test Witness Two",
 			"_Test pledged plot 1",
+			# G19: the letterhead is the company's, not the product's.
+			"sidra-logo.png",
+			'alt="Sidra Homes"',
 		):
 			self.assertIn(expected, html)
+		self.assertNotIn("Berjaya", html)
+		self.assertNotIn("berjaya", html)
 		self.assertNotIn("Qodob kale.", html)
 		self.assertNotIn(other.text_en, html)
 		self.assertNotIn("Draft for signing", html)

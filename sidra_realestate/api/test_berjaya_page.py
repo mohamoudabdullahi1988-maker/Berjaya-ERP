@@ -7,6 +7,7 @@ import frappe
 from frappe.tests import IntegrationTestCase
 from frappe.website.serve import get_response
 
+from sidra_realestate import branding
 from sidra_realestate.tests.helpers import (
 	OUTSIDER,
 	PROJECT_MANAGER,
@@ -59,11 +60,14 @@ class TestBerjayaPage(IntegrationTestCase):
 		with as_user(SALES_MANAGER):
 			boot = page.get_boot()
 		self.assertEqual(boot["user"]["name"], SALES_MANAGER)
+		self.assertEqual(boot["product_name"], branding.BRAND_NAME)
 		self.assertTrue(set(boot["properties"]["readable_fields"]) <= set(page.UNIT_LIST_FIELDS))
 		self.assertIn("unit_code", boot["properties"]["readable_fields"])
 		with as_user(PROJECT_MANAGER):
 			self.assertEqual(page.get_boot()["properties"]["readable_fields"], [])
-		self.assertEqual(set(boot), {"user", "company", "nav", "properties", "currencies"})
+		self.assertEqual(
+			set(boot), {"product_name", "favicon", "user", "company", "nav", "properties", "currencies"}
+		)
 
 	def test_every_path_under_berjaya_reaches_the_page(self):
 		rules = frappe.get_hooks("website_route_rules")

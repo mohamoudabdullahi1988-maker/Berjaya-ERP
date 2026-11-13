@@ -10,6 +10,7 @@ import frappe
 
 from sidra_realestate import __version__
 from sidra_realestate.api.shell import DESK, build_shell, is_staff
+from sidra_realestate.branding import APP_ICON, BRAND_NAME, ICON
 
 no_cache = 1
 
@@ -22,6 +23,9 @@ def get_context(context):
 		frappe.local.flags.redirect_location = DESK
 		raise frappe.Redirect
 	context.update(build_shell())
+	context.brand_name = BRAND_NAME
+	context.brand_icon = APP_ICON
+	context.favicon = ICON
 	context.asset_version = __version__
 	context.no_cache = 1
 	return context
