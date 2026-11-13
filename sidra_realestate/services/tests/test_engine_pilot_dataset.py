@@ -108,6 +108,16 @@ class TestCoverage(unittest.TestCase):
 		for contract in self.plan.contracts:
 			self.assertIn(contract["customer"], verified)
 
+	def test_cash_contracts_carry_no_external_reference(self):
+		"""The controller refuses a cash contract with a profile, source or external reference."""
+		for contract in self.plan.contracts:
+			if contract["contract_type"] == "Cash":
+				self.assertIsNone(contract["external_reference"], contract["reference"])
+		external = [c for c in self.plan.contracts if c["external_reference"]]
+		self.assertTrue(external, "no externally registered contract in the dataset")
+		for contract in external:
+			self.assertEqual(contract["contract_type"], "Installment")
+
 	def test_notary_references_match_the_registry_format(self):
 		"""SAL-19: the contract refuses anything that is not IPN/HL/NNN/YYYY."""
 		pattern = re.compile(r"^IPN/HL/\d{3}/\d{4}$")

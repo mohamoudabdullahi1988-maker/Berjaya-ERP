@@ -263,7 +263,9 @@ def build(as_of: date) -> Plan:
 			codes.append(next(pool))
 		price = money(sum(by_code[c]["cash_price"] for c in codes))
 		installment = index % 3 != 0
-		external = index % 7 == 0
+		# Only an installment contract can be externally registered; a cash contract has no
+		# source, no profile and no external reference at all.
+		external = installment and index % 7 == 0
 		count = (12, 18, 24, 36)[index % 4]
 		down = money(price * Decimal("0.20")) if installment else money(0)
 		contract = {

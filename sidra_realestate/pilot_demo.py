@@ -479,10 +479,15 @@ def _sales(plan, profile, placeholder_scan):
 				{"role": "Witness", "full_name": "Pilot Witness Two", "phone": "+252 63 000 4004"},
 			],
 		}
-		if entry["external_reference"]:
-			values["external_reference"] = entry["external_reference"]
+		# A cash contract carries no profile, no source and no external reference: the
+		# controller refuses one that does. Only the generated installment path takes a profile.
+		if entry["contract_type"] == "Installment":
+			if entry["external_reference"]:
+				values["external_reference"] = entry["external_reference"]
+			else:
+				values["contract_profile"] = profile
 		else:
-			values["contract_profile"] = profile
+			values.pop("source", None)
 		if entry["contract_type"] == "Installment":
 			values.update(
 				down_payment=entry["down_payment"],
