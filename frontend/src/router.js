@@ -1,6 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { canOpen, canRead, navItems } from './boot'
+import { canCreate, canOpen, canRead, navItems } from './boot'
 import { GENERIC, RECORDS, SECTIONS, detailRoute, listRoute } from './records'
 
 const RecordList = () => import('./pages/RecordList.vue')
@@ -34,6 +34,8 @@ const routes = [
   { path: '/customers-section', name: 'customers', redirect: () => firstList('customers') },
   { path: '/sales', name: 'sales', redirect: () => firstList('sales') },
   { path: '/contracts', name: 'contracts', component: () => import('./pages/Contracts.vue'), meta: { list: 'contracts', section: 'contracts' } },
+  { path: '/contracts/new', name: 'contract-new', component: () => import('./pages/ContractEdit.vue'), meta: { list: 'contracts', section: 'contracts', create: true } },
+  { path: '/contracts/:name/edit', name: 'contract-edit', component: () => import('./pages/ContractEdit.vue'), meta: { list: 'contracts', section: 'contracts' } },
   { path: '/contracts/:name', name: 'contract-detail', component: () => import('./pages/ContractDetail.vue'), meta: { section: 'contracts' } },
   { path: '/collections', name: 'collections', component: () => import('./pages/Collections.vue'), meta: { section: 'collections' } },
   { path: '/construction', name: 'construction', component: () => import('./pages/Construction.vue'), meta: { list: 'jobs', section: 'construction' } },
@@ -56,6 +58,7 @@ const OPEN_TO_ALL = new Set(['home', 'no-access', 'not-found'])
 router.beforeEach((to) => {
   if (OPEN_TO_ALL.has(to.name)) return true
   if (to.meta.list && !canRead(to.meta.list)) return { name: 'no-access' }
+  if (to.meta.create && !canCreate(to.meta.list)) return { name: 'no-access' }
   if (canOpen(to.meta.section ?? to.name)) return true
   return { name: 'no-access' }
 })
