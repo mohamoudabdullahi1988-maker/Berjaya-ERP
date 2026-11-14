@@ -4,6 +4,11 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.26 — the finance demo and pilot dataset tests always run in the same order, 14 Nov 2026)
+- The finance demo test checks absolute totals for Sidra Homes, and its loader refuses a Company holding ledger entries it does not own, so it must run before the pilot dataset is loaded. The two were separate modules, and Frappe discovers test files in file-system order (`os.walk`, unsorted), which differs between machines: whenever the pilot ran first, the finance demo test failed (`180 != 60` units). This made CI fail at random, about half the time (seen on PR #60; PR #59 passed by luck).
+- Both now run from one module, `tests/test_demo_datasets.py`, as two classes that unittest loads in name order (`TestDemo1Finance`, then `TestDemo2Pilot`), each with its own test transaction as before. The test bodies are unchanged; `test_finance_demo.py` and `test_pilot_demo.py` now hold them as `FinanceDemoChecks` and `PilotDemoChecks`, and the pilot's `_foreign_gl_refused` is renamed `_pilot_foreign_gl_refused` so the two do not clash. `test_order` guards the class names.
+- Reproduced on a fresh Frappe v16 / ERPNext v16 site (pilot first: the same failure). With the fix, the full app suite passes on a fresh site: 354 integration tests and 98 engine tests.
+
 ### Added (v0.1.25 — register an External contract in Berjaya, 14 Nov 2026; implementation plan Phase 4)
 - **Register external contract** at `/berjaya/contracts/new` and **Edit draft** at `/berjaya/contracts/<name>/edit`: customer, company, external reference, signing date, agreed price, profile, down payment mode and amount, installments, due day, grace months, terms summary, units with allocated prices, and the schedule row by row (type, due date, amount). Only a draft registered (External) installment contract can be edited here; penalty, default, title and party terms stay in Desk.
 - **Original signed contract**: uploaded as a private file to the draft's Signed Copy field through Frappe's own upload, then set on the contract by the server after checking the file belongs to this contract only.

@@ -6,7 +6,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import IntegrationTestCase
 from frappe.utils import getdate
 
 from sidra_realestate.api.finance_demo_snapshot import demo_financials
@@ -81,7 +80,9 @@ def demo_masters():
 	)
 
 
-class TestFinanceDemo(IntegrationTestCase):
+class FinanceDemoChecks:
+	"""Run by `test_demo_datasets.TestDemoDatasets`, before the pilot checks (see there)."""
+
 	def test_guarded_dataset_native_reports_dashboard_and_repeat(self):
 		ensure_base_records()
 		with as_user("Administrator"), patch.dict(frappe.conf, {flag: 1 for flag in FLAGS}):
