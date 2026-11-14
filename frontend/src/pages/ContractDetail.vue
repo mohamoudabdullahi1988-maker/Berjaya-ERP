@@ -10,7 +10,7 @@ import { CONTRACT, CONTRACT_DOCTYPE, permissions, sourceText, statusText, status
 import { dateText, deskLink, fileLink, isAmount, money, textValue } from '../format'
 import { claimPanel, releasePanel } from '../panel'
 import { canRead } from '../boot'
-import { CONFIRM_METHOD, canConfirm, canEdit, isRegisteredDraft, savedDifference } from '../registration'
+import { CONFIRM_METHOD, canConfirm, canEdit, isRegisteredDraft, printLink, savedDifference } from '../registration'
 
 const route = useRoute()
 const doc = ref(null)
@@ -182,6 +182,7 @@ onBeforeUnmount(() => {
           <span v-if="doc.external_reference" class="bj-pill">{{ doc.external_reference }}</span>
           <span class="bj-pill">{{ sourceText(doc) }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + statusTone(doc.docstatus)">{{ statusText(doc.docstatus) }}</span>
+          <a class="bj-btn" :href="printLink(doc.name)" target="_blank" rel="noopener"><span class="lucide-printer" aria-hidden="true" />Print</a>
           <a class="bj-btn" :href="deskLink(CONTRACT_DOCTYPE, doc.name)"><span class="lucide-external-link" aria-hidden="true" />Open in Desk</a>
           <RouterLink v-if="showEdit" class="bj-btn" :to="{ name: 'contract-edit', params: { name: doc.name } }"><span class="lucide-pencil" aria-hidden="true" />Edit draft</RouterLink>
           <button v-if="showConfirm && !confirmOpen" type="button" class="bj-btn bj-btn--primary" @click="openConfirm">

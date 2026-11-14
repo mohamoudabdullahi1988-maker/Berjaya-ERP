@@ -104,3 +104,70 @@ test('only a draft registered installment contract is edited on the screen', asy
   assert.equal(isRegisteredDraft({ ...draft, contract_type: 'Cash' }), false)
   assert.equal(isRegisteredDraft(null), false)
 })
+
+const DEFINITION = {
+  signing: [{ fieldname: 'notary_name', label: 'Notary', fieldtype: 'Data' }],
+  terms: [
+    { fieldname: 'penalty_type', label: 'Penalty Type', fieldtype: 'Select', options: ['None', 'Per Day Capped'] },
+    {
+      fieldname: 'penalty_per_day',
+      label: 'Amount per Day',
+      fieldtype: 'Currency',
+      show_when: { field: 'penalty_type', op: 'eq', values: ['Per Day Capped'] },
+    },
+    { fieldname: 'refund_compensation', label: 'X', fieldtype: 'Percent', show_when: { field: 'title_refund_after_days', op: 'set', values: [] } },
+  ],
+  parties: [{ fieldname: 'role', fieldtype: 'Select', options: ['Seller', 'Seller Guarantor', 'Witness'] }],
+}
+
+test('term, signing and party fields are sent only with the server definition', async () => {
+  const { payloadFromForm, blankForm, blankParty } = await import('../src/registration.js')
+  const form = blankForm('C')
+  form.extra = { notary_name: ' N ', penalty_type: 'Per Day Capped', penalty_per_day: '5', refund_compensation: '' }
+  form.parties = [{ ...blankParty('Seller Guarantor'), full_name: 'G', pledged_property: 'Plot 4' }, blankParty()]
+  const without = payloadFromForm(form)
+  for (const key of ['notary_name', 'penalty_type', 'parties']) assert.equal(key in without, false)
+  const payload = payloadFromForm(form, DEFINITION)
+  assert.equal(payload.notary_name, 'N')
+  assert.equal(payload.penalty_per_day, 5)
+  assert.equal(payload.refund_compensation, null)
+  assert.deepEqual(payload.parties, [
+    { role: 'Seller Guarantor', full_name: 'G', phone: null, id_number: null, pledged_property: 'Plot 4' },
+  ])
+})
+
+test('a field applies by the server rule; no rule or an unknown one shows it', async () => {
+  const { applies } = await import('../src/registration.js')
+  const [, perDay, compensation] = DEFINITION.terms
+  assert.equal(applies(perDay, { penalty_type: 'Per Day Capped' }), true)
+  assert.equal(applies(perDay, { penalty_type: 'None' }), false)
+  assert.equal(applies(compensation, { title_refund_after_days: 0 }), false)
+  assert.equal(applies(compensation, { title_refund_after_days: 30 }), true)
+  assert.equal(applies({ show_when: { field: 'x', op: 'ne', values: ['None'] } }, { x: '' }), true)
+  assert.equal(applies({ show_when: { field: 'x', op: 'mystery', values: [] } }, {}), true)
+  assert.equal(applies({}, {}), true)
+})
+
+test('the form is dirty only when it differs from the saved record', async () => {
+  const { formFromDoc, isDirty } = await import('../src/registration.js')
+  const saved = {
+    customer: 'B',
+    agreed_price: 9000,
+    notary_name: 'N',
+    parties: [{ role: 'Witness', full_name: 'W' }],
+    units: [],
+    schedule: [{ row_type: 'Installment', due_date: '2026-02-10', amount: 9000 }],
+  }
+  const form = formFromDoc(saved, DEFINITION)
+  assert.equal(form.extra.notary_name, 'N')
+  assert.equal(form.parties[0].full_name, 'W')
+  assert.equal(isDirty(form, saved, DEFINITION), false)
+  form.schedule[0].amount = '8000'
+  assert.equal(isDirty(form, saved, DEFINITION), true)
+  assert.equal(isDirty(form, null, DEFINITION), true)
+})
+
+test('print opens Frappe print view of the contract', async () => {
+  const { printLink } = await import('../src/registration.js')
+  assert.equal(printLink('SSC-2026-00001'), '/printview?doctype=Sidra%20Sale%20Contract&name=SSC-2026-00001')
+})
