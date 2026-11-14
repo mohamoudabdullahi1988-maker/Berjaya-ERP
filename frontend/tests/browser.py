@@ -24,8 +24,35 @@ BOOT = {
 	"company": COMPANY,
 	"nav": [
 		{"key": key, "label": key.title()}
-		for key in ("dashboard", "properties", "contracts", "collections", "construction", "finance")
+		for key in (
+			"dashboard",
+			"properties",
+			"customers",
+			"sales",
+			"contracts",
+			"collections",
+			"construction",
+			"finance",
+		)
 	],
+	"lists": {
+		key: {"read": True, "create": key in ("reservations", "contracts", "jobs")}
+		for key in (
+			"units",
+			"price_history",
+			"customers",
+			"kyc",
+			"reservations",
+			"sale_quotations",
+			"contracts",
+			"title_transfers",
+			"jobs",
+			"construction_quotations",
+			"boq_revisions",
+			"variations",
+			"inspections",
+		)
+	},
 	"properties": {"readable_fields": []},
 	"currencies": {COMPANY: "USD"},
 }
@@ -246,6 +273,81 @@ CALENDAR = {
 DASHBOARD = {
 	"as_of": "2026-11-14T09:15:00+03:00",
 	"currency": "USD",
+	"scope": {"role_label": "General Manager"},
+	"summary": {
+		"new_leads": 7,
+		"units_available": 41,
+		"active_reservations": 3,
+		"confirmed_contracts": 2,
+		"agreed_contract_value": "34000.00",
+	},
+	"property": {
+		"total": 60,
+		"counts": [
+			{"status": "Available", "count": 41},
+			{"status": "Reserved", "count": 3},
+			{"status": "Under Contract", "count": 16},
+		],
+	},
+	"schedule": {
+		"available": True,
+		"buckets": [
+			{"label": "Due today", "amount": "2300.00"},
+			{"label": "Next 30 days", "amount": "4600.00"},
+			{"label": "31-60 days", "amount": None},
+		],
+		"upcoming": [],
+	},
+	"contracts": [
+		{
+			"id": "SYN-2026-00055",
+			"reference": "SYN-EXT-0036",
+			"customer_display": "Synthetic Buyer One",
+			"unit_label": "SYN-A-014",
+			"status": "Confirmed",
+			"value": "10000.00",
+			"currency": "USD",
+			"signed_on": "2026-01-15",
+		}
+	],
+	"jobs": {
+		"available": True,
+		"total": 1,
+		"open": 1,
+		"active": 1,
+		"overdue_milestones": 0,
+		"completed": 0,
+		"items": [
+			{
+				"id": "SCJ-2026-00007",
+				"label": "Synthetic Client",
+				"status": "In Progress",
+				"next_milestone": "Structure",
+				"due_date": "2026-08-30",
+			}
+		],
+	},
+	"sales": {"available": False, "reason": "Your role cannot read lead activity."},
+	"executive": {
+		"available": True,
+		"period_label": "Signed sales 2026-11-01–2026-11-14.",
+		"metrics": {
+			"sales_value": {"available": True, "value": "34000.00", "detail": "Not revenue."},
+			"available_units": {"available": True, "value": 41},
+			"due_next_30_days": {"available": True, "value": "4600.00"},
+			"overdue_milestones": {"available": True, "value": 0},
+			"cash_collected": {"available": False, "reason": "Payments are not recorded in ERPNext yet."},
+			"overdue_balance": {"available": False, "reason": "Payments are not recorded in ERPNext yet."},
+		},
+		"trends": {
+			"available": True,
+			"period_label": "Last six months.",
+			"months": [
+				{"label": "Oct 2026", "sales_value": "12000.00", "received": None},
+				{"label": "Nov 2026*", "sales_value": "34000.00", "received": None},
+			],
+		},
+	},
 	"payments": {
 		"available": True,
 		"notice": "Fictional staging data from permitted native invoices and payments; not contract collections.",
@@ -296,21 +398,230 @@ RECEIPTS = [
 		"reference_no": "SYN-REF-77",
 	},
 ]
-JOB_ROW = {
-	k: JOB[k]
-	for k in (
-		"name",
-		"customer",
-		"service_type",
-		"status",
-		"site_location",
-		"plot_number",
-		"engineer",
-		"current_contract_value",
-		"currency",
-		"contract_end_date",
-	)
+BUYER = "Synthetic Buyer One"
+RECORDS = {
+	"Sidra Construction Job": [JOB],
+	"Sales Invoice": INVOICES,
+	"Payment Entry": RECEIPTS,
+	"Customer": [
+		{
+			"name": BUYER,
+			"customer_name": BUYER,
+			"customer_type": "Individual",
+			"customer_group": "Individual",
+			"territory": "Synthetic Territory",
+			"mobile_no": "+000 0000 001",
+			"email_id": "buyer@example.test",
+			"tax_id": None,
+			"disabled": 0,
+		},
+		{
+			"name": "Synthetic Client",
+			"customer_name": "Synthetic Client",
+			"customer_type": "Company",
+			"customer_group": "Commercial",
+			"territory": "Synthetic Territory",
+			"mobile_no": None,
+			"email_id": None,
+			"tax_id": None,
+			"disabled": 0,
+		},
+	],
+	"Sidra Customer KYC": [
+		{
+			"name": BUYER,
+			"customer": BUYER,
+			"customer_name": BUYER,
+			"status": "Verified",
+			"id_type": "Passport",
+			"id_number": "SYN000001",
+			"name_on_id": BUYER,
+			"id_expiry": "2030-01-01",
+			"id_document": "/private/files/syn-id.pdf",
+			"phone": "+000 0000 001",
+			"address": "Synthetic Road 1\nSynthetic Town",
+			"verified_by": "manager@example.test",
+			"verified_on": "2026-01-10 11:00:00",
+			"guarantor_name": "Synthetic Guarantor",
+			"guarantor_phone": None,
+			"guarantor_relationship": "Brother",
+			"guarantor_id_number": None,
+			"guarantor_document": None,
+		},
+	],
+	"Sidra Reservation": [
+		{
+			"name": "SRES-2026-00004",
+			"unit": "SYN-A-014",
+			"customer": BUYER,
+			"company": COMPANY,
+			"status": "Converted",
+			"reserved_on": "2026-01-05",
+			"expires_on": "2026-01-20",
+			"sale_contract": "SYN-2026-00055",
+			"notes": None,
+		},
+		{
+			"name": "SRES-2026-00009",
+			"unit": "SYN-B-007",
+			"customer": "Synthetic Client",
+			"company": COMPANY,
+			"status": "Active",
+			"reserved_on": "2026-11-10",
+			"expires_on": "2026-11-24",
+			"sale_contract": None,
+			"notes": None,
+		},
+	],
+	"Sidra Sale Quotation": [
+		{
+			"name": "SSQ-2026-00002",
+			"customer": BUYER,
+			"company": COMPANY,
+			"currency": "USD",
+			"status": "Issued",
+			"quotation_date": "2026-01-02",
+			"valid_until": "2026-01-16",
+			"listed_total": 10500,
+			"discount_amount": 500,
+			"cash_total": 10000,
+			"discount_approval": "Sidra Sales Manager",
+			"discount_approved_by": "manager@example.test",
+			"discount_approved_on": "2026-01-02 10:00:00",
+			"contract_profile": "Profile A",
+			"installments": 4,
+			"installment_total": 10800,
+			"down_payment": 800,
+			"balance": 10000,
+			"due_day": 10,
+			"grace_months": 0,
+			"notes": None,
+			"docstatus": 1,
+			"units": [
+				{
+					"name": "q1",
+					"unit": "SYN-A-014",
+					"scheme": "Synthetic Gardens",
+					"listed_price": 10500,
+					"cash_price": 10000,
+					"installment_price": 10800,
+				}
+			],
+			"schedule": [
+				{
+					"name": f"qs{i}",
+					"seq": i,
+					"row_type": "Installment",
+					"due_date": f"2026-0{i + 1}-10",
+					"amount": 2500,
+				}
+				for i in range(1, 5)
+			],
+		},
+	],
+	"Sidra Title Transfer": [
+		{
+			"name": "STT-2026-00001",
+			"contract": "SYN-2026-00055",
+			"unit": "SYN-A-014",
+			"customer": BUYER,
+			"company": COMPANY,
+			"status": "Awaiting Final Payment",
+			"title_deadline_days": 20,
+			"deadline_date": None,
+			"days_overdue": 0,
+			"title_term": "Title within 20 days of the final payment.",
+			"documents": [],
+		},
+	],
+	"Sidra Unit Price History": [
+		{
+			"name": "SUPH-2026-00011",
+			"unit": "SYN-A-014",
+			"scheme": "Synthetic Gardens",
+			"company": COMPANY,
+			"effective_from": "2026-10-01",
+			"price": 10500,
+			"previous_price": 10000,
+			"reason": "Annual review",
+			"docstatus": 1,
+		},
+	],
+	"Sidra Construction Quotation": [
+		{
+			"name": "SCQ-2026-00003",
+			"job": "SCJ-2026-00007",
+			"customer": "Synthetic Client",
+			"company": COMPANY,
+			"currency": "USD",
+			"status": "Contracted",
+			"pricing_basis": "BOQ",
+			"quoted_amount": 180000,
+			"valid_until": "2026-01-31",
+			"docstatus": 1,
+			"boq": [
+				{
+					"name": "bq1",
+					"cost_code": "SYN-01",
+					"description": "Foundations",
+					"uom": "m3",
+					"qty": 120,
+					"rate": 500,
+					"amount": 60000,
+				}
+			],
+		},
+	],
+	"Sidra BOQ Revision": [
+		{
+			"name": "SBR-2026-00002",
+			"job": "SCJ-2026-00007",
+			"customer": "Synthetic Client",
+			"company": COMPANY,
+			"currency": "USD",
+			"revision_no": 2,
+			"previous_total": 180000,
+			"boq_total": 186500,
+			"difference": 6500,
+			"docstatus": 1,
+			"boq": [],
+		},
+	],
+	"Sidra Variation Order": [
+		{
+			"name": "SVO-2026-00001",
+			"job": "SCJ-2026-00007",
+			"customer": "Synthetic Client",
+			"company": COMPANY,
+			"currency": "USD",
+			"amount": 6500,
+			"approved_on": "2026-06-02 12:00:00",
+			"docstatus": 1,
+		},
+	],
+	"Sidra Inspection Report": [
+		{
+			"name": "SIR-2026-00004",
+			"job": "SCJ-2026-00007",
+			"customer": "Synthetic Client",
+			"company": COMPANY,
+			"stage": "Foundation",
+			"inspection_date": "2026-03-19",
+			"inspector": "inspector@example.test",
+			"result": "Pass with defects",
+			"defects_found": "Minor honeycombing on the north footing.",
+			"next_action": "Patch and re-inspect",
+			"next_action_due": "2026-03-26",
+			"docstatus": 1,
+			"checklist": [
+				{"name": "c1", "item": "Reinforcement cover", "result": "Pass", "remarks": None},
+				{"name": "c2", "item": "Concrete finish", "result": "Fail", "remarks": "Honeycombing"},
+			],
+			"photos": [],
+		},
+	],
 }
+RECORDS["Sidra Sale Contract"] = list(CONTRACTS.values())
 
 
 def answer(url):
@@ -333,15 +644,31 @@ def answer(url):
 		return 403, {"exception": "frappe.exceptions.PermissionError: Not permitted"}
 	if path.startswith("/api/resource/Sidra Sale Contract/"):
 		return 200, {"data": CONTRACTS[path.rsplit("/", 1)[1]]}
-	if path.startswith("/api/resource/Sidra Construction Job/"):
-		return 200, {"data": JOB}
-	listed = {"Sidra Construction Job": [JOB_ROW], "Sales Invoice": INVOICES, "Payment Entry": RECEIPTS}
-	for doctype, rows in listed.items():
-		if path == f"/api/v2/document/{doctype}":
-			return 200, {"data": rows, "has_next_page": False}
-		if path == f"/api/v2/doctype/{doctype}/count":
-			return 200, {"data": len(rows)}
+	if path.startswith("/api/v2/doctype/") and path.endswith("/count"):
+		doctype = path.split("/")[4]
+		return 200, {"data": len(matching(doctype, query))}
+	if path.startswith("/api/resource/"):
+		parts = path.split("/")
+		doctype = parts[3]
+		if len(parts) == 4:
+			return 200, {"data": matching(doctype, query)}
+		name = "/".join(parts[4:])
+		for row in RECORDS.get(doctype, []):
+			if row["name"] == name:
+				return 200, {"data": row}
+		return 404, {"exception": "frappe.exceptions.DoesNotExistError: not found"}
 	raise AssertionError(f"Unexpected request: {path}")
+
+
+def matching(doctype, query):
+	"""Rows of a synthetic list, with the equality filters a page sends (e.g. a customer's contracts)."""
+	rows = RECORDS.get(doctype)
+	if rows is None:
+		raise AssertionError(f"Unexpected list: {doctype}")
+	filters = json.loads(query["filters"][0]) if query.get("filters") else {}
+	if isinstance(filters, dict):
+		rows = [r for r in rows if all(k not in r or r[k] == v for k, v in filters.items() if k != "company")]
+	return rows
 
 
 def check(page, width, name, path, assertions):
@@ -426,6 +753,75 @@ def finance(page):
 	expect(page.get_by_role("link", name="SYN-PAY-0031")).to_be_visible()
 
 
+def dashboard(page):
+	expect(page.get_by_role("heading", name="Dashboard")).to_be_visible()
+	expect(page.get_by_text("USD 34,000.00").first).to_be_visible()
+	expect(page.get_by_text("Commercial value, not revenue")).to_be_visible()
+	expect(page.get_by_text("Your role cannot read lead activity.")).to_be_visible()
+	expect(page.get_by_text("Payments are not recorded in ERPNext yet.").first).to_be_visible()
+	expect(page.locator("dd", has_text="Unavailable")).to_have_count(1)  # the null 31-60 day bucket
+	expect(page.get_by_role("link", name="SYN-2026-00055")).to_be_visible()
+	expect(page.locator(".nav__item--active", has_text="Dashboard")).to_have_count(1)
+
+
+def customers(page):
+	expect(page.get_by_role("heading", name="Customers")).to_be_visible()
+	expect(page.get_by_role("link", name="KYC", exact=True)).to_be_visible()  # section tabs
+	page.get_by_role("link", name="Synthetic Buyer One").first.click()
+	expect(page.get_by_role("heading", name="Synthetic Buyer One")).to_be_visible()
+	expect(page.get_by_role("link", name="Open in Desk")).to_have_attribute(
+		"href", "/desk/customer/Synthetic%20Buyer%20One"
+	)
+	expect(page.get_by_role("link", name="SYN-2026-00055").first).to_be_visible()  # related contract
+	expect(page.get_by_role("link", name="SRES-2026-00004")).to_be_visible()  # related reservation
+	expect(page.locator(".nav__item--active", has_text="Customers")).to_have_count(1)
+
+
+def kyc(page):
+	expect(page.get_by_role("heading", name="Synthetic Buyer One")).to_be_visible()
+	expect(page.get_by_text("SYN000001")).to_be_visible()
+	expect(page.get_by_text("Verified").first).to_be_visible()
+
+
+def sales(page):
+	expect(page.get_by_role("heading", name="Reservations")).to_be_visible()  # /sales opens its first list
+	expect(page.get_by_role("link", name="New in Desk")).to_have_attribute(
+		"href", "/desk/sidra-reservation/new"
+	)
+	page.get_by_role("link", name="SRES-2026-00009").click()
+	expect(page.get_by_role("heading", name="SRES-2026-00009")).to_be_visible()
+	expect(page.get_by_text("Active").first).to_be_visible()
+
+
+def quotation(page):
+	expect(page.get_by_role("heading", name="SSQ-2026-00002")).to_be_visible()
+	expect(page.get_by_text("USD 10,000.00").first).to_be_visible()
+	expect(page.locator("tbody tr")).to_have_count(5)  # 1 unit row + 4 schedule rows
+	expect(page.get_by_role("link", name="New in Desk")).to_have_count(
+		0
+	)  # detail pages offer Open in Desk only
+
+
+def titles(page):
+	expect(page.get_by_role("heading", name="Title transfers")).to_be_visible()
+	expect(page.get_by_text("Awaiting Final Payment")).to_be_visible()
+	expect(page.get_by_role("link", name="New in Desk")).to_have_count(0)  # no create permission in the boot
+
+
+def inspection(page):
+	expect(page.get_by_role("heading", name="SIR-2026-00004")).to_be_visible()
+	expect(page.get_by_text("Minor honeycombing on the north footing.")).to_be_visible()
+	expect(page.get_by_text("Concrete finish")).to_be_visible()
+	expect(page.locator(".nav__item--active", has_text="Construction")).to_have_count(1)
+
+
+def construction_tabs(page):
+	for name in ("Jobs", "Quotations", "BOQ revisions", "Variations", "Inspections"):
+		expect(page.get_by_role("link", name=name, exact=True)).to_be_visible()
+	page.get_by_role("link", name="BOQ revisions", exact=True).click()
+	expect(page.get_by_text("USD 6,500.00")).to_be_visible()
+
+
 def main():
 	OUT.mkdir(exist_ok=True)
 	with sync_playwright() as p:
@@ -468,8 +864,45 @@ def main():
 			check(page, width, "construction", "/construction", construction)
 			check(page, width, "construction-job", "/construction/SCJ-2026-00007", job)
 			check(page, width, "finance", "/finance", finance)
+			check(page, width, "dashboard", "/", dashboard)
+			check(page, width, "customers", "/customers", customers)
+			check(page, width, "kyc", "/customers/kyc/Synthetic%20Buyer%20One", kyc)
+			check(page, width, "sales", "/sales", sales)
+			check(page, width, "sale-quotation", "/sales/quotations/SSQ-2026-00002", quotation)
+			check(page, width, "title-transfers", "/contracts/title-transfers", titles)
+			check(
+				page,
+				width,
+				"price-history",
+				"/properties/price-history/SUPH-2026-00011",
+				lambda pg: expect(pg.get_by_text("USD 10,500.00").first).to_be_visible(),
+			)
+			check(page, width, "inspection", "/construction/inspections/SIR-2026-00004", inspection)
+			check(page, width, "construction-tabs", "/construction", construction_tabs)
+
 			assert not errors, errors
 			page.close()
+
+		# A construction role: no KYC, no Customers or Sales section (the server decides; the UI follows).
+		limited = {
+			**BOOT,
+			"nav": [n for n in BOOT["nav"] if n["key"] not in ("customers", "sales")],
+			"lists": {**BOOT["lists"], "kyc": {"read": False, "create": False}},
+		}
+		page = browser.new_page(viewport={"width": 1440, "height": 900})
+		page.add_init_script("window.berjaya_boot = " + json.dumps(limited))
+
+		def respond_limited(route):
+			status, body = answer(route.request.url)
+			route.fulfill(status=status, json=body)
+
+		page.route("**/api/**", respond_limited)
+		page.goto(BASE + "/customers/kyc")
+		expect(page.get_by_text("Not available to you")).to_be_visible()
+		expect(page.locator(".nav__item", has_text="Customers")).to_have_count(0)
+		print("PASS 1440px a role the server does not allow KYC gets no KYC screen")
+		page.close()
+
 		browser.close()
 	print("All browser checks passed.")
 

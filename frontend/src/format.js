@@ -67,11 +67,21 @@ export function fileLink(value) {
   return typeof value === 'string' && /^\/(private\/)?files\/[^\s]+$/.test(value) && !value.includes('\\') ? value : null
 }
 
+const deskSlug = (doctype) => encodeURIComponent(doctype.toLowerCase().replaceAll(' ', '-'))
+
+/** The Desk form of a record: where it is edited until Berjaya can edit it (decision G21). */
+export function deskLink(doctype, name) {
+  return doctype && name ? `/desk/${deskSlug(doctype)}/${encodeURIComponent(name)}` : null
+}
+
+/** A new record of this type in Desk. Desk checks the user's create permission again. */
+export function deskNewLink(doctype) {
+  return doctype ? `/desk/${deskSlug(doctype)}/new` : null
+}
+
 /** The Desk form of a record, for "open the supporting record" links. */
 export function recordLink(record) {
-  return record?.doctype && record?.name
-    ? `/app/${encodeURIComponent(record.doctype.toLowerCase().replaceAll(' ', '-'))}/${encodeURIComponent(record.name)}`
-    : null
+  return deskLink(record?.doctype, record?.name)
 }
 
 /** Only this site's own relative paths are followed (server-supplied drill-down links). */

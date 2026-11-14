@@ -5,8 +5,9 @@ import { LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet } from '../api'
 import StatePanel from '../components/StatePanel.vue'
+import { canRead } from '../boot'
 import { JOB_DOCTYPE, jobTone, stageTone } from '../construction'
-import { dateText, dateTimeText, isAmount, money, percentText, textValue } from '../format'
+import { dateText, dateTimeText, deskLink, isAmount, money, percentText, textValue } from '../format'
 
 const route = useRoute()
 const doc = ref(null)
@@ -72,13 +73,17 @@ onBeforeUnmount(() => ++request)
         <div class="bj-toolbar">
           <span v-if="doc.service_type" class="bj-pill">{{ doc.service_type }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + jobTone(doc.status)">{{ doc.status || 'Status not recorded' }}</span>
+          <a class="bj-btn" :href="deskLink(JOB_DOCTYPE, doc.name)"><span class="lucide-external-link" aria-hidden="true" />Open in Desk</a>
         </div>
       </header>
 
       <div class="bj-grid">
         <article class="bj-card">
           <h2>Client</h2>
-          <p class="bj-strong">{{ textValue(doc.customer) }}</p>
+          <p class="bj-strong">
+            <RouterLink v-if="canRead('customers') && doc.customer" class="bj-link" :to="{ name: 'customers-detail', params: { name: doc.customer } }">{{ doc.customer }}</RouterLink>
+            <template v-else>{{ textValue(doc.customer) }}</template>
+          </p>
           <p class="bj-muted">{{ doc.company || 'Company not recorded' }}</p>
         </article>
         <article class="bj-card">

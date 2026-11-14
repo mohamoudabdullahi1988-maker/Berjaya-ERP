@@ -4,10 +4,11 @@ import { ApiError, apiGet } from './api'
 
 /**
  * A read-only, paged list of saved records through Frappe's permission-checked REST API.
- * `filters` is a function so a page can change them and call reload(). After a failed first
- * read nothing is shown; rows are never invented and a count is only what the server counted.
+ * `filters` and `orFilters` are functions so a page can change them and call reload(). After a
+ * failed first read nothing is shown; rows are never invented and a count is only what the
+ * server counted (none while a search is applied, because the count endpoint cannot match it).
  */
-export function useList(doctype, { fields, filters = () => undefined, orderBy, pageSize = 50 }) {
+export function useList(doctype, { fields, filters = () => undefined, orFilters = () => undefined, orderBy, pageSize = 50 }) {
   const rows = ref([])
   const hasMore = ref(false)
   const loading = ref(false)
@@ -23,6 +24,8 @@ export function useList(doctype, { fields, filters = () => undefined, orderBy, p
   })
 
   async function loadCount(id) {
+    count.value = null
+    if (orFilters()) return
     try {
       const body = await apiGet(`/api/v2/doctype/${encodeURIComponent(doctype)}/count`, { filters: filters() })
       if (id === request) count.value = typeof body.data === 'number' ? body.data : null
@@ -37,17 +40,19 @@ export function useList(doctype, { fields, filters = () => undefined, orderBy, p
     error.value = null
     if (reset) loadCount(id)
     try {
-      const body = await apiGet(`/api/v2/document/${encodeURIComponent(doctype)}`, {
+      const body = await apiGet(`/api/resource/${encodeURIComponent(doctype)}`, {
         fields,
         filters: filters(),
+        or_filters: orFilters(),
         order_by: orderBy,
-        start: reset ? 0 : rows.value.length,
-        limit: pageSize,
+        limit_start: reset ? 0 : rows.value.length,
+        limit_page_length: pageSize + 1, // one extra row tells whether there is a next page
       })
       if (id !== request) return
       if (!Array.isArray(body.data)) throw new ApiError('server', 'The server sent an unexpected answer.')
-      rows.value = reset ? body.data : rows.value.concat(body.data)
-      hasMore.value = Boolean(body.has_next_page)
+      const page = body.data.slice(0, pageSize)
+      rows.value = reset ? page : rows.value.concat(page)
+      hasMore.value = body.data.length > pageSize
       loadedOnce.value = true
     } catch (err) {
       if (id !== request) return

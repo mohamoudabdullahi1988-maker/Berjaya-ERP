@@ -24,17 +24,43 @@ no_cache = 1
 
 ROUTE = "/berjaya"
 
-# (key, label, DocType whose read permission opens the section). Dashboard is open to all staff.
-# Collections reads installment lines, which are rows of the sale contract. Finance uses the
-# same test as the /sidra front page: read access to the ledger.
+# Every list the interface can show, by key, with the DocType it reads. The frontend has the same
+# keys (frontend/src/records.js); the server says which of them this user may read and create.
+LISTS = {
+	"units": "Sidra Unit",
+	"price_history": "Sidra Unit Price History",
+	"customers": "Customer",
+	"kyc": "Sidra Customer KYC",
+	"reservations": "Sidra Reservation",
+	"sale_quotations": "Sidra Sale Quotation",
+	"contracts": "Sidra Sale Contract",
+	"title_transfers": "Sidra Title Transfer",
+	"jobs": "Sidra Construction Job",
+	"construction_quotations": "Sidra Construction Quotation",
+	"boq_revisions": "Sidra BOQ Revision",
+	"variations": "Sidra Variation Order",
+	"inspections": "Sidra Inspection Report",
+}
+
+# (key, label, lists whose read permission opens the section). Dashboard is open to all staff; it
+# shows only what each group of the dashboard method lets the user read. Collections reads the
+# installment rows of sale contracts. Finance uses the same test as the old /sidra front page:
+# read access to the ledger.
 NAV = (
-	("dashboard", "Dashboard", None),
-	("properties", "Properties", "Sidra Unit"),
-	("contracts", "Contracts", "Sidra Sale Contract"),
-	("collections", "Collections", "Sidra Sale Contract"),
-	("construction", "Construction", "Sidra Construction Job"),
-	("finance", "Finance", "GL Entry"),
+	("dashboard", "Dashboard", ()),
+	("properties", "Properties", ("units", "price_history")),
+	("customers", "Customers", ("customers", "kyc")),
+	("sales", "Sales", ("reservations", "sale_quotations")),
+	("contracts", "Contracts", ("contracts", "title_transfers")),
+	("collections", "Collections", ("contracts",)),
+	(
+		"construction",
+		"Construction",
+		("jobs", "construction_quotations", "boq_revisions", "variations", "inspections"),
+	),
+	("finance", "Finance", ("ledger",)),
 )
+LEDGER = "GL Entry"
 
 # Unit fields the Properties list may ask for; the page receives the ones this user may read.
 UNIT_LIST_FIELDS = ("unit_code", "scheme", "company", "unit_type", "status", "area_sqm", "cash_price")
@@ -64,9 +90,15 @@ def _can_read(doctype) -> bool:
 	return bool(frappe.db.exists("DocType", doctype)) and bool(frappe.has_permission(doctype, "read"))
 
 
+def _can_create(doctype) -> bool:
+	return bool(frappe.has_permission(doctype, "create"))
+
+
 def get_boot() -> dict:
 	"""What the signed-in user's session allows. Call only for Sidra staff."""
 	user = frappe.session.user
+	readable = {key: _can_read(doctype) for key, doctype in LISTS.items()}
+	readable["ledger"] = _can_read(LEDGER)
 	readable_unit_fields = []
 	if _can_read("Sidra Unit"):
 		permitted = set(frappe.get_meta("Sidra Unit").get_permitted_fieldnames(user=user))
@@ -86,9 +118,14 @@ def get_boot() -> dict:
 		"company": frappe.defaults.get_user_default("Company"),
 		"nav": [
 			{"key": key, "label": _(label)}
-			for key, label, doctype in NAV
-			if doctype is None or _can_read(doctype)
+			for key, label, lists in NAV
+			if not lists or any(readable.get(name) for name in lists)
 		],
+		# What the user may do with each list. Create opens Desk's own form, which checks again.
+		"lists": {
+			key: {"read": readable[key], "create": readable[key] and _can_create(doctype)}
+			for key, doctype in LISTS.items()
+		},
 		"properties": {"readable_fields": readable_unit_fields},
 		"currencies": currencies,
 	}

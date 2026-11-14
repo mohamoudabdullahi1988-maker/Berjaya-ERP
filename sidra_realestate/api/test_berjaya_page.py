@@ -51,13 +51,27 @@ class TestBerjayaPage(IntegrationTestCase):
 		self.assertNotIn("properties", project)
 		self.assertNotIn("contracts", project)
 		self.assertIn("construction", project)
-		for key, _label, doctype in page.NAV:
-			if doctype:
+		doctypes = {**page.LISTS, "ledger": page.LEDGER}
+		for key, _label, lists in page.NAV:
+			if lists:
 				for user, keys in ((SALES_MANAGER, sales), (PROJECT_MANAGER, project)):
 					with as_user(user):
-						self.assertEqual(
-							key in keys, bool(frappe.has_permission(doctype, "read")), (user, key)
-						)
+						can = any(frappe.has_permission(doctypes[name], "read") for name in lists)
+						self.assertEqual(key in keys, bool(can), (user, key))
+
+	def test_list_permissions_come_from_the_server(self):
+		with as_user(PROJECT_MANAGER):
+			lists = page.get_boot()["lists"]
+			self.assertEqual(set(lists), set(page.LISTS))
+			for key, doctype in page.LISTS.items():
+				self.assertEqual(lists[key]["read"], bool(frappe.has_permission(doctype, "read")), key)
+				self.assertEqual(
+					lists[key]["create"],
+					bool(lists[key]["read"] and frappe.has_permission(doctype, "create")),
+					key,
+				)
+		self.assertTrue(lists["jobs"]["read"])
+		self.assertFalse(lists["kyc"]["read"], "KYC is for sales staff and the General Manager")
 
 	def test_boot_lists_only_readable_unit_fields(self):
 		with as_user(SALES_MANAGER):
@@ -69,7 +83,8 @@ class TestBerjayaPage(IntegrationTestCase):
 		with as_user(PROJECT_MANAGER):
 			self.assertEqual(page.get_boot()["properties"]["readable_fields"], [])
 		self.assertEqual(
-			set(boot), {"product_name", "favicon", "user", "company", "nav", "properties", "currencies"}
+			set(boot),
+			{"product_name", "favicon", "user", "company", "nav", "lists", "properties", "currencies"},
 		)
 
 	def test_every_path_under_berjaya_reaches_the_page(self):

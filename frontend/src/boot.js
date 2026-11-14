@@ -11,3 +11,12 @@ export function navItems() {
 export function canOpen(key) {
   return navItems().some((item) => item.key === key)
 }
+
+/** Whether the server says this user may read / create the records of a list (records.js keys). */
+export function canRead(list) {
+  return Boolean(boot?.lists?.[list]?.read)
+}
+
+export function canCreate(list) {
+  return Boolean(boot?.lists?.[list]?.create)
+}

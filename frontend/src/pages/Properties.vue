@@ -4,6 +4,7 @@ import { Button, LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet } from '../api'
 import { boot } from '../boot'
+import SectionTabs from '../components/SectionTabs.vue'
 import StatePanel from '../components/StatePanel.vue'
 
 const DOCTYPE = 'Sidra Unit'
@@ -122,6 +123,8 @@ const STATUS_TONE = {
       </div>
       <Button :loading="loading" @click="reload">Refresh</Button>
     </header>
+
+    <SectionTabs section="properties" current="units" />
 
     <div class="page__card">
       <div v-if="state === 'loading'" class="loading" role="status">

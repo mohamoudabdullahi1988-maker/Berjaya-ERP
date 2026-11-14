@@ -7,7 +7,8 @@ import { PRODUCT_NAME } from './brand'
 
 <template>
   <AppShell v-if="boot">
-    <RouterView />
+    <!-- Keyed by route name: two lists share one page component and must not share its state. -->
+    <RouterView :key="$route.name" />
   </AppShell>
   <main v-else class="boot-missing">
     <StatePanel

@@ -1,26 +1,45 @@
 import { createRouter, createWebHistory } from 'vue-router'
 
-import { canOpen, navItems } from './boot'
+import { canOpen, canRead, navItems } from './boot'
+import { GENERIC, RECORDS, SECTIONS, detailRoute, listRoute } from './records'
+
+const RecordList = () => import('./pages/RecordList.vue')
+const RecordDetail = () => import('./pages/RecordDetail.vue')
+
+// Every generic list and its record page, from records.js. Static paths such as
+// /construction/quotations rank above /construction/:name, so they never collide.
+const generic = GENERIC.flatMap((key) => [
+  { path: RECORDS[key].path, name: listRoute(key), component: RecordList, meta: { list: key, section: RECORDS[key].section } },
+  { path: `${RECORDS[key].path}/:name`, name: detailRoute(key), component: RecordDetail, meta: { list: key, section: RECORDS[key].section } },
+])
+
+/** A section without a page of its own opens its first list this user may read. */
+function firstList(section) {
+  const key = SECTIONS[section].find((name) => canRead(name))
+  return key ? { name: listRoute(key) } : { name: 'no-access' }
+}
 
 const routes = [
   {
     path: '/',
     name: 'home',
-    // Land on the first section the server allows; Properties first, as the one built page.
     redirect: () => {
-      if (canOpen('properties')) return { name: 'properties' }
+      if (canOpen('dashboard')) return { name: 'dashboard' }
       const first = navItems()[0]
       return first ? { name: first.key } : { name: 'no-access' }
     },
   },
-  { path: '/properties', name: 'properties', component: () => import('./pages/Properties.vue') },
-  { path: '/contracts', name: 'contracts', component: () => import('./pages/Contracts.vue') },
-  { path: '/contracts/:name', name: 'contract-detail', component: () => import('./pages/ContractDetail.vue') },
-  { path: '/collections', name: 'collections', component: () => import('./pages/Collections.vue') },
-  { path: '/construction', name: 'construction', component: () => import('./pages/Construction.vue') },
-  { path: '/construction/:name', name: 'construction-detail', component: () => import('./pages/ConstructionDetail.vue') },
-  { path: '/finance', name: 'finance', component: () => import('./pages/Finance.vue') },
-  { path: '/dashboard', name: 'dashboard', component: () => import('./pages/NotBuilt.vue') },
+  { path: '/dashboard', name: 'dashboard', component: () => import('./pages/Dashboard.vue') },
+  { path: '/properties', name: 'properties', component: () => import('./pages/Properties.vue'), meta: { list: 'units', section: 'properties' } },
+  { path: '/customers-section', name: 'customers', redirect: () => firstList('customers') },
+  { path: '/sales', name: 'sales', redirect: () => firstList('sales') },
+  { path: '/contracts', name: 'contracts', component: () => import('./pages/Contracts.vue'), meta: { list: 'contracts', section: 'contracts' } },
+  { path: '/contracts/:name', name: 'contract-detail', component: () => import('./pages/ContractDetail.vue'), meta: { section: 'contracts' } },
+  { path: '/collections', name: 'collections', component: () => import('./pages/Collections.vue'), meta: { section: 'collections' } },
+  { path: '/construction', name: 'construction', component: () => import('./pages/Construction.vue'), meta: { list: 'jobs', section: 'construction' } },
+  { path: '/construction/:name', name: 'construction-detail', component: () => import('./pages/ConstructionDetail.vue'), meta: { section: 'construction' } },
+  { path: '/finance', name: 'finance', component: () => import('./pages/Finance.vue'), meta: { section: 'finance' } },
+  ...generic,
   { path: '/no-access', name: 'no-access', component: () => import('./pages/NoAccess.vue') },
   { path: '/:rest(.*)*', name: 'not-found', component: () => import('./pages/NotFound.vue') },
 ]
@@ -31,12 +50,13 @@ const router = createRouter({
 })
 
 const OPEN_TO_ALL = new Set(['home', 'no-access', 'not-found'])
-// A detail page belongs to the section whose list it opens from.
-const SECTION_OF = { 'contract-detail': 'contracts', 'construction-detail': 'construction' }
 
-// Convenience only: the server refuses the data whatever this guard does.
+// Convenience only: the server refuses the data whatever this guard does. A list page needs the
+// server's read permission for that list; any other page needs its section in the navigation.
 router.beforeEach((to) => {
-  if (OPEN_TO_ALL.has(to.name) || canOpen(SECTION_OF[to.name] ?? to.name)) return true
+  if (OPEN_TO_ALL.has(to.name)) return true
+  if (to.meta.list && !canRead(to.meta.list)) return { name: 'no-access' }
+  if (canOpen(to.meta.section ?? to.name)) return true
   return { name: 'no-access' }
 })
 

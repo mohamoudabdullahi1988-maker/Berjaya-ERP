@@ -37,7 +37,7 @@ class TestBranding(IntegrationTestCase):
 		tile = frappe.get_hooks("add_to_apps_screen", app_name="sidra_realestate")[0]
 		self.assertEqual((tile["title"], tile["logo"]), (BRAND_NAME, APP_ICON))
 		self.assertEqual(tile["name"], "sidra_realestate")  # the identifier is unchanged
-		self.assertEqual(tile["route"], "/sidra")
+		self.assertEqual(tile["route"], "/berjaya")  # decision G21
 
 	def test_login_page_and_app_title_render_the_product_name(self):
 		apply_branding()

@@ -7,7 +7,7 @@ import CompanyPicker from '../components/CompanyPicker.vue'
 import ListStates from '../components/ListStates.vue'
 import StatePanel from '../components/StatePanel.vue'
 import { company } from '../company'
-import { dateText, dateTimeText, money, percentText, sitePath, textValue } from '../format'
+import { dateText, dateTimeText, deskLink, money, percentText, sitePath, textValue } from '../format'
 import { useList } from '../list'
 
 // Figures come from the server's own summary of the ledger (get_dashboard -> payments); the
@@ -186,7 +186,7 @@ watch(company, reloadAll, { immediate: true })
                 </thead>
                 <tbody>
                   <tr v-for="row in invoices.rows.value" :key="row.name">
-                    <td data-label="Invoice"><a class="bj-link" :href="`/app/sales-invoice/${encodeURIComponent(row.name)}`">{{ row.name }}</a></td>
+                    <td data-label="Invoice"><a class="bj-link" :href="deskLink('Sales Invoice', row.name)">{{ row.name }}</a></td>
                     <td data-label="Customer">{{ textValue(row.customer) }}</td>
                     <td data-label="Posted">{{ dateText(row.posting_date) }}</td>
                     <td data-label="Due">{{ dateText(row.due_date) }}</td>
@@ -226,7 +226,7 @@ watch(company, reloadAll, { immediate: true })
                 </thead>
                 <tbody>
                   <tr v-for="row in receipts.rows.value" :key="row.name">
-                    <td data-label="Receipt"><a class="bj-link" :href="`/app/payment-entry/${encodeURIComponent(row.name)}`">{{ row.name }}</a></td>
+                    <td data-label="Receipt"><a class="bj-link" :href="deskLink('Payment Entry', row.name)">{{ row.name }}</a></td>
                     <td data-label="From">{{ textValue(row.party) }}</td>
                     <td data-label="Posted">{{ dateText(row.posting_date) }}</td>
                     <td data-label="Method">{{ row.mode_of_payment || '—' }}</td>

@@ -4,6 +4,20 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.24 — Berjaya is the staff front page; Dashboard; Sales, Customers, Construction work, Titles and prices, 14 Nov 2026; decision G21)
+- **Decision G21** recorded: staff land on `/berjaya` after signing in; `/sidra` and `/sidra-staff/` redirect there (302); ERPNext Desk stays for creating and editing until each Berjaya screen can; the Dashboard shows the old `/sidra-staff/` figures.
+- **Sign-in lands on Berjaya**: the apps-screen entry (and so System Settings "Default App") now routes to `/berjaya`. `/sidra` sends staff to `/berjaya`, guests to sign in and others to Desk; `/sidra-staff/` sends staff to `/berjaya`. Codex's staff client files are not touched.
+- **Dashboard** at `/berjaya/dashboard` (and the home page): from `get_dashboard`, unchanged. Units available, active reservations, contracts and agreed value for the period, new leads; management metrics and six-month trend for roles with executive reporting; properties by status; installments falling due; latest contracts; construction; payments; sales activity. A group the role cannot read shows the server's reason.
+- **New sections**, read-only, each list and record page following the user's server permissions:
+  - Customers: customers (with their KYC, reservations, quotations, contracts, title transfers and construction jobs) and KYC.
+  - Sales: reservations and sale quotations (units and schedule).
+  - Contracts: title transfers beside contracts.
+  - Properties: unit price history beside units.
+  - Construction: quotations, BOQ revisions, variation orders and inspection reports beside jobs.
+- **Desk for editing**: every record page has "Open in Desk"; lists show "New in Desk" only when the server says the user may create. Record links now use `/desk/…`.
+- `/berjaya` boot adds `lists` (read and create per list, computed on the server). Navigation follows the lists a user may read.
+- Tests: `test_berjaya_page` (list permissions from the server), `test_shell` and `test_staff_page` (old pages redirect with 302), `test_branding` (landing route); 13 frontend unit tests; browser check of 18 screens at 1440px and 390px plus a role without KYC access. Integration suite not run here (no database; GitHub Actions refused for billing).
+
 ### Fixed (v0.1.23 — sign-in redirects are temporary, 14 Nov 2026)
 - `/berjaya`, `/sidra` and `/sidra-staff/` sent a signed-out visitor to the sign-in page with Frappe's default **301 (permanent)** redirect. Browsers remember a permanent redirect, so after signing in a user could be sent back to the sign-in page instead of the screen. They now use **302 (temporary)**, because the answer depends on the session. Seen on the test server's deploy check on 14 Nov 2026. `test_berjaya_page` asserts the 302.
 
