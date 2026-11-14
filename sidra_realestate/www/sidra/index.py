@@ -18,10 +18,10 @@ no_cache = 1
 def get_context(context):
 	if frappe.session.user == "Guest":
 		frappe.local.flags.redirect_location = "/login?redirect-to=%2Fsidra"
-		raise frappe.Redirect
+		raise frappe.Redirect(302)  # temporary: depends on the session, so browsers must not remember it
 	if not is_staff():
 		frappe.local.flags.redirect_location = DESK
-		raise frappe.Redirect
+		raise frappe.Redirect(302)  # temporary: depends on the session, so browsers must not remember it
 	context.update(build_shell())
 	context.brand_name = BRAND_NAME
 	context.brand_icon = APP_ICON

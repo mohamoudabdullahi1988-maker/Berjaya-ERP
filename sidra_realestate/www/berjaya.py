@@ -43,7 +43,7 @@ UNIT_LIST_FIELDS = ("unit_code", "scheme", "company", "unit_type", "status", "ar
 def get_context(context):
 	if frappe.session.user == "Guest":
 		frappe.local.flags.redirect_location = "/login?redirect-to=" + quote(_return_path(), safe="")
-		raise frappe.Redirect
+		raise frappe.Redirect(302)  # temporary: depends on the session, so browsers must not remember it
 	if not is_staff():
 		frappe.throw(_("{0} is for Sidra staff").format(branding.BRAND_NAME), frappe.PermissionError)
 	context.boot = {

@@ -4,6 +4,9 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Fixed (v0.1.23 — sign-in redirects are temporary, 14 Nov 2026)
+- `/berjaya`, `/sidra` and `/sidra-staff/` sent a signed-out visitor to the sign-in page with Frappe's default **301 (permanent)** redirect. Browsers remember a permanent redirect, so after signing in a user could be sent back to the sign-in page instead of the screen. They now use **302 (temporary)**, because the answer depends on the session. Seen on the test server's deploy check on 14 Nov 2026. `test_berjaya_page` asserts the 302.
+
 ### Added (v0.1.22 — test server deploy script for Berjaya, 14 Nov 2026)
 - **`deploy/berjaya-deploy_v0.1.sh`**: one script for the test server. `deploy` takes a backup with files first (nothing else runs if it fails), fast-forwards the app to `develop` (local changes or a diverged branch stop it), installs the frontend packages from the lockfile, runs `bench build --app sidra_realestate --force` and proves the Berjaya files are new, migrates, clears caches, restarts and checks. `check` changes nothing. `brand` sets the Berjaya logo and name in Website, Navbar and System Settings when an earlier hand-made value keeps the old logo on the sign-in page. `rollback <commit>` moves the code back after typed confirmation and prints, but never runs, the database restore.
 - Checks are reported as PASS / FAIL / NOT VERIFIED: latest `develop`, built interface, processes running, sign-in page loads the Berjaya stylesheet and wordmark, assets served, `/berjaya` sends a signed-out visitor to sign in, and the timeline of `SSC-2026-00055` (saved as JSON, with the contract's `modified` unchanged by the call).
