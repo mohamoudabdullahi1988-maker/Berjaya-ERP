@@ -1,8 +1,9 @@
 """The pilot dataset on the disposable CI site: real documents, real ledger, never mocked.
 
-This module is named so that it sorts after `test_finance_demo`, which asserts absolute voucher
-counts for the same Company. The assertions here are written against the pilot's own manifest
-rather than the Company's totals, so the two remain independent in both directions.
+`test_finance_demo` asserts absolute voucher counts for the same Company, so it must run first.
+Both are run, in that order, by `test_demo_datasets.TestDemoDatasets`: Frappe discovers test
+files in file-system order, which differs between machines. The assertions here are written
+against the pilot's own manifest rather than the Company's totals.
 """
 
 import hashlib
@@ -10,7 +11,6 @@ from decimal import Decimal
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import IntegrationTestCase
 
 from sidra_realestate.finance_demo import COMPANY, FLAGS
 from sidra_realestate.pilot_demo import (
@@ -61,7 +61,9 @@ def manifest_file():
 	)
 
 
-class TestPilotDemo(IntegrationTestCase):
+class PilotDemoChecks:
+	"""Run by `test_demo_datasets.TestDemoDatasets`, after the finance demo checks (see there)."""
+
 	def test_guarded_twelve_month_dataset_every_module_and_repeat(self):
 		ensure_base_records()
 		with as_user("Administrator"), patch.dict(frappe.conf, {flag: 1 for flag in FLAGS}):
@@ -93,7 +95,7 @@ class TestPilotDemo(IntegrationTestCase):
 					create_pilot_demo_data()
 			self.assertEqual(frappe.db.count("GL Entry"), gl_before)
 
-			self._foreign_gl_refused(units_before)
+			self._pilot_foreign_gl_refused(units_before)
 
 			# 4. The real load.
 			data = create_pilot_demo_data()
@@ -124,7 +126,7 @@ class TestPilotDemo(IntegrationTestCase):
 				with self.assertRaises(frappe.PermissionError):
 					create_pilot_demo_data()
 
-	def _foreign_gl_refused(self, units_before):
+	def _pilot_foreign_gl_refused(self, units_before):
 		"""One voucher no manifest owns: refuse, name the count, write nothing (G14)."""
 		from sidra_realestate.finance_demo import _fiscal_year
 
