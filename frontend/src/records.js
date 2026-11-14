@@ -122,6 +122,7 @@ export const RECORDS = {
     },
   },
   price_history: {
+    form: true,
     section: 'properties',
     title: 'Price history',
     noun: 'price changes',
@@ -326,6 +327,7 @@ export const RECORDS = {
     },
   },
   sale_quotations: {
+    form: true,
     section: 'sales',
     title: 'Quotations',
     noun: 'sale quotations',
@@ -411,8 +413,21 @@ export const RECORDS = {
     },
   },
 
-  contracts: { section: 'contracts', title: 'Contracts', noun: 'contracts', doctype: 'Sidra Sale Contract', path: '/contracts', page: 'contracts', detailRoute: 'contract-detail', icon: 'lucide-file-text' },
+  contracts: {
+    section: 'contracts',
+    title: 'Contracts',
+    noun: 'contracts',
+    doctype: 'Sidra Sale Contract',
+    path: '/contracts',
+    page: 'contracts',
+    detailRoute: 'contract-detail',
+    icon: 'lucide-file-text',
+    form: true,
+    // /contracts/new and /contracts/<name>/edit belong to the registration screen.
+    formPaths: { new: '/contracts/new-contract', edit: '/contracts/:name/edit-contract' },
+  },
   title_transfers: {
+    form: true,
     section: 'contracts',
     title: 'Title transfers',
     noun: 'title transfers',

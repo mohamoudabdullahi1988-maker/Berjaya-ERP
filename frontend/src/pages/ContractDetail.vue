@@ -4,10 +4,11 @@ import { useRoute } from 'vue-router'
 import { LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet, apiPost } from '../api'
+import RecordActions from '../components/RecordActions.vue'
 import StatePanel from '../components/StatePanel.vue'
 import WorkflowPanel from '../components/WorkflowPanel.vue'
 import { CONTRACT, CONTRACT_DOCTYPE, permissions, sourceText, statusText, statusTone, timeline } from '../contracts'
-import { dateText, deskLink, fileLink, isAmount, money, textValue } from '../format'
+import { dateText, fileLink, isAmount, money, textValue } from '../format'
 import { claimPanel, releasePanel } from '../panel'
 import { canRead } from '../boot'
 import { CONFIRM_METHOD, canConfirm, canEdit, isRegisteredDraft, printLink, savedDifference } from '../registration'
@@ -96,10 +97,14 @@ async function refreshWorkflow() {
 async function load() {
   const id = ++request
   ++flowRequest
-  confirmedNote.value = ''
   confirmOpen.value = false
-  doc.value = null
-  flow.value = null
+  // Reloading the same contract keeps it on screen, with any message an action left.
+  const same = doc.value?.name === route.params.name
+  if (!same) {
+    confirmedNote.value = ''
+    doc.value = null
+    flow.value = null
+  }
   flowError.value = ''
   flowLoading.value = false
   error.value = null
@@ -152,9 +157,9 @@ onBeforeUnmount(() => {
       <span>{{ route.params.name }}</span>
     </nav>
 
-    <div v-if="loading" class="page__card bj-loading" role="status"><LoadingIndicator /><span>Loading contract…</span></div>
+    <div v-if="loading && !doc" class="page__card bj-loading" role="status"><LoadingIndicator /><span>Loading contract…</span></div>
 
-    <div v-else-if="error" class="page__card">
+    <div v-else-if="error && !doc" class="page__card">
       <StatePanel
         v-if="error.kind === 'denied'"
         icon="lucide-lock"
@@ -183,13 +188,23 @@ onBeforeUnmount(() => {
           <span class="bj-pill">{{ sourceText(doc) }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + statusTone(doc.docstatus)">{{ statusText(doc.docstatus) }}</span>
           <a class="bj-btn" :href="printLink(doc.name)" target="_blank" rel="noopener"><span class="lucide-printer" aria-hidden="true" />Print</a>
-          <a class="bj-btn" :href="deskLink(CONTRACT_DOCTYPE, doc.name)"><span class="lucide-external-link" aria-hidden="true" />Open in Desk</a>
           <RouterLink v-if="showEdit" class="bj-btn" :to="{ name: 'contract-edit', params: { name: doc.name } }"><span class="lucide-pencil" aria-hidden="true" />Edit draft</RouterLink>
           <button v-if="showConfirm && !confirmOpen" type="button" class="bj-btn bj-btn--primary" @click="openConfirm">
             <span class="lucide-check" aria-hidden="true" />Confirm contract
           </button>
         </div>
       </header>
+
+      <!-- Generated and cash contracts: Edit, Submit (sign), Revise draft, Cancel, Delete through the form
+           engine (G23). A registered contract is edited and confirmed by the buttons above. -->
+      <RecordActions
+        :doctype="CONTRACT_DOCTYPE"
+        :name="doc.name"
+        :edit-route="external ? null : { name: 'contracts-edit', params: { name: doc.name } }"
+        :list-route="{ name: 'contracts' }"
+        :reload-key="doc.modified"
+        @changed="load"
+      />
 
       <p v-if="confirmedNote" class="bj-note confirm__ok" role="status"><span class="lucide-circle-check-big" aria-hidden="true" />{{ confirmedNote }}</p>
 

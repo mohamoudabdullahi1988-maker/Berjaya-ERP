@@ -158,10 +158,129 @@ def _run_verify_kyc(doc, args):
 	return {"message": _("KYC verified")}
 
 
+def _quotation_actions(doc):
+	"""Desk's Approve Discount button: SAL-05 / G13, never by the person who prepared it."""
+	level = doc.get("discount_approval")
+	if doc.docstatus != 0 or not level or level == "Not Needed" or doc.get("discount_approved_on"):
+		return []
+	roles = set(frappe.get_roles())
+	may = "Sidra General Manager" in roles or (
+		level == "Sidra Sales Manager" and "Sidra Sales Manager" in roles
+	)
+	if not may or frappe.session.user == doc.owner:
+		return []
+	return [
+		{
+			"key": "approve_discount",
+			"label": _("Approve discount"),
+			"confirm": _("Approve this quotation's discount?"),
+		}
+	]
+
+
+def _title_transfer_actions(doc):
+	"""Desk's Confirm Final Payment (second Sales Manager) and Confirm Handover (General Manager)."""
+	roles = set(frappe.get_roles())
+	actions = []
+	if (
+		not doc.final_payment_confirmed_on
+		and doc.final_payment_date
+		and doc.final_payment_evidence
+		and "Sidra Sales Manager" in roles
+		and frappe.session.user != doc.final_payment_entered_by
+	):
+		actions.append(
+			{
+				"key": "confirm_final_payment",
+				"label": _("Confirm final payment"),
+				"confirm": _("Confirm the final payment date and its evidence?"),
+			}
+		)
+	if (
+		doc.final_payment_confirmed_on
+		and not doc.handover_confirmed_on
+		and doc.handed_over_on
+		and doc.handover_evidence
+		and "Sidra General Manager" in roles
+	):
+		actions.append(
+			{
+				"key": "confirm_handover",
+				"label": _("Confirm handover"),
+				"confirm": _("Confirm the title deed was handed over?"),
+			}
+		)
+	return actions
+
+
+def _is_registered(doc):
+	return doc.get("contract_type") == "Installment" and doc.get("source") == "External (registered)"
+
+
+def _contract_actions(doc):
+	"""Desk's Revise Draft, for a draft generated or cash contract the user may write."""
+	if doc.docstatus == 0 and not _is_registered(doc) and doc.has_permission("write"):
+		return [
+			{
+				"key": "revise_draft",
+				"label": _("Revise draft"),
+				"confirm": _(
+					"Make a new draft with the profile's current terms and clause wording? This draft stays as it is. The signed copy is not copied."
+				),
+			}
+		]
+	return []
+
+
+def _contract_submit(doc):
+	"""A registered contract is confirmed on its registration screen (acknowledgement, G22)."""
+	if _is_registered(doc):
+		return _("Confirm a registered contract from its contract page")
+	return None
+
+
+def _run_approve_discount(doc, args):
+	from sidra_realestate.sidra_sales.doctype.sidra_sale_quotation.sidra_sale_quotation import (
+		approve_discount,
+	)
+
+	approve_discount(doc.name)
+	return {"message": _("Discount approved")}
+
+
+def _run_confirm_final_payment(doc, args):
+	from sidra_realestate.sidra_sales.doctype.sidra_title_transfer.sidra_title_transfer import (
+		confirm_final_payment,
+	)
+
+	confirm_final_payment(doc.name)
+	return {"message": _("Final payment confirmed")}
+
+
+def _run_confirm_handover(doc, args):
+	from sidra_realestate.sidra_sales.doctype.sidra_title_transfer.sidra_title_transfer import (
+		confirm_handover,
+	)
+
+	confirm_handover(doc.name)
+	return {"message": _("Handover confirmed")}
+
+
+def _run_revise_draft(doc, args):
+	from sidra_realestate.sidra_sales.doctype.sidra_sale_contract.sidra_sale_contract import revise_draft
+
+	name = revise_draft(doc.name)
+	return {"message": _("New draft {0} made").format(name), "open": {"doctype": doc.doctype, "name": name}}
+
+
 RUNNERS = {
 	"reserve_unit": _run_reserve,
 	"cancel_reservation": _run_cancel_reservation,
 	"verify_kyc": _run_verify_kyc,
+	"approve_discount": _run_approve_discount,
+	"confirm_final_payment": _run_confirm_final_payment,
+	"confirm_handover": _run_confirm_handover,
+	"revise_draft": _run_revise_draft,
 }
 
 # The record types Berjaya edits. `fields`: only these (for large ERPNext forms); `create_only`:
@@ -187,6 +306,24 @@ FORMS = {
 	"Sidra Scheme": {},
 	"Sidra Unit": {"actions": _unit_actions},
 	"Sidra Reservation": {"create": False, "edit": False, "actions": _reservation_actions},
+	"Sidra Unit Price History": {},
+	"Sidra Sale Quotation": {
+		"actions": _quotation_actions,
+		# Desk's pickers (convenience only: the controller checks units and profiles itself).
+		"link_filters": {
+			"units.unit": {"status": ["in", ["Available", "Reserved"]]},
+			"contract_profile": {"active": 1, "legal_hold": 0},
+		},
+	},
+	"Sidra Sale Contract": {
+		"actions": _contract_actions,
+		"submit_refused": _contract_submit,
+		"link_filters": {"contract_profile": {"active": 1}},
+	},
+	"Sidra Title Transfer": {
+		"actions": _title_transfer_actions,
+		"link_filters": {"contract": {"docstatus": 1}},
+	},
 }
 
 
@@ -268,6 +405,9 @@ def submit_form(doctype: str, name: str, expected_modified: str | None = None) -
 		return _result(doc, repeated=True)
 	if doc.docstatus != 0 or not frappe.get_meta(doctype).is_submittable or not config.get("edit", True):
 		frappe.throw(_("{0} {1} cannot be submitted").format(_(doctype), name))
+	refused = (config.get("submit_refused") or (lambda d: None))(doc)
+	if refused:
+		frappe.throw(refused)
 	doc.check_permission("submit")
 	check_not_stale(doc, expected_modified)
 	doc.submit()
@@ -408,7 +548,7 @@ def _child_editable(child_doctype):
 	]
 
 
-def _field(field, editable):
+def _field(field, editable, link_filters=None):
 	options = field.options
 	if field.fieldtype == "Select":
 		options = [value for value in (field.options or "").split("\n")]
@@ -421,6 +561,7 @@ def _field(field, editable):
 		"description": _(field.description) if field.description else None,
 		"editable": editable,
 		"bold": bool(field.bold),
+		"link_filters": link_filters,
 		"show": form_rules.parse(field.depends_on) if field.depends_on else None,
 		"read_only_rule": form_rules.parse(field.read_only_depends_on)
 		if field.read_only_depends_on
@@ -452,11 +593,16 @@ def _layout(meta, config, editable, doc):
 			continue
 		if not _supported(field) or (only and field.fieldname not in only) or (not only and field.hidden):
 			continue
-		entry = _field(field, field.fieldname in editable)
+		filters = config.get("link_filters") or {}
+		entry = _field(field, field.fieldname in editable, filters.get(field.fieldname))
 		if field.fieldtype == "Table":
 			child_editable = {child.fieldname for child in _child_editable(field.options)}
 			entry["columns"] = [
-				_field(child, child.fieldname in child_editable and field.fieldname in editable)
+				_field(
+					child,
+					child.fieldname in child_editable and field.fieldname in editable,
+					filters.get(f"{field.fieldname}.{child.fieldname}"),
+				)
 				for child in frappe.get_meta(field.options).fields
 				if _supported(child) and not child.hidden and child.fieldtype != "Table"
 			]
@@ -485,7 +631,11 @@ def _permissions(doc, config, is_new):
 	return {
 		"write": bool(editable_type and doc.docstatus == 0 and doc.has_permission("write")),
 		"submit": bool(
-			editable_type and meta.is_submittable and doc.docstatus == 0 and doc.has_permission("submit")
+			editable_type
+			and meta.is_submittable
+			and doc.docstatus == 0
+			and doc.has_permission("submit")
+			and not (config.get("submit_refused") or (lambda d: None))(doc)
 		),
 		"cancel": bool(meta.is_submittable and doc.docstatus == 1 and doc.has_permission("cancel")),
 		"delete": bool(editable_type and doc.docstatus != 1 and doc.has_permission("delete")),

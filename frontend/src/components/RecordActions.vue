@@ -5,6 +5,7 @@ import { useRouter } from 'vue-router'
 import { ApiError } from '../api'
 import FormField from './FormField.vue'
 import { changeState, fieldsOf, loadForm, runAction } from '../forms'
+import { RECORDS, recordRoute } from '../records'
 
 // What the signed-in user may do with this record, as the server's form says: Edit, Submit,
 // Cancel, Delete and the record's own actions (Reserve unit, Verify, ...). Each runs only after
@@ -12,7 +13,7 @@ import { changeState, fieldsOf, loadForm, runAction } from '../forms'
 const props = defineProps({
   doctype: { type: String, required: true },
   name: { type: String, required: true },
-  editRoute: { type: Object, default: null }, // router location of the edit page
+  editRoute: { type: Object, default: null }, // router location of the edit page (null: no Edit button)
   listRoute: { type: Object, default: null }, // where to go after a delete
   reloadKey: { default: 0 }, // change it to reload the form (e.g. after the page reloads the record)
 })
@@ -70,6 +71,16 @@ async function go() {
     if (pending.value.kind === 'action') {
       const result = await runAction(form.value, pending.value.action, { ...askValues })
       done.value = result?.message || `${pending.value.title}: done.`
+      // An action that made another record (Revise draft) opens it.
+      if (result?.open) {
+        const key = Object.keys(RECORDS).find((name) => RECORDS[name].doctype === result.open.doctype)
+        const target = key && recordRoute(key, result.open.name)
+        if (target) {
+          pending.value = null
+          await router.push(target)
+          return
+        }
+      }
     } else {
       const step = pending.value.step
       await changeState(form.value, step)
