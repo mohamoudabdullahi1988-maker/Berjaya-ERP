@@ -19,8 +19,8 @@ const generic = GENERIC.flatMap((key) => [
 const forms = Object.keys(RECORDS)
   .filter((key) => RECORDS[key].form)
   .flatMap((key) => [
-    { path: `${RECORDS[key].path}/new`, name: `${key}-new`, component: RecordEdit, meta: { list: key, section: RECORDS[key].section, create: true } },
-    { path: `${RECORDS[key].path}/:name/edit`, name: `${key}-edit`, component: RecordEdit, meta: { list: key, section: RECORDS[key].section } },
+    { path: RECORDS[key].formPaths?.new ?? `${RECORDS[key].path}/new`, name: `${key}-new`, component: RecordEdit, meta: { list: key, section: RECORDS[key].section, create: true } },
+    { path: RECORDS[key].formPaths?.edit ?? `${RECORDS[key].path}/:name/edit`, name: `${key}-edit`, component: RecordEdit, meta: { list: key, section: RECORDS[key].section } },
   ])
 const pageDetails = Object.keys(RECORDS)
   .filter((key) => RECORDS[key].page && RECORDS[key].detail && !RECORDS[key].detailRoute)

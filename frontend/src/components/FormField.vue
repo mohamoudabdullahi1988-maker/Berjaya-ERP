@@ -43,6 +43,7 @@ function search(text) {
         doctype: props.field.options,
         txt: text || '',
         page_length: 20,
+        filters: props.field.link_filters || undefined,
       })
       if (id === searchRequest) suggestions.value = Array.isArray(response.message) ? response.message : []
     } catch {
