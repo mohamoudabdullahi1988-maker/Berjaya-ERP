@@ -1,5 +1,5 @@
 <script setup>
-import { onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { boot, navItems } from '../boot'
@@ -9,6 +9,8 @@ import { panel } from '../panel'
 const ICONS = {
   dashboard: 'lucide-layout-dashboard',
   properties: 'lucide-building-2',
+  customers: 'lucide-users',
+  sales: 'lucide-handshake',
   contracts: 'lucide-file-text',
   collections: 'lucide-wallet',
   construction: 'lucide-hard-hat',
@@ -17,6 +19,8 @@ const ICONS = {
 
 const items = navItems()
 const route = useRoute()
+// The section of the page on screen; its list and record pages keep it highlighted.
+const activeSection = computed(() => route.meta.section ?? route.name)
 
 const navCollapsed = ref(false) // desktop: icon-only rail
 const navDrawer = ref(false) // phone: slide-over
@@ -51,7 +55,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
           :key="item.key"
           :to="{ name: item.key }"
           class="nav__item"
-          active-class="nav__item--active"
+          :class="{ 'nav__item--active': activeSection === item.key }"
+          :aria-current="activeSection === item.key ? 'page' : undefined"
           :title="navCollapsed ? item.label : undefined"
         >
           <span class="nav__icon" :class="ICONS[item.key]" aria-hidden="true" />

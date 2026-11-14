@@ -7,10 +7,8 @@ import os
 import frappe
 from frappe.apps import get_route
 from frappe.tests import IntegrationTestCase
-from frappe.website.serve import get_response
 
 from sidra_realestate.api.shell import build_shell
-from sidra_realestate.branding import BRAND_NAME
 from sidra_realestate.tests.helpers import (
 	OUTSIDER,
 	PROJECT_MANAGER,
@@ -45,29 +43,18 @@ class TestShell(IntegrationTestCase):
 		super().setUpClass()
 		ensure_base_records()
 
-	def test_page_renders_for_staff_without_platform_names(self):
-		with as_user(SALES_MANAGER):
-			response = get_response("sidra")
-		self.assertEqual(response.status_code, 200)
-		html = response.get_data(as_text=True)
-		self.assertIn("/assets/sidra_realestate/shell/shell.css", html)
-		self.assertIn("Real Estate Sales", html)
-		self.assertIn(f"<title>{BRAND_NAME}</title>", html)
-		self.assertIn(f"<span>{BRAND_NAME}</span>", html)
-		self.assertNotIn("Sidra Homes", html)
-		self.assertIn('href="/sidra-staff/"', html)
-		self.assertIn('id="real-estate"', html)
-		for platform in ("ERPNext", "Frappe"):
-			self.assertNotIn(platform, html)
-
-	def test_guest_goes_to_login_and_other_people_to_their_desk(self):
+	def test_old_front_page_sends_everyone_on(self):
+		"""Decision G21: /sidra is retired. Staff go to /berjaya, guests sign in first, others to Desk."""
 		page = _page_module()
-		with as_user("Guest"), self.assertRaises(frappe.Redirect):
-			page.get_context(frappe._dict())
-		self.assertEqual(frappe.local.flags.redirect_location, "/login?redirect-to=%2Fsidra")
-		with as_user(OUTSIDER), self.assertRaises(frappe.Redirect):
-			page.get_context(frappe._dict())
-		self.assertEqual(frappe.local.flags.redirect_location, "/desk")
+		for user, target in (
+			("Guest", "/login?redirect-to=%2Fberjaya"),
+			(SALES_MANAGER, "/berjaya"),
+			(OUTSIDER, "/desk"),
+		):
+			with as_user(user), self.assertRaises(frappe.Redirect) as raised:
+				page.get_context(frappe._dict())
+			self.assertEqual(frappe.local.flags.redirect_location, target, user)
+			self.assertEqual(raised.exception.http_status_code, 302, user)
 
 	def test_doors_follow_permissions(self):
 		with as_user(SALES_USER):
@@ -101,8 +88,8 @@ class TestShell(IntegrationTestCase):
 		labels = [row["label"] for service in shell["services"] for row in service["attention"]]
 		self.assertNotIn("Buyer KYC to verify", labels)
 
-	def test_signing_in_lands_on_the_front_page(self):
-		self.assertEqual(get_route("sidra_realestate"), "/sidra")
+	def test_signing_in_lands_on_berjaya(self):
+		self.assertEqual(get_route("sidra_realestate"), "/berjaya")  # decision G21
 		hook = frappe.get_hooks("add_to_apps_screen", app_name="sidra_realestate")[0]
 		self.assertEqual(hook["desk_route"], "/desk/sidra-sale-contract")
 		self.assertTrue(frappe.db.get_single_value("System Settings", "default_app"))

@@ -51,7 +51,7 @@ test('all completed: six green checks and 6 of 6', async () => {
   assert.equal(count(html, 'stage--completed'), 6)
   for (const [, label] of LABELS) assert.ok(html.includes(label))
   assert.ok(html.includes('Registered as SYN-EXT-0036.'))
-  assert.ok(html.includes('href="/app/sidra-customer-kyc/Synthetic%20Buyer"'))
+  assert.ok(html.includes('href="/desk/sidra-customer-kyc/Synthetic%20Buyer"'))
   assert.ok(html.includes('1 Nov 2026, 09:00'))
   assert.ok(!html.includes('role="alert"'))
 })

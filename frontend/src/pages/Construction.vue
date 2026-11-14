@@ -3,13 +3,16 @@ import { ref, watch } from 'vue'
 
 import CompanyPicker from '../components/CompanyPicker.vue'
 import ListStates from '../components/ListStates.vue'
+import SectionTabs from '../components/SectionTabs.vue'
+import { canCreate } from '../boot'
 import { company } from '../company'
 import { JOB_DOCTYPE, jobTone } from '../construction'
-import { dateText, money, textValue } from '../format'
+import { dateText, deskNewLink, money, textValue } from '../format'
 import { useList } from '../list'
 
 const STATUSES = ['Enquiry', 'Quoted', 'Contracted', 'In Progress', 'On Hold', 'Completed', 'Defects Period', 'Closed', 'Cancelled']
 const status = ref('')
+const newLink = canCreate('jobs') ? deskNewLink(JOB_DOCTYPE) : null
 
 const { rows, hasMore, loading, error, count, state, reload, loadMore } = useList(JOB_DOCTYPE, {
   fields: ['name', 'customer', 'service_type', 'status', 'site_location', 'plot_number', 'engineer', 'current_contract_value', 'currency', 'contract_end_date'],
@@ -38,8 +41,11 @@ watch([company, status], reload, { immediate: true })
           <option v-for="name in STATUSES" :key="name" :value="name">{{ name }}</option>
         </select>
         <button type="button" class="bj-btn" :disabled="loading" @click="reload">Refresh</button>
+        <a v-if="newLink" class="bj-btn bj-btn--primary" :href="newLink"><span class="lucide-plus" aria-hidden="true" />New in Desk</a>
       </div>
     </header>
+
+    <SectionTabs section="construction" current="jobs" />
 
     <div class="page__card">
       <ListStates :state="state" :error="error" noun="construction jobs" icon="lucide-hard-hat" @retry="reload">

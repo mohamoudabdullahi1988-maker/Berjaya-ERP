@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-import { dateText, dateTimeText, fileLink, money, monthText, percentText, recordLink, shiftMonth, sitePath, textValue } from '../src/format.js'
+import { dateText, dateTimeText, deskNewLink, fileLink, money, monthText, percentText, recordLink, shiftMonth, sitePath, textValue } from '../src/format.js'
 import { sourceText, statusText } from '../src/contracts.js'
 
 test('a missing or withheld amount is "Unavailable", never zero', () => {
@@ -48,6 +48,7 @@ test('only this site\'s own paths become links', () => {
   assert.equal(sitePath('//example.com/x'), null)
   assert.equal(sitePath('https://example.com/x'), null)
   assert.equal(sitePath(undefined), null)
-  assert.equal(recordLink({ doctype: 'Sidra Sale Contract', name: 'SYNTHETIC/1' }), '/app/sidra-sale-contract/SYNTHETIC%2F1')
+  assert.equal(recordLink({ doctype: 'Sidra Sale Contract', name: 'SYNTHETIC/1' }), '/desk/sidra-sale-contract/SYNTHETIC%2F1')
+  assert.equal(deskNewLink('Sidra Reservation'), '/desk/sidra-reservation/new')
   assert.equal(recordLink(null), null)
 })

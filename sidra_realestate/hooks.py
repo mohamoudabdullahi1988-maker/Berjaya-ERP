@@ -31,9 +31,10 @@ add_to_apps_screen = [
 		"name": app_name,
 		"logo": _branding.APP_ICON,
 		"title": _branding.BRAND_NAME,
-		# The staff front page (www/sidra, docs/SHELL_v0.1.md, decision G15). With System Settings
-		# "Default App" set to this app (branding.py), staff land on it after signing in.
-		"route": "/sidra",
+		# The staff front page: the Berjaya interface (www/berjaya.py, decision G21; it replaces /sidra
+		# of G15). With System Settings "Default App" set to this app (branding.py), staff land on it
+		# after signing in.
+		"route": "/berjaya",
 		# The app's door back into the desk, shown under its icon on the apps screen.
 		"desk_route": "/desk/sidra-sale-contract",
 		"has_permission": "sidra_realestate.branding.has_app_permission",

@@ -6,9 +6,10 @@ import { LoadingIndicator } from 'frappe-ui'
 import { ApiError, apiGet } from '../api'
 import StatePanel from '../components/StatePanel.vue'
 import WorkflowPanel from '../components/WorkflowPanel.vue'
-import { CONTRACT, sourceText, statusText, statusTone, timeline } from '../contracts'
-import { dateText, fileLink, isAmount, money, textValue } from '../format'
+import { CONTRACT, CONTRACT_DOCTYPE, sourceText, statusText, statusTone, timeline } from '../contracts'
+import { dateText, deskLink, fileLink, isAmount, money, textValue } from '../format'
 import { claimPanel, releasePanel } from '../panel'
+import { canRead } from '../boot'
 
 const route = useRoute()
 const doc = ref(null)
@@ -132,13 +133,17 @@ onBeforeUnmount(() => {
           <span v-if="doc.external_reference" class="bj-pill">{{ doc.external_reference }}</span>
           <span class="bj-pill">{{ sourceText(doc) }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + statusTone(doc.docstatus)">{{ statusText(doc.docstatus) }}</span>
+          <a class="bj-btn" :href="deskLink(CONTRACT_DOCTYPE, doc.name)"><span class="lucide-external-link" aria-hidden="true" />Open in Desk</a>
         </div>
       </header>
 
       <div class="bj-grid">
         <article class="bj-card">
           <h2>Buyer</h2>
-          <p class="bj-strong">{{ textValue(doc.customer) }}</p>
+          <p class="bj-strong">
+            <RouterLink v-if="canRead('customers') && doc.customer" class="bj-link" :to="{ name: 'customers-detail', params: { name: doc.customer } }">{{ doc.customer }}</RouterLink>
+            <template v-else>{{ textValue(doc.customer) }}</template>
+          </p>
           <p class="bj-muted">{{ doc.company || 'Company not recorded' }}</p>
         </article>
         <article class="bj-card">

@@ -3,11 +3,14 @@ import { computed, onMounted, ref } from 'vue'
 import { LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet } from '../api'
+import SectionTabs from '../components/SectionTabs.vue'
+import { deskNewLink, textValue } from '../format'
 import StatePanel from '../components/StatePanel.vue'
+import { canCreate } from '../boot'
 import { CONTRACT, sourceText, statusText, statusTone } from '../contracts'
-import { textValue } from '../format'
 
 const PAGE = 25
+const newLink = canCreate('contracts') ? deskNewLink('Sidra Sale Contract') : null
 const LIST_FIELDS = ['name', 'customer', 'docstatus', 'source', 'contract_type', 'external_reference']
 
 const rows = ref([])
@@ -87,10 +90,13 @@ onMounted(() => load())
       <form class="bj-toolbar" role="search" @submit.prevent="load()">
         <label class="bj-label" for="contract-search">Search by reference or customer</label>
         <input id="contract-search" v-model="query" class="bj-input" type="search" placeholder="Reference or customer" />
-        <button type="submit" class="bj-btn bj-btn--primary" :disabled="loading">Search</button>
+        <button type="submit" class="bj-btn" :disabled="loading">Search</button>
         <button v-if="applied" type="button" class="bj-btn" :disabled="loading" @click="clear">Clear</button>
+        <a v-if="newLink" class="bj-btn bj-btn--primary" :href="newLink"><span class="lucide-plus" aria-hidden="true" />New in Desk</a>
       </form>
     </header>
+
+    <SectionTabs section="contracts" current="contracts" />
 
     <div class="page__card">
       <div v-if="state === 'loading'" class="bj-loading" role="status"><LoadingIndicator /><span>Loading contracts…</span></div>
