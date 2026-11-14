@@ -30,9 +30,12 @@ class TestBerjayaPage(IntegrationTestCase):
 		ensure_base_records()
 
 	def test_guest_is_sent_to_login_with_a_return_to_berjaya(self):
-		with as_user("Guest"), self.assertRaises(frappe.Redirect):
+		with as_user("Guest"), self.assertRaises(frappe.Redirect) as raised:
 			page.get_context(frappe._dict())
 		self.assertEqual(frappe.local.flags.redirect_location, "/login?redirect-to=%2Fberjaya")
+		# Temporary (302): a permanent redirect would be remembered by the browser and send a
+		# user who has since signed in back to the sign-in page.
+		self.assertEqual(raised.exception.http_status_code, 302)
 
 	def test_signed_in_outsider_is_refused(self):
 		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):

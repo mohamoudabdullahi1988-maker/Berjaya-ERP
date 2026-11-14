@@ -26,7 +26,7 @@ def _client_index() -> str:
 def get_context(context):
 	if frappe.session.user == "Guest":
 		frappe.local.flags.redirect_location = "/login?redirect-to=%2Fsidra-staff%2F"
-		raise frappe.Redirect
+		raise frappe.Redirect(302)  # temporary: depends on the session, so browsers must not remember it
 	roles = set(frappe.get_roles())
 	if "System Manager" not in roles and not any(r.startswith("Sidra ") for r in roles):
 		frappe.throw(_("The staff app is for Sidra staff"), frappe.PermissionError)
