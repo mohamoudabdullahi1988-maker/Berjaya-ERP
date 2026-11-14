@@ -92,7 +92,8 @@ onMounted(() => load())
         <input id="contract-search" v-model="query" class="bj-input" type="search" placeholder="Reference or customer" />
         <button type="submit" class="bj-btn" :disabled="loading">Search</button>
         <button v-if="applied" type="button" class="bj-btn" :disabled="loading" @click="clear">Clear</button>
-        <a v-if="newLink" class="bj-btn bj-btn--primary" :href="newLink"><span class="lucide-plus" aria-hidden="true" />New in Desk</a>
+        <RouterLink v-if="newLink" class="bj-btn bj-btn--primary" :to="{ name: 'contract-new' }"><span class="lucide-plus" aria-hidden="true" />Register external contract</RouterLink>
+        <a v-if="newLink" class="bj-btn" :href="newLink"><span class="lucide-external-link" aria-hidden="true" />New in Desk</a>
       </form>
     </header>
 

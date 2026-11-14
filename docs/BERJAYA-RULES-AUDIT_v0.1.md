@@ -61,7 +61,7 @@ The app is already server-first: every action button calls a whitelisted method 
 
 | # | Proposal |
 | --- | --- |
-| 1 | R1: decide whether the acknowledgement must be recorded (who, when) on the server. Until then the `/berjaya` contract screen stays read-only, as planned for tonight. |
+| 1 | R1: decide whether the acknowledgement must be recorded (who, when) on the server. **Decided 14 Nov 2026 (G22): yes, for confirmation from `/berjaya`; implemented in v0.1.25.** |
 | 2 | R2: have `run_import` refuse unless the status is Validated and the file is unchanged since. |
 | 3 | R6: add a server check for the legal hold reason, or confirm by test that Frappe enforces it. |
 | 4 | Every `/berjaya` screen that writes takes its rules from the whitelisted methods in section 3, never from a copy in the frontend. |

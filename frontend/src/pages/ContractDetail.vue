@@ -3,13 +3,14 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { LoadingIndicator } from 'frappe-ui'
 
-import { ApiError, apiGet } from '../api'
+import { ApiError, apiGet, apiPost } from '../api'
 import StatePanel from '../components/StatePanel.vue'
 import WorkflowPanel from '../components/WorkflowPanel.vue'
-import { CONTRACT, CONTRACT_DOCTYPE, sourceText, statusText, statusTone, timeline } from '../contracts'
+import { CONTRACT, CONTRACT_DOCTYPE, permissions, sourceText, statusText, statusTone, timeline } from '../contracts'
 import { dateText, deskLink, fileLink, isAmount, money, textValue } from '../format'
 import { claimPanel, releasePanel } from '../panel'
 import { canRead } from '../boot'
+import { CONFIRM_METHOD, canConfirm, canEdit, isRegisteredDraft, savedDifference } from '../registration'
 
 const route = useRoute()
 const doc = ref(null)
@@ -20,6 +21,44 @@ const flowLoading = ref(false)
 const flowError = ref('')
 let request = 0
 let flowRequest = 0
+
+// Confirmation (decision D7). Offered only when the server's timeline lists it; the server
+// checks permission, every confirmation rule and the record's version again when it is sent.
+const confirming = ref(false)
+const confirmOpen = ref(false)
+const acknowledged = ref(false)
+const confirmError = ref(null)
+const confirmedNote = ref('')
+// Edit is offered when the server says this user may write the draft, or lists an edit action.
+const mayWrite = ref(false)
+const showEdit = computed(() => isRegisteredDraft(doc.value) && (mayWrite.value || canEdit(flow.value)))
+const showConfirm = computed(() => doc.value?.docstatus === 0 && canConfirm(flow.value))
+const savedGap = computed(() => savedDifference(doc.value))
+
+function openConfirm() {
+  confirmOpen.value = true
+  acknowledged.value = false
+  confirmError.value = null
+}
+
+async function confirmRegistration() {
+  confirming.value = true
+  confirmError.value = null
+  try {
+    const result = await apiPost(CONFIRM_METHOD, {
+      contract: doc.value.name,
+      expected_modified: doc.value.modified,
+      acknowledge_difference: acknowledged.value ? 1 : 0,
+    })
+    confirmOpen.value = false
+    await load()
+    confirmedNote.value = result?.repeated ? 'This contract was already confirmed by you.' : 'Contract confirmed.'
+  } catch (err) {
+    confirmError.value = err instanceof ApiError ? err : new ApiError('server', 'Something went wrong.')
+  } finally {
+    confirming.value = false
+  }
+}
 
 // A field the server left out of the record (not permitted for this user) is "Unavailable".
 const cash = (field, row = doc.value) => (row && field in row ? money(row[field], doc.value?.currency) : 'Unavailable')
@@ -57,6 +96,8 @@ async function refreshWorkflow() {
 async function load() {
   const id = ++request
   ++flowRequest
+  confirmedNote.value = ''
+  confirmOpen.value = false
   doc.value = null
   flow.value = null
   flowError.value = ''
@@ -68,7 +109,15 @@ async function load() {
     if (!result.data?.name) throw new ApiError('server', 'The server sent an unexpected answer.')
     if (id !== request) return
     doc.value = result.data
+    mayWrite.value = false
     refreshWorkflow()
+    if (isRegisteredDraft(result.data)) {
+      permissions(result.data.name)
+        .then((allowed) => {
+          if (id === request) mayWrite.value = Boolean(allowed.write)
+        })
+        .catch(() => {}) // unknown: no Edit button unless the timeline lists an edit action
+    }
   } catch (err) {
     if (id === request) error.value = err instanceof ApiError ? err : new ApiError('server', 'Something went wrong.')
   } finally {
@@ -134,8 +183,43 @@ onBeforeUnmount(() => {
           <span class="bj-pill">{{ sourceText(doc) }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + statusTone(doc.docstatus)">{{ statusText(doc.docstatus) }}</span>
           <a class="bj-btn" :href="deskLink(CONTRACT_DOCTYPE, doc.name)"><span class="lucide-external-link" aria-hidden="true" />Open in Desk</a>
+          <RouterLink v-if="showEdit" class="bj-btn" :to="{ name: 'contract-edit', params: { name: doc.name } }"><span class="lucide-pencil" aria-hidden="true" />Edit draft</RouterLink>
+          <button v-if="showConfirm && !confirmOpen" type="button" class="bj-btn bj-btn--primary" @click="openConfirm">
+            <span class="lucide-check" aria-hidden="true" />Confirm contract
+          </button>
         </div>
       </header>
+
+      <p v-if="confirmedNote" class="bj-note confirm__ok" role="status"><span class="lucide-circle-check-big" aria-hidden="true" />{{ confirmedNote }}</p>
+
+      <section v-if="confirmOpen" class="page__card bj-card confirm" aria-labelledby="confirm-title">
+        <h2 id="confirm-title">Confirm {{ doc.name }}?</h2>
+        <p>
+          Confirming registers this contract as signed. Its units become Under Contract, its terms are frozen and it can no longer be edited.
+          Nothing is posted to the ledger.
+        </p>
+        <label v-if="savedGap !== null" class="confirm__ack">
+          <input v-model="acknowledged" type="checkbox" />
+          <span>
+            I acknowledge that the saved schedule differs from the amount due by {{ money(savedGap, doc.currency) }}. My name is recorded on the contract
+            with this acknowledgement.
+          </span>
+        </label>
+        <div v-if="confirmError" class="confirm__error" role="alert">
+          <span class="lucide-triangle-alert" aria-hidden="true" />
+          <div>
+            <p class="bj-strong">{{ confirmError.type === 'StaleRecord' ? 'Someone else changed this contract' : 'Not confirmed' }}</p>
+            <p>{{ confirmError.message }}</p>
+            <button v-if="confirmError.type === 'StaleRecord'" type="button" class="bj-btn" @click="load">Reload</button>
+          </div>
+        </div>
+        <div class="bj-toolbar">
+          <button type="button" class="bj-btn bj-btn--primary" :disabled="confirming || (savedGap !== null && !acknowledged)" @click="confirmRegistration">
+            <span v-if="confirming" class="confirm__spin" aria-hidden="true" />Confirm contract
+          </button>
+          <button type="button" class="bj-btn" :disabled="confirming" @click="confirmOpen = false">Cancel</button>
+        </div>
+      </section>
 
       <div class="bj-grid">
         <article class="bj-card">
@@ -232,3 +316,65 @@ onBeforeUnmount(() => {
     </Teleport>
   </section>
 </template>
+
+<style scoped>
+.confirm {
+  margin: 16px 0;
+  border-color: var(--bj-terracotta);
+}
+.confirm h2 {
+  margin: 0 0 8px;
+}
+.confirm > p {
+  margin: 0 0 12px;
+}
+.confirm__ack {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+  padding: 12px;
+  background: var(--bj-terracotta-tint);
+  border-radius: 8px;
+  cursor: pointer;
+}
+.confirm__ack input {
+  width: 20px;
+  height: 20px;
+  margin-top: 2px;
+  flex: none;
+}
+.confirm__error {
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  color: var(--bj-state-blocked);
+  border: 1px solid var(--bj-state-blocked);
+  border-radius: 12px;
+}
+.confirm__error p {
+  margin: 0 0 6px;
+  color: var(--bj-ink);
+}
+.confirm__ok {
+  margin: 12px 0;
+}
+.confirm__ok > span {
+  color: var(--bj-state-completed);
+}
+.confirm__spin {
+  width: 14px;
+  height: 14px;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  animation: confirm-spin 0.8s linear infinite;
+}
+@keyframes confirm-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+</style>

@@ -22,3 +22,9 @@ export async function timeline(name) {
   if (!response.message || !Array.isArray(response.message.stages)) throw new Error('Unexpected workflow response.')
   return response.message
 }
+
+/** What the signed-in user may do with this record, as the server evaluates it ({ write: 1, ... }). */
+export async function permissions(name) {
+  const response = await apiGet('/api/method/frappe.client.get_doc_permissions', { doctype: CONTRACT_DOCTYPE, docname: name })
+  return response.message?.permissions ?? {}
+}
