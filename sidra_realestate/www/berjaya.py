@@ -28,6 +28,7 @@ ROUTE = "/berjaya"
 # keys (frontend/src/records.js); the server says which of them this user may read and create.
 LISTS = {
 	"units": "Sidra Unit",
+	"schemes": "Sidra Scheme",
 	"price_history": "Sidra Unit Price History",
 	"customers": "Customer",
 	"kyc": "Sidra Customer KYC",
@@ -48,7 +49,7 @@ LISTS = {
 # read access to the ledger.
 NAV = (
 	("dashboard", "Dashboard", ()),
-	("properties", "Properties", ("units", "price_history")),
+	("properties", "Properties", ("units", "schemes", "price_history")),
 	("customers", "Customers", ("customers", "kyc")),
 	("sales", "Sales", ("reservations", "sale_quotations")),
 	("contracts", "Contracts", ("contracts", "title_transfers")),
