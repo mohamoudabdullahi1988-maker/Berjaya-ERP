@@ -9,7 +9,118 @@
 const DOC = { field: 'docstatus', label: 'State', type: 'docstatus' }
 
 export const RECORDS = {
-  units: { section: 'properties', title: 'Units', doctype: 'Sidra Unit', path: '/properties', page: 'properties' },
+  units: {
+    section: 'properties',
+    title: 'Units',
+    noun: 'units',
+    doctype: 'Sidra Unit',
+    path: '/properties',
+    page: 'properties',
+    form: true,
+    status: { Available: 'completed', Reserved: 'current', 'Under Contract': 'current', Sold: 'muted', Blocked: 'blocked' },
+    detail: {
+      title: 'unit_code',
+      subtitle: 'scheme',
+      groups: [
+        {
+          title: 'Unit',
+          fields: [
+            { field: 'unit_code', label: 'Unit code' },
+            { field: 'scheme', label: 'Scheme', type: 'link', to: 'schemes' },
+            { field: 'company', label: 'Company' },
+            { field: 'block', label: 'Block / phase' },
+            { field: 'unit_type', label: 'Type' },
+            { field: 'status', label: 'Status', type: 'status' },
+            { field: 'cash_price', label: 'Cash price', type: 'money' },
+            { field: 'title_deed_ref', label: 'Title deed reference' },
+            { field: 'current_reservation', label: 'Current reservation', type: 'link', to: 'reservations' },
+            { field: 'current_contract', label: 'Current contract', type: 'link', to: 'contracts' },
+          ],
+        },
+        {
+          title: 'Plot',
+          fields: [
+            { field: 'plot_fraction', label: 'Plot fraction' },
+            { field: 'dimensions', label: 'Dimensions' },
+            { field: 'area_sqm', label: 'Area (m²)', type: 'number' },
+            { field: 'district', label: 'District' },
+            { field: 'neighbourhood', label: 'Neighbourhood' },
+            { field: 'land_parcel', label: 'Original land parcel' },
+            { field: 'boundary_east', label: 'East' },
+            { field: 'boundary_north', label: 'North' },
+            { field: 'boundary_south', label: 'South' },
+            { field: 'boundary_west', label: 'West' },
+          ],
+        },
+        {
+          title: 'House / off-plan',
+          fields: [
+            { field: 'offplan_status', label: 'Off-plan status' },
+            { field: 'delivery_date', label: 'Estimated delivery', type: 'date' },
+            { field: 'expansion_phase', label: 'Expansion phase' },
+            { field: 'bedrooms', label: 'Bedrooms', type: 'int' },
+            { field: 'floors', label: 'Floors', type: 'int' },
+          ],
+        },
+      ],
+      related: [
+        { list: 'reservations', field: 'unit', title: 'Reservations' },
+        { list: 'price_history', field: 'unit', title: 'Price history' },
+      ],
+    },
+  },
+  schemes: {
+    section: 'properties',
+    title: 'Schemes',
+    noun: 'schemes',
+    doctype: 'Sidra Scheme',
+    path: '/properties/schemes',
+    icon: 'lucide-map',
+    form: true,
+    company: true,
+    orderBy: 'scheme_code asc',
+    search: ['name', 'scheme_name', 'district'],
+    searchLabel: 'Code, name or district',
+    list: [
+      { field: 'scheme_code', label: 'Code', type: 'id' },
+      { field: 'scheme_name', label: 'Name' },
+      { field: 'district', label: 'District' },
+      { field: 'neighbourhood', label: 'Neighbourhood' },
+      { field: 'company', label: 'Company' },
+    ],
+    detail: {
+      title: 'scheme_name',
+      subtitle: 'scheme_code',
+      groups: [
+        {
+          title: 'Scheme',
+          fields: [
+            { field: 'scheme_code', label: 'Code' },
+            { field: 'scheme_name', label: 'Name' },
+            { field: 'company', label: 'Company' },
+            { field: 'location', label: 'Location' },
+            { field: 'district', label: 'District' },
+            { field: 'neighbourhood', label: 'Neighbourhood' },
+            { field: 'description', label: 'Description', type: 'longtext' },
+          ],
+        },
+      ],
+      related: [
+        {
+          list: 'units',
+          field: 'scheme',
+          title: 'Units',
+          orderBy: 'unit_code asc',
+          columns: [
+            { field: 'unit_code', label: 'Unit', type: 'id' },
+            { field: 'unit_type', label: 'Type' },
+            { field: 'status', label: 'Status', type: 'status' },
+            { field: 'cash_price', label: 'Cash price', type: 'money' },
+          ],
+        },
+      ],
+    },
+  },
   price_history: {
     section: 'properties',
     title: 'Price history',
@@ -51,6 +162,7 @@ export const RECORDS = {
   },
 
   customers: {
+    form: true,
     section: 'customers',
     title: 'Customers',
     noun: 'customers',
@@ -117,6 +229,7 @@ export const RECORDS = {
     },
   },
   kyc: {
+    form: true,
     section: 'customers',
     title: 'KYC',
     noun: 'KYC records',
@@ -173,6 +286,7 @@ export const RECORDS = {
   },
 
   reservations: {
+    form: true,
     section: 'sales',
     title: 'Reservations',
     noun: 'reservations',
@@ -640,7 +754,7 @@ for (const config of Object.values(RECORDS)) {
 
 // Sections in navigation order, with their lists. A section shows only the lists the server allows.
 export const SECTIONS = {
-  properties: ['units', 'price_history'],
+  properties: ['units', 'schemes', 'price_history'],
   customers: ['customers', 'kyc'],
   sales: ['reservations', 'sale_quotations'],
   contracts: ['contracts', 'title_transfers'],
@@ -656,6 +770,6 @@ export const detailRoute = (key) => RECORDS[key].detailRoute || `${key}-detail`
 /** The router location of a record, or null when the interface has no screen for that list. */
 export function recordRoute(key, name) {
   if (!RECORDS[key] || !name) return null
-  if (RECORDS[key].page && !RECORDS[key].detailRoute) return null
+  if (RECORDS[key].page && !RECORDS[key].detailRoute && !RECORDS[key].detail) return null
   return { name: detailRoute(key), params: { name } }
 }

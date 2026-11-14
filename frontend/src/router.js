@@ -5,6 +5,7 @@ import { GENERIC, RECORDS, SECTIONS, detailRoute, listRoute } from './records'
 
 const RecordList = () => import('./pages/RecordList.vue')
 const RecordDetail = () => import('./pages/RecordDetail.vue')
+const RecordEdit = () => import('./pages/RecordEdit.vue')
 
 // Every generic list and its record page, from records.js. Static paths such as
 // /construction/quotations rank above /construction/:name, so they never collide.
@@ -12,6 +13,18 @@ const generic = GENERIC.flatMap((key) => [
   { path: RECORDS[key].path, name: listRoute(key), component: RecordList, meta: { list: key, section: RECORDS[key].section } },
   { path: `${RECORDS[key].path}/:name`, name: detailRoute(key), component: RecordDetail, meta: { list: key, section: RECORDS[key].section } },
 ])
+
+// Create and edit pages for every list the server's form engine serves (G23), and the generic
+// record page for a list whose list is a page of its own (units).
+const forms = Object.keys(RECORDS)
+  .filter((key) => RECORDS[key].form)
+  .flatMap((key) => [
+    { path: `${RECORDS[key].path}/new`, name: `${key}-new`, component: RecordEdit, meta: { list: key, section: RECORDS[key].section, create: true } },
+    { path: `${RECORDS[key].path}/:name/edit`, name: `${key}-edit`, component: RecordEdit, meta: { list: key, section: RECORDS[key].section } },
+  ])
+const pageDetails = Object.keys(RECORDS)
+  .filter((key) => RECORDS[key].page && RECORDS[key].detail && !RECORDS[key].detailRoute)
+  .map((key) => ({ path: `${RECORDS[key].path}/:name`, name: detailRoute(key), component: RecordDetail, meta: { list: key, section: RECORDS[key].section } }))
 
 /** A section without a page of its own opens its first list this user may read. */
 function firstList(section) {
@@ -41,7 +54,9 @@ const routes = [
   { path: '/construction', name: 'construction', component: () => import('./pages/Construction.vue'), meta: { list: 'jobs', section: 'construction' } },
   { path: '/construction/:name', name: 'construction-detail', component: () => import('./pages/ConstructionDetail.vue'), meta: { section: 'construction' } },
   { path: '/finance', name: 'finance', component: () => import('./pages/Finance.vue'), meta: { section: 'finance' } },
+  ...forms,
   ...generic,
+  ...pageDetails,
   { path: '/no-access', name: 'no-access', component: () => import('./pages/NoAccess.vue') },
   { path: '/:rest(.*)*', name: 'not-found', component: () => import('./pages/NotFound.vue') },
 ]

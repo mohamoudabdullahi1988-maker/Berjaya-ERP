@@ -1,0 +1,610 @@
+# Copyright (c) 2026, Mohamoud Abdullahi Sheikh
+"""Berjaya record forms: create, edit, submit, cancel, delete and actions without Desk (G23).
+
+One engine serves every record type in `FORMS`. The server describes the form (fields, layout,
+rules, what this user may change) from the DocType itself, and every write goes through the
+record's own controller, so every rule that applies in Desk applies here. On top of that:
+
+- **Only fields the form shows as editable can be written** (rules audit R7). A field is editable
+  when it is a data field, not read-only, not hidden, at a permission level the user may write,
+  the record is a draft (or the field may change after submission), and its
+  `read_only_depends_on` rule does not make it read-only. Anything else in a request is refused,
+  not ignored. A rule the parser does not understand makes the field read-only.
+- **Stale edits are refused**: each change carries the `modified` value the user loaded.
+- **Retries are safe**: a create carries a request key; submit, cancel and delete repeated after
+  they succeeded change nothing.
+- **Actions** (Reserve unit, Verify KYC, ...) are the existing whitelisted methods. The form lists
+  only those whose conditions hold for this user and record, as Desk's buttons did; each method
+  checks its own roles and state again when it runs.
+
+Nothing here posts to the ledger (`CLAUDE.md` rule 3).
+"""
+
+import frappe
+from frappe import _
+from frappe.utils import cstr, get_fullname
+
+from sidra_realestate.services import form_rules
+
+# ---------------------------------------------------------------------- what the engine serves
+DATA_TYPES = {
+	"Data",
+	"Small Text",
+	"Text",
+	"Long Text",
+	"Text Editor",
+	"Int",
+	"Float",
+	"Currency",
+	"Percent",
+	"Check",
+	"Select",
+	"Link",
+	"Dynamic Link",
+	"Date",
+	"Datetime",
+	"Time",
+	"Attach",
+	"Attach Image",
+	"Phone",
+	"Table",
+	"Read Only",
+	"Rating",
+	"Duration",
+	"Geolocation",
+	"JSON",
+}
+# Shown but never written from Berjaya.
+DISPLAY_ONLY_TYPES = {"Read Only", "Geolocation", "JSON", "Dynamic Link", "Text Editor"}
+LAYOUT_TYPES = {"Section Break", "Column Break", "Tab Break"}
+NEVER_WRITTEN = {"naming_series", "amended_from", "docstatus", "name", "owner", "creation", "modified"}
+
+RESERVE_ROLES = ("Sidra Sales User", "Sidra Sales Manager")
+
+
+def _unit_actions(doc):
+	actions = []
+	if set(RESERVE_ROLES) & set(frappe.get_roles()):
+		if doc.status == "Available":
+			actions.append(
+				{
+					"key": "reserve_unit",
+					"label": _("Reserve unit"),
+					"ask": [
+						{
+							"fieldname": "customer",
+							"label": _("Customer"),
+							"fieldtype": "Link",
+							"options": "Customer",
+							"reqd": 1,
+						},
+						{
+							"fieldname": "days",
+							"label": _("Days"),
+							"fieldtype": "Int",
+							"reqd": 1,
+							"default": 7,
+						},
+					],
+					# Rules audit R3: Desk warned before reserving a unit without a positive price.
+					"confirm": None
+					if (doc.cash_price or 0) > 0
+					else _(
+						"This unit has no positive asking price. Check its approved price history before reserving."
+					),
+				}
+			)
+		if doc.status == "Reserved" and doc.current_reservation:
+			actions.append(
+				{
+					"key": "cancel_reservation",
+					"label": _("Cancel reservation"),
+					"confirm": _("Cancel reservation {0} and release the unit?").format(
+						doc.current_reservation
+					),
+					"tone": "danger",
+				}
+			)
+	return actions
+
+
+def _reservation_actions(doc):
+	if doc.status == "Active" and set(RESERVE_ROLES) & set(frappe.get_roles()):
+		return [
+			{
+				"key": "cancel_reservation",
+				"label": _("Cancel reservation"),
+				"confirm": _("Cancel reservation {0} and release the unit?").format(doc.name),
+				"tone": "danger",
+			}
+		]
+	return []
+
+
+def _kyc_actions(doc):
+	if doc.status != "Verified" and doc.id_document and "Sidra Sales Manager" in frappe.get_roles():
+		return [
+			{
+				"key": "verify_kyc",
+				"label": _("Verify"),
+				"confirm": _("Verify this KYC against the scanned ID?"),
+			}
+		]
+	return []
+
+
+def _run_reserve(doc, args):
+	from sidra_realestate.services.reservations import reserve_unit
+
+	result = reserve_unit(doc.name, args.get("customer"), args.get("days"))
+	return {
+		"message": _("Reserved as {0} until {1}").format(result["reservation"], result["expires_on"]),
+		**result,
+	}
+
+
+def _run_cancel_reservation(doc, args):
+	from sidra_realestate.services.reservations import cancel_reservation
+
+	reservation = doc.name if doc.doctype == "Sidra Reservation" else doc.current_reservation
+	cancel_reservation(reservation)
+	return {"message": _("Reservation {0} cancelled").format(reservation)}
+
+
+def _run_verify_kyc(doc, args):
+	from sidra_realestate.sidra_sales.doctype.sidra_customer_kyc.sidra_customer_kyc import verify_kyc
+
+	verify_kyc(doc.name)
+	return {"message": _("KYC verified")}
+
+
+RUNNERS = {
+	"reserve_unit": _run_reserve,
+	"cancel_reservation": _run_cancel_reservation,
+	"verify_kyc": _run_verify_kyc,
+}
+
+# The record types Berjaya edits. `fields`: only these (for large ERPNext forms); `create_only`:
+# fields the DocType marks read-only that its controller reads on insert; `create`/`edit`: False
+# when the record changes only through actions.
+FORMS = {
+	"Customer": {
+		"fields": (
+			"customer_name",
+			"customer_type",
+			"customer_group",
+			"territory",
+			"mobile_no",
+			"email_id",
+			"tax_id",
+			"default_currency",
+			"customer_details",
+			"disabled",
+		),
+		"create_only": ("mobile_no", "email_id"),
+	},
+	"Sidra Customer KYC": {"actions": _kyc_actions},
+	"Sidra Scheme": {},
+	"Sidra Unit": {"actions": _unit_actions},
+	"Sidra Reservation": {"create": False, "edit": False, "actions": _reservation_actions},
+}
+
+
+# ---------------------------------------------------------------------- methods
+@frappe.whitelist(methods=["GET"])
+def get_form(doctype: str, name: str | None = None) -> dict:
+	"""The form for one record (or a new one): layout, rules, values and what this user may do."""
+	config = _config(doctype)
+	if name:
+		doc = frappe.get_doc(doctype, name)
+		doc.check_permission("read")
+	else:
+		if not config.get("create", True):
+			frappe.throw(_("{0} records are created through their actions, not this form").format(_(doctype)))
+		frappe.has_permission(doctype, "create", throw=True)
+		doc = frappe.new_doc(doctype)
+	meta = frappe.get_meta(doctype)
+	editable = _editable_fields(doc, config, rules=False)
+	values = _readable_values(doc)
+	return {
+		"doctype": doctype,
+		"name": doc.name if name else None,
+		"title": _(doctype),
+		"is_new": not name,
+		"docstatus": doc.docstatus,
+		"modified": cstr(doc.modified) if name else None,
+		"values": values,
+		"layout": _layout(meta, config, editable, doc),
+		"permissions": _permissions(doc, config, is_new=not name),
+		"actions": [_public_action(action) for action in (config.get("actions") or (lambda d: []))(doc)]
+		if name
+		else [],
+	}
+
+
+@frappe.whitelist(methods=["POST"])
+def save_form(
+	doctype: str,
+	data: dict | str,
+	name: str | None = None,
+	expected_modified: str | None = None,
+	request_key: str | None = None,
+) -> dict:
+	"""Create (no `name`) or update a record with the fields its form allows this user to change."""
+	config = _config(doctype)
+	values = frappe.parse_json(data) if isinstance(data, str) else data
+	if not isinstance(values, dict):
+		frappe.throw(_("Send the record's values as an object"))
+
+	if not name:
+		if not config.get("create", True):
+			frappe.throw(_("{0} records are created through their actions, not this form").format(_(doctype)))
+		earlier = _remembered(doctype, request_key)
+		if earlier and frappe.db.exists(doctype, earlier):
+			return _result(frappe.get_doc(doctype, earlier), repeated=True)
+		frappe.has_permission(doctype, "create", throw=True)
+		doc = frappe.new_doc(doctype)
+		_apply(doc, values, config)
+		doc.insert()
+		_remember(doctype, request_key, doc.name)
+		return _result(doc)
+
+	doc = _locked(doctype, name)
+	if not config.get("edit", True):
+		frappe.throw(_("{0} records change only through their actions").format(_(doctype)))
+	doc.check_permission("write")
+	check_not_stale(doc, expected_modified)
+	_apply(doc, values, config)
+	doc.save()
+	return _result(doc)
+
+
+@frappe.whitelist(methods=["POST"])
+def submit_form(doctype: str, name: str, expected_modified: str | None = None) -> dict:
+	config = _config(doctype)
+	doc = _locked(doctype, name)
+	doc.check_permission("read")
+	if doc.docstatus == 1 and doc.modified_by == frappe.session.user:
+		return _result(doc, repeated=True)
+	if doc.docstatus != 0 or not frappe.get_meta(doctype).is_submittable or not config.get("edit", True):
+		frappe.throw(_("{0} {1} cannot be submitted").format(_(doctype), name))
+	doc.check_permission("submit")
+	check_not_stale(doc, expected_modified)
+	doc.submit()
+	return _result(doc)
+
+
+@frappe.whitelist(methods=["POST"])
+def cancel_form(doctype: str, name: str, expected_modified: str | None = None) -> dict:
+	_config(doctype)
+	doc = _locked(doctype, name)
+	doc.check_permission("read")
+	if doc.docstatus == 2 and doc.modified_by == frappe.session.user:
+		return _result(doc, repeated=True)
+	if doc.docstatus != 1:
+		frappe.throw(_("Only a submitted {0} can be cancelled").format(_(doctype)))
+	doc.check_permission("cancel")
+	check_not_stale(doc, expected_modified)
+	doc.cancel()
+	return _result(doc)
+
+
+@frappe.whitelist(methods=["POST"])
+def delete_form(doctype: str, name: str, expected_modified: str | None = None) -> dict:
+	config = _config(doctype)
+	if not frappe.db.exists(doctype, name):
+		return {"name": name, "deleted": True, "repeated": True}
+	doc = _locked(doctype, name)
+	if doc.docstatus == 1 or not config.get("edit", True):
+		frappe.throw(_("{0} {1} cannot be deleted here").format(_(doctype), name))
+	doc.check_permission("delete")
+	check_not_stale(doc, expected_modified)
+	frappe.delete_doc(doctype, name)
+	return {"name": name, "deleted": True, "repeated": False}
+
+
+@frappe.whitelist(methods=["POST"])
+def run_action(
+	doctype: str, name: str, action: str, args: dict | str | None = None, expected_modified: str | None = None
+) -> dict:
+	"""Run one of the record's actions, if the form currently offers it to this user."""
+	config = _config(doctype)
+	doc = frappe.get_doc(doctype, name)
+	doc.check_permission("read")
+	check_not_stale(doc, expected_modified)
+	offered = {item["key"]: item for item in (config.get("actions") or (lambda d: []))(doc)}
+	if action not in offered or action not in RUNNERS:
+		frappe.throw(_("{0} is not available for {1} now. Reload it.").format(action, name))
+	args = frappe.parse_json(args) if isinstance(args, str) else (args or {})
+	if not isinstance(args, dict):
+		frappe.throw(_("Send the action's values as an object"))
+	allowed = {field["fieldname"] for field in offered[action].get("ask") or ()}
+	unknown = sorted(set(args) - allowed)
+	if unknown:
+		frappe.throw(_("These values are not part of this action: {0}").format(", ".join(unknown)))
+	return RUNNERS[action](doc, args) or {}
+
+
+# ---------------------------------------------------------------------- form description
+def _config(doctype):
+	if doctype not in FORMS:
+		frappe.throw(
+			_("{0} cannot be edited in this interface yet").format(_(doctype)), frappe.PermissionError
+		)
+	return FORMS[doctype]
+
+
+def _supported(field):
+	return field.fieldtype in DATA_TYPES and field.fieldname not in NEVER_WRITTEN
+
+
+def _selected(meta, config):
+	"""The data fields of the form, in DocType order."""
+	only = config.get("fields")
+	if only:  # an explicit list shows its fields even where the DocType hides them
+		return [field for field in meta.fields if _supported(field) and field.fieldname in only]
+	return [field for field in meta.fields if _supported(field) and not field.hidden]
+
+
+def _write_levels(doc):
+	if doc.is_new():
+		return {0} | set(frappe.get_meta(doc.doctype).get_permlevel_access("write") or [])
+	return set(frappe.get_meta(doc.doctype).get_permlevel_access("write") or [])
+
+
+def _rule_read_only(field, doc):
+	rule = field.read_only_depends_on
+	if not rule:
+		return False
+	tree = form_rules.parse(rule)
+	if tree is None:
+		return True  # not understood: the safe reading is read-only
+	return form_rules.evaluate(tree, _rule_values(doc))
+
+
+def _rule_values(doc):
+	values = doc.as_dict()
+	values["__islocal"] = 1 if doc.is_new() else 0
+	return values
+
+
+def _editable_fields(doc, config, rules=True):
+	"""Fieldnames this user may change on this record (parent level). With `rules=False` the
+	`read_only_depends_on` rules are left out: the form applies them live as values change, and
+	`_apply` enforces them on the values as they will be saved."""
+	meta = frappe.get_meta(doc.doctype)
+	is_new = doc.is_new()
+	if not is_new and (not config.get("edit", True) or not doc.has_permission("write")):
+		return set()
+	levels = _write_levels(doc)
+	create_only = set(config.get("create_only") or ()) if is_new else set()
+	editable = set()
+	for field in _selected(meta, config):
+		if field.fieldname in create_only:
+			editable.add(field.fieldname)
+			continue
+		if field.fieldtype in DISPLAY_ONLY_TYPES or field.read_only or (field.permlevel or 0) not in levels:
+			continue
+		if doc.docstatus == 1 and not field.allow_on_submit:
+			continue
+		if doc.docstatus == 2:
+			continue
+		if rules and _rule_read_only(field, doc):
+			continue
+		editable.add(field.fieldname)
+	return editable
+
+
+def _child_editable(child_doctype):
+	meta = frappe.get_meta(child_doctype)
+	return [
+		field
+		for field in meta.fields
+		if _supported(field)
+		and not field.hidden
+		and field.fieldtype not in DISPLAY_ONLY_TYPES
+		and field.fieldtype != "Table"
+		and not field.read_only
+	]
+
+
+def _field(field, editable):
+	options = field.options
+	if field.fieldtype == "Select":
+		options = [value for value in (field.options or "").split("\n")]
+	return {
+		"fieldname": field.fieldname,
+		"label": _(field.label) if field.label else field.fieldname,
+		"fieldtype": field.fieldtype,
+		"options": options,
+		"reqd": bool(field.reqd),
+		"description": _(field.description) if field.description else None,
+		"editable": editable,
+		"bold": bool(field.bold),
+		"show": form_rules.parse(field.depends_on) if field.depends_on else None,
+		"read_only_rule": form_rules.parse(field.read_only_depends_on)
+		if field.read_only_depends_on
+		else None,
+		"mandatory_rule": form_rules.parse(field.mandatory_depends_on)
+		if field.mandatory_depends_on
+		else None,
+		"unparsed": [
+			key
+			for key in ("depends_on", "read_only_depends_on", "mandatory_depends_on")
+			if field.get(key) and form_rules.parse(field.get(key)) is None
+		],
+	}
+
+
+def _layout(meta, config, editable, doc):
+	"""Sections, each with its fields in order. Breaks follow the DocType's own layout."""
+	only = set(config.get("fields") or ())
+	sections, current = [], {"label": None, "show": None, "fields": []}
+	for field in meta.fields:
+		if field.fieldtype in ("Section Break", "Tab Break"):
+			if current["fields"]:
+				sections.append(current)
+			current = {
+				"label": _(field.label) if field.label else None,
+				"show": form_rules.parse(field.depends_on) if field.depends_on else None,
+				"fields": [],
+			}
+			continue
+		if not _supported(field) or (only and field.fieldname not in only) or (not only and field.hidden):
+			continue
+		entry = _field(field, field.fieldname in editable)
+		if field.fieldtype == "Table":
+			child_editable = {child.fieldname for child in _child_editable(field.options)}
+			entry["columns"] = [
+				_field(child, child.fieldname in child_editable and field.fieldname in editable)
+				for child in frappe.get_meta(field.options).fields
+				if _supported(child) and not child.hidden and child.fieldtype != "Table"
+			]
+		current["fields"].append(entry)
+	if current["fields"]:
+		sections.append(current)
+	return sections
+
+
+def _readable_values(doc):
+	"""The record's values this user may read (field-level read permissions applied)."""
+	copy = frappe.get_doc(doc.as_dict()) if not doc.is_new() else doc
+	if not doc.is_new():
+		copy.apply_fieldlevel_read_permissions()
+	values = copy.as_dict(no_default_fields=False, convert_dates_to_str=True)
+	for key in ("__onload", "__last_sync_on", "_comments", "_assign", "_liked_by", "_user_tags", "_seen"):
+		values.pop(key, None)
+	return frappe.parse_json(frappe.as_json(values))
+
+
+def _permissions(doc, config, is_new):
+	meta = frappe.get_meta(doc.doctype)
+	if is_new:
+		return {"write": True, "submit": False, "cancel": False, "delete": False}
+	editable_type = config.get("edit", True)
+	return {
+		"write": bool(editable_type and doc.docstatus == 0 and doc.has_permission("write")),
+		"submit": bool(
+			editable_type and meta.is_submittable and doc.docstatus == 0 and doc.has_permission("submit")
+		),
+		"cancel": bool(meta.is_submittable and doc.docstatus == 1 and doc.has_permission("cancel")),
+		"delete": bool(editable_type and doc.docstatus != 1 and doc.has_permission("delete")),
+	}
+
+
+def _public_action(action):
+	return {
+		"key": action["key"],
+		"label": action["label"],
+		"ask": action.get("ask") or [],
+		"confirm": action.get("confirm"),
+		"tone": action.get("tone") or "primary",
+	}
+
+
+# ---------------------------------------------------------------------- writing
+def _apply(doc, values, config):
+	"""Set the fields the form allows; refuse anything else (R7)."""
+	meta = frappe.get_meta(doc.doctype)
+	editable = _editable_fields(doc, config, rules=False)
+	unknown = sorted(set(values) - editable)
+	if unknown:
+		frappe.throw(_("These fields cannot be changed on this form: {0}").format(", ".join(unknown)))
+	original = {fieldname: doc.get(fieldname) for fieldname in values}
+	for fieldname, value in values.items():
+		field = meta.get_field(fieldname)
+		if field.fieldtype == "Table":
+			_apply_table(doc, field, value)
+		else:
+			doc.set(fieldname, value)
+	# A field that is read-only by rule for the values as they will be saved keeps its value.
+	for fieldname in values:
+		field = meta.get_field(fieldname)
+		if field.fieldtype == "Table" or not _rule_read_only(field, doc):
+			continue
+		if _comparable(doc.get(fieldname)) != _comparable(original[fieldname]):
+			frappe.throw(_("{0} is read-only for these values").format(_(field.label)))
+
+
+def _comparable(value):
+	"""Blank, None and zero-like values are one thing; numbers compare by value."""
+	if value in (None, ""):
+		return ""
+	try:
+		number = float(value)
+	except TypeError, ValueError:
+		return cstr(value)
+	return "" if number == 0 else number
+
+
+def _apply_table(doc, field, rows):
+	if not isinstance(rows, list):
+		frappe.throw(_("{0} must be a list of rows").format(_(field.label)))
+	allowed = {child.fieldname for child in _child_editable(field.options)}
+	existing = {row.name: row for row in doc.get(field.fieldname)}
+	new_rows = []
+	for number, row in enumerate(rows, start=1):
+		if not isinstance(row, dict):
+			frappe.throw(_("{0} row {1} must be an object").format(_(field.label), number))
+		keep = row.get("name")
+		extra = sorted(set(row) - allowed - {"name"})
+		if extra:
+			frappe.throw(
+				_("{0} row {1}: these fields cannot be changed here: {2}").format(
+					_(field.label), number, ", ".join(extra)
+				)
+			)
+		if keep and keep in existing:
+			target = existing[keep]  # keeps the row's read-only values (e.g. computed ones)
+			for key in allowed & set(row):
+				target.set(key, row[key])
+			new_rows.append(target)
+		else:
+			new_rows.append({key: row[key] for key in allowed & set(row)})
+	doc.set(field.fieldname, [])
+	for row in new_rows:
+		doc.append(field.fieldname, row)
+
+
+def check_not_stale(doc, expected_modified):
+	if not expected_modified:
+		frappe.throw(_("Reload the record before changing it"), StaleRecord)
+	if cstr(doc.modified) != cstr(expected_modified):
+		frappe.throw(
+			_("{0} was changed by {1} after you opened it. Reload it and make your change again.").format(
+				doc.name, get_fullname(doc.modified_by)
+			),
+			StaleRecord,
+		)
+
+
+class StaleRecord(frappe.ValidationError):
+	"""The record changed after the user loaded it."""
+
+
+def _locked(doctype, name):
+	if not frappe.db.get_value(doctype, name, "name", for_update=True):
+		frappe.throw(_("{0} {1} not found").format(_(doctype), name), frappe.DoesNotExistError)
+	return frappe.get_doc(doctype, name)
+
+
+def _result(doc, repeated=False):
+	return {
+		"name": doc.name,
+		"modified": cstr(doc.modified),
+		"docstatus": doc.docstatus,
+		"repeated": repeated,
+	}
+
+
+def _request_cache_key(doctype, request_key):
+	return f"berjaya:form:create:{frappe.session.user}:{doctype}:{request_key}"
+
+
+def _remembered(doctype, request_key):
+	return frappe.cache.get_value(_request_cache_key(doctype, request_key)) if request_key else None
+
+
+def _remember(doctype, request_key, name):
+	if request_key:
+		frappe.cache.set_value(_request_cache_key(doctype, request_key), name, expires_in_sec=24 * 60 * 60)

@@ -7,12 +7,14 @@ import { ApiError, apiGet } from '../api'
 import { canRead } from '../boot'
 import { currencyOf } from '../company'
 import FieldValue from '../components/FieldValue.vue'
+import RecordActions from '../components/RecordActions.vue'
 import RelatedList from '../components/RelatedList.vue'
 import StatePanel from '../components/StatePanel.vue'
 import { deskLink } from '../format'
 import { RECORDS, listRoute } from '../records'
 
-// One saved record, read-only, laid out as described in records.js. Editing is in Desk.
+// One saved record, laid out as described in records.js. For a list the form engine serves
+// (G23), the server's form adds Edit, Submit, Cancel, Delete and the record's own actions.
 const route = useRoute()
 const key = route.meta.list
 const config = RECORDS[key]
@@ -25,13 +27,21 @@ let request = 0
 
 const currency = computed(() => doc.value?.currency || currencyOf(doc.value?.company))
 const title = computed(() => (detail.title && doc.value?.[detail.title]) || doc.value?.name)
-const desk = computed(() => deskLink(config.doctype, doc.value?.name))
+const desk = computed(() => (config.form ? null : deskLink(config.doctype, doc.value?.name)))
+const saved = computed(() => Boolean(route.query.saved))
+// Frappe's REST answer leaves out empty fields, so a missing field is not by itself
+// "not permitted". For a list the form engine serves, its values list every field this user may
+// read (field-level permissions applied), empty ones included.
+const formValues = ref(null)
+const readable = (field) => field in (doc.value ?? {}) || Boolean(formValues.value && field in formValues.value)
 const related = computed(() => (detail.related ?? []).filter((item) => canRead(item.list)))
 const right = (column) => ['money', 'int', 'number', 'percent'].includes(column.type)
 
 async function load() {
   const id = ++request
-  doc.value = null
+  // Reloading the same record keeps it on screen (and any message an action left), so the page
+  // does not flash; another record starts from blank.
+  if (doc.value?.name !== route.params.name) doc.value = null
   error.value = null
   loading.value = true
   try {
@@ -57,9 +67,9 @@ onBeforeUnmount(() => ++request)
       <span>{{ route.params.name }}</span>
     </nav>
 
-    <div v-if="loading" class="page__card bj-loading" role="status"><LoadingIndicator /><span>Loading…</span></div>
+    <div v-if="loading && !doc" class="page__card bj-loading" role="status"><LoadingIndicator /><span>Loading…</span></div>
 
-    <div v-else-if="error" class="page__card">
+    <div v-else-if="error && !doc" class="page__card">
       <StatePanel
         v-if="error.kind === 'denied'"
         icon="lucide-lock"
@@ -95,6 +105,17 @@ onBeforeUnmount(() => ++request)
         </div>
       </header>
 
+      <p v-if="saved" class="bj-note rd__ok" role="status"><span class="lucide-circle-check-big" aria-hidden="true" />Saved.</p>
+      <RecordActions
+        v-if="config.form"
+        :doctype="config.doctype"
+        :name="doc.name"
+        :edit-route="{ name: `${key}-edit`, params: { name: doc.name } }"
+        :list-route="{ name: listRoute(key) }"
+        @changed="load"
+        @form="(form) => (formValues = form?.values ?? null)"
+      />
+
       <div class="bj-grid">
         <article v-for="group in detail.groups" :key="group.title" class="bj-card">
           <h2>{{ group.title }}</h2>
@@ -104,7 +125,7 @@ onBeforeUnmount(() => ++request)
               <dd>
                 <FieldValue
                   :value="doc[field.field]"
-                  :present="field.field in doc"
+                  :present="readable(field.field)"
                   :type="field.type"
                   :to="field.to"
                   :currency="currency"
@@ -146,6 +167,12 @@ onBeforeUnmount(() => ++request)
 </template>
 
 <style scoped>
+.rd__ok {
+  margin: 12px 0;
+}
+.rd__ok > span {
+  color: var(--bj-state-completed);
+}
 .fields {
   display: grid;
   gap: 10px;

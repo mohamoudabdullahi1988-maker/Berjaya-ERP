@@ -3,7 +3,7 @@ import { computed, onMounted, ref } from 'vue'
 import { Button, LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet } from '../api'
-import { boot } from '../boot'
+import { boot, canCreate } from '../boot'
 import SectionTabs from '../components/SectionTabs.vue'
 import StatePanel from '../components/StatePanel.vue'
 
@@ -121,7 +121,10 @@ const STATUS_TONE = {
           <template v-else>&nbsp;</template>
         </p>
       </div>
-      <Button :loading="loading" @click="reload">Refresh</Button>
+      <div class="bj-toolbar">
+        <RouterLink v-if="canCreate('units')" class="bj-btn bj-btn--primary" :to="{ name: 'units-new' }"><span class="lucide-plus" aria-hidden="true" />New unit</RouterLink>
+        <Button :loading="loading" @click="reload">Refresh</Button>
+      </div>
     </header>
 
     <SectionTabs section="properties" current="units" />
@@ -176,6 +179,7 @@ const STATUS_TONE = {
                     <span v-else-if="col.field === 'status' && c.kind === 'value'" class="status" :class="'status--' + (STATUS_TONE[c.text] || 'muted')">
                       <i aria-hidden="true" />{{ c.text }}
                     </span>
+                    <RouterLink v-else-if="col.field === 'unit_code' && c.kind === 'value'" class="code bj-link" :to="{ name: 'units-detail', params: { name: row.name } }">{{ c.text }}</RouterLink>
                     <span v-else :class="{ none: c.kind === 'none', code: col.field === 'unit_code' }">{{ c.text }}</span>
                   </template>
                 </td>

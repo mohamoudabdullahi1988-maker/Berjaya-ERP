@@ -12,7 +12,8 @@ import { deskNewLink } from '../format'
 import { useList } from '../list'
 import { RECORDS } from '../records'
 
-// One read-only list of saved records, described in records.js. Editing happens in Desk.
+// One list of saved records, described in records.js. Lists the form engine serves (G23) create
+// records in Berjaya; the others still open Desk's form.
 const route = useRoute()
 const key = route.meta.list
 const config = RECORDS[key]
@@ -58,7 +59,10 @@ watch(company, reload, { immediate: true })
       </div>
       <div class="bj-toolbar">
         <CompanyPicker v-if="config.company" />
-        <a v-if="newLink" class="bj-btn bj-btn--primary" :href="newLink">
+        <RouterLink v-if="newLink && config.form" class="bj-btn bj-btn--primary" :to="{ name: `${key}-new` }">
+          <span class="lucide-plus" aria-hidden="true" />New
+        </RouterLink>
+        <a v-else-if="newLink" class="bj-btn bj-btn--primary" :href="newLink">
           <span class="lucide-plus" aria-hidden="true" />New in Desk
         </a>
       </div>
