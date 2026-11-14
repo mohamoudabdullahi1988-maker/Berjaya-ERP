@@ -9,7 +9,10 @@ from sidra_realestate.api.contract_registration import (
 	StaleRecord,
 	attach_registration_copy,
 	confirm_registration,
+	fill_registration_schedule,
+	get_registration_form,
 	save_registration_draft,
+	show_when,
 )
 from sidra_realestate.api.workflow import get_contract_timeline
 from sidra_realestate.install import ensure_contract_profiles
@@ -108,7 +111,12 @@ class TestContractRegistration(IntegrationTestCase):
 		self.assertFalse(result["repeated"])
 
 	def test_fields_outside_the_screen_are_refused(self):
-		for extra in ({"terms_snapshot": "{}"}, {"docstatus": 1}, {"penalty_type": "None"}, {"source": "x"}):
+		for extra in (
+			{"terms_snapshot": "{}"},
+			{"docstatus": 1},
+			{"terms_approved_by": "Administrator"},
+			{"source": "x"},
+		):
 			with self.subTest(extra=extra), as_user(SALES_USER), self.assertRaises(frappe.ValidationError):
 				save_registration_draft({**self.values(), **extra})
 		with as_user(SALES_USER), self.assertRaises(frappe.ValidationError):
@@ -248,3 +256,83 @@ class TestContractRegistration(IntegrationTestCase):
 				result["name"], expected_modified=result["modified"], acknowledge_difference=1
 			)
 		self.assertEqual(frappe.db.get_value(DOCTYPE, result["name"], "docstatus"), 0)
+
+	# ------------------------------------------------------------ terms, parties, fill schedule
+	def test_terms_and_parties_are_saved_and_checked_by_the_controller(self):
+		result = self.create(
+			penalty_type="Per Day Capped",
+			penalty_per_day=5,
+			penalty_monthly_cap=100,
+			title_deadline_days=20,
+			notary_name="_Test Notary",
+			parties=[{"role": "Witness", "full_name": "_Test Witness Hodan", "phone": "", "id_number": ""}],
+		)
+		doc = frappe.get_doc(DOCTYPE, result["name"])
+		self.assertEqual(
+			(doc.penalty_type, doc.penalty_per_day, doc.title_deadline_days), ("Per Day Capped", 5, 20)
+		)
+		self.assertEqual(
+			[(row.role, row.full_name) for row in doc.parties], [("Witness", "_Test Witness Hodan")]
+		)
+		self.assertEqual(doc.notary_name, "_Test Notary")
+		# A guarantor without a pledged property stops confirmation, as in Desk.
+		with as_user(SALES_USER):
+			updated = save_registration_draft(
+				{"parties": [{"role": "Seller Guarantor", "full_name": "_Test Guarantor"}]},
+				contract=result["name"],
+				expected_modified=result["modified"],
+			)
+		ready = self.attach(updated)
+		with as_user(SALES_MANAGER), self.assertRaises(frappe.ValidationError):
+			confirm_registration(ready["name"], expected_modified=ready["modified"])
+		self.assertEqual(frappe.db.get_value(DOCTYPE, ready["name"], "docstatus"), 0)
+
+	def test_party_fields_outside_the_screen_are_refused(self):
+		values = self.values(parties=[{"role": "Witness", "full_name": "_Test W", "parent": "x"}])
+		with as_user(SALES_USER), self.assertRaises(frappe.ValidationError):
+			save_registration_draft(values)
+
+	def test_fill_schedule_checks_version_and_replace(self):
+		result = self.create(schedule=[], installments=3, due_day=10)
+		with as_user(SALES_USER):
+			with self.assertRaises(StaleRecord):
+				fill_registration_schedule(result["name"], expected_modified="2000-01-01 00:00:00")
+			filled = fill_registration_schedule(result["name"], expected_modified=result["modified"])
+		doc = frappe.get_doc(DOCTYPE, result["name"])
+		self.assertEqual(len(doc.schedule), 3)
+		self.assertEqual(doc.schedule_total, 9000)
+		self.assertEqual(filled["modified"], str(doc.modified))
+		with as_user(SALES_USER):
+			with self.assertRaises(frappe.ValidationError):  # rows exist: replace must be asked for
+				fill_registration_schedule(result["name"], expected_modified=filled["modified"])
+			fill_registration_schedule(result["name"], expected_modified=filled["modified"], replace=1)
+		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
+			fill_registration_schedule(result["name"], expected_modified=filled["modified"])
+
+	def test_registration_form_comes_from_the_doctype(self):
+		with as_user(SALES_USER):
+			form = get_registration_form()
+		terms = {field["fieldname"]: field for field in form["terms"]}
+		self.assertIn("penalty_type", terms)
+		self.assertIn("None", terms["penalty_type"]["options"])
+		self.assertEqual(
+			terms["penalty_per_day"]["show_when"],
+			{"field": "penalty_type", "op": "eq", "values": ["Per Day Capped"]},
+		)
+		self.assertEqual([field["fieldname"] for field in form["parties"]][:2], ["role", "full_name"])
+		self.assertIn("Witness", form["parties"][0]["options"])
+		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
+			get_registration_form()
+
+	def test_show_when_reads_only_simple_rules(self):
+		self.assertEqual(
+			show_when("eval:in_list(['Fixed','Percent'], doc.refund_retention_type)"),
+			{"field": "refund_retention_type", "op": "in", "values": ["Fixed", "Percent"]},
+		)
+		self.assertEqual(show_when("eval:doc.title_penalty_type!='None'")["op"], "ne")
+		self.assertEqual(
+			show_when("title_refund_after_days"),
+			{"field": "title_refund_after_days", "op": "set", "values": []},
+		)
+		self.assertIsNone(show_when("eval:doc.a > 1 && doc.b"))  # not understood: always shown
+		self.assertIsNone(show_when(None))

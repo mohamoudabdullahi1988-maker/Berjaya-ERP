@@ -11,6 +11,12 @@ import { deskLink, fileLink, money } from '../format'
 import {
   ATTACH_METHOD,
   DOWN_PAYMENT_MODES,
+  FILL_METHOD,
+  FORM_METHOD,
+  NUMERIC_TYPES,
+  applies,
+  blankParty,
+  isDirty,
   ROW_TYPES,
   SAVE_METHOD,
   SIGNED_COPY_FIELD,
@@ -44,10 +50,21 @@ let requestKey = newRequestKey()
 let request = 0
 
 const options = ref({ customers: [], units: [], profiles: [] })
+const definition = ref(null) // the server's term, signing and party fields (get_registration_form)
+const definitionError = ref('')
+const filling = ref(false)
+const fillError = ref('')
+const replaceAsked = ref(false)
 
 const editable = computed(() => isNew.value || isRegisteredDraft(doc.value))
 const difference = computed(() => savedDifference(doc.value))
 const separate = computed(() => form.value.down_payment_mode === 'Recorded separately')
+const dirty = computed(() => isDirty(form.value, doc.value, definition.value))
+const termValues = computed(() => ({ ...form.value, ...form.value.extra }))
+const shownTerms = computed(() => (definition.value?.terms ?? []).filter((field) => applies(field, termValues.value)))
+const partyField = (name) => definition.value?.parties?.find((field) => field.fieldname === name)
+const partyRoles = computed(() => partyField('role')?.options ?? [])
+const inputMode = (field) => (NUMERIC_TYPES.has(field.fieldtype) ? (field.fieldtype === 'Int' ? 'numeric' : 'decimal') : undefined)
 const cash = (field) => (doc.value && field in doc.value ? money(doc.value[field], doc.value.currency) : 'Unavailable')
 
 async function loadOptions() {
@@ -73,6 +90,17 @@ async function loadOptions() {
   options.value = { customers, units, profiles }
 }
 
+async function loadDefinition() {
+  try {
+    const result = await apiGet('/api/method/' + FORM_METHOD)
+    if (!Array.isArray(result.message?.terms)) throw new Error('unexpected')
+    definition.value = result.message
+    if (doc.value) form.value = formFromDoc(doc.value, definition.value)
+  } catch {
+    definitionError.value = 'The penalty, title and party fields could not be loaded, so they are not shown and will not be changed. Reload to try again, or edit them in Desk.'
+  }
+}
+
 async function load() {
   const id = ++request
   saveError.value = null
@@ -90,7 +118,7 @@ async function load() {
     if (!result.data?.name) throw new ApiError('server', 'The server sent an unexpected answer.')
     if (id !== request) return
     doc.value = result.data
-    form.value = formFromDoc(result.data)
+    form.value = formFromDoc(result.data, definition.value)
   } catch (err) {
     if (id === request) loadError.value = err instanceof ApiError ? err : new ApiError('server', 'Something went wrong.')
   } finally {
@@ -103,7 +131,7 @@ async function save() {
   saveError.value = null
   savedNote.value = ''
   try {
-    const args = { data: payloadFromForm(form.value) }
+    const args = { data: payloadFromForm(form.value, definition.value) }
     if (isNew.value) args.request_key = requestKey
     else Object.assign(args, { contract: doc.value.name, expected_modified: doc.value.modified })
     const result = await apiPost(SAVE_METHOD, args)
@@ -152,6 +180,28 @@ async function attach() {
   }
 }
 
+async function fill(replace = false) {
+  if (!doc.value) return
+  if (doc.value.schedule?.length && !replace) {
+    replaceAsked.value = true
+    return
+  }
+  filling.value = true
+  fillError.value = ''
+  try {
+    await apiPost(FILL_METHOD, { contract: doc.value.name, expected_modified: doc.value.modified, replace: replace ? 1 : 0 })
+    replaceAsked.value = false
+    await load()
+    savedNote.value = 'Schedule filled from the saved terms. Check each row against the signed contract.'
+  } catch (err) {
+    fillError.value = err.message || 'The schedule could not be filled.'
+  } finally {
+    filling.value = false
+  }
+}
+
+const addParty = () => form.value.parties.push(blankParty())
+const removeParty = (index) => form.value.parties.splice(index, 1)
 const addRow = () => form.value.schedule.push(blankRow())
 const removeRow = (index) => form.value.schedule.splice(index, 1)
 const addUnit = () => form.value.units.push(blankUnit())
@@ -166,6 +216,7 @@ watch(
   { immediate: true },
 )
 loadOptions()
+loadDefinition()
 onBeforeUnmount(() => ++request)
 </script>
 
@@ -287,7 +338,73 @@ onBeforeUnmount(() => ++request)
             <textarea v-model="form.terms_summary" class="bj-input reg__text" rows="3" />
           </label>
         </div>
-        <p class="bj-foot">Penalty, default, title and party terms are edited in Desk for now.</p>
+      </section>
+
+      <p v-if="definitionError" class="reg__error" role="alert"><span class="lucide-triangle-alert" aria-hidden="true" />{{ definitionError }}</p>
+
+      <section v-if="definition" class="bj-section">
+        <h2>Agent and notary</h2>
+        <div class="page__card bj-card reg__grid">
+          <label v-for="field in definition.signing" :key="field.fieldname" class="reg__field">
+            <span class="reg__label">{{ field.label }}</span>
+            <input v-model="form.extra[field.fieldname]" class="bj-input" :aria-label="field.label" autocomplete="off" />
+          </label>
+        </div>
+        <p class="bj-foot">Recorded where the signed contract has them.</p>
+      </section>
+
+      <section v-if="definition" class="bj-section">
+        <h2>Penalty, default and title terms</h2>
+        <div class="page__card bj-card reg__grid">
+          <label v-for="field in shownTerms" :key="field.fieldname" class="reg__field">
+            <span class="reg__label">{{ field.label }}</span>
+            <select v-if="field.fieldtype === 'Select'" v-model="form.extra[field.fieldname]" class="bj-select" :aria-label="field.label">
+              <option value="">—</option>
+              <option v-for="option in field.options" :key="option" :value="option">{{ option }}</option>
+            </select>
+            <input v-else v-model="form.extra[field.fieldname]" class="bj-input" :aria-label="field.label" :inputmode="inputMode(field)" autocomplete="off" />
+          </label>
+        </div>
+        <p class="bj-foot">As the signed contract states them. Recorded only: no penalty or refund is applied.</p>
+      </section>
+
+      <section v-if="definition" class="bj-section">
+        <h2>Seller, guarantor and witnesses</h2>
+        <div class="page__card bj-card">
+          <p v-if="!form.parties.length" class="bj-muted">No parties entered.</p>
+          <div v-else class="bj-table-wrap">
+            <table class="bj-table bj-table--stack">
+              <thead>
+                <tr>
+                  <th scope="col">{{ partyField('role')?.label || 'Role' }}</th>
+                  <th scope="col">{{ partyField('full_name')?.label || 'Full name' }}</th>
+                  <th scope="col">{{ partyField('phone')?.label || 'Phone' }}</th>
+                  <th scope="col">{{ partyField('id_number')?.label || 'ID number' }}</th>
+                  <th scope="col">{{ partyField('pledged_property')?.label || 'Pledged property' }}</th>
+                  <th scope="col"><span class="sr-only">Remove</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="(row, index) in form.parties" :key="index">
+                  <td data-label="Role">
+                    <select v-model="row.role" class="bj-select" :aria-label="`Role of party ${index + 1}`">
+                      <option v-for="role in partyRoles" :key="role" :value="role">{{ role }}</option>
+                    </select>
+                  </td>
+                  <td data-label="Name"><input v-model="row.full_name" class="bj-input" :aria-label="`Name of party ${index + 1}`" autocomplete="off" /></td>
+                  <td data-label="Phone"><input v-model="row.phone" class="bj-input" :aria-label="`Phone of party ${index + 1}`" inputmode="tel" autocomplete="off" /></td>
+                  <td data-label="ID number"><input v-model="row.id_number" class="bj-input" :aria-label="`ID number of party ${index + 1}`" autocomplete="off" /></td>
+                  <td data-label="Pledged property">
+                    <input v-if="row.role === 'Seller Guarantor'" v-model="row.pledged_property" class="bj-input" :aria-label="`Pledged property of party ${index + 1}`" autocomplete="off" />
+                    <span v-else class="bj-muted">—</span>
+                  </td>
+                  <td><button type="button" class="bj-btn bj-btn--icon" :aria-label="`Remove party ${index + 1}`" @click="removeParty(index)"><span class="lucide-trash-2" aria-hidden="true" /></button></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <button type="button" class="bj-btn" @click="addParty"><span class="lucide-plus" aria-hidden="true" />Add party</button>
+        </div>
       </section>
 
       <section class="bj-section">
@@ -315,6 +432,21 @@ onBeforeUnmount(() => ++request)
         <h2>Installment schedule</h2>
         <div class="page__card bj-card">
           <p class="bj-muted">Enter the rows exactly as the signed contract states them.</p>
+          <div v-if="doc" class="reg__fill">
+            <button type="button" class="bj-btn" :disabled="filling || dirty" @click="fill(false)">
+              <span v-if="filling" class="reg__spin" aria-hidden="true" /><span v-else class="lucide-wand-sparkles" aria-hidden="true" />Fill schedule from saved terms
+            </button>
+            <span v-if="dirty" class="bj-muted">Save your changes first: the server fills from the saved price, installments, due day and dates.</span>
+          </div>
+          <div v-if="replaceAsked" class="reg__replace" role="alertdialog" aria-labelledby="replace-title">
+            <p id="replace-title" class="bj-strong">Replace the {{ doc.schedule.length }} saved rows?</p>
+            <p>The server proposes new rows from the saved terms. The current rows are removed.</p>
+            <div class="bj-toolbar">
+              <button type="button" class="bj-btn bj-btn--primary" :disabled="filling" @click="fill(true)">Replace rows</button>
+              <button type="button" class="bj-btn" :disabled="filling" @click="replaceAsked = false">Keep current rows</button>
+            </div>
+          </div>
+          <p v-if="fillError" class="reg__error" role="alert"><span class="lucide-triangle-alert" aria-hidden="true" />{{ fillError }}</p>
           <div class="bj-table-wrap">
             <table class="bj-table bj-table--stack">
               <thead>
@@ -442,6 +574,22 @@ onBeforeUnmount(() => ++request)
 }
 .reg__ok > span {
   color: var(--bj-state-completed);
+}
+.reg__fill {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin: 8px 0 12px;
+}
+.reg__replace {
+  margin: 0 0 12px;
+  padding: 12px 14px;
+  background: var(--bj-terracotta-tint);
+  border-radius: 8px;
+}
+.reg__replace p {
+  margin: 0 0 8px;
 }
 .reg__file {
   font: inherit;

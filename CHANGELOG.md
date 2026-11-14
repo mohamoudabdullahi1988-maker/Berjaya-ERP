@@ -4,6 +4,16 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.27 — registration completed in Berjaya: terms, parties, Fill schedule, Print, 14 Nov 2026; implementation plan Phase 4)
+- The registration screen now covers everything Desk did for a registered (External) contract, so a registration needs no Desk step:
+  - **Agent and notary**: buyer's agent and phone, notary and notary reference (D5: recorded where the contract has them).
+  - **Penalty, default and title terms** (D6, G2, G9), as the signed contract states them; recorded only, nothing is applied. A field appears only when it applies (e.g. Amount per Day only for "Per Day Capped"), by the rule in the DocType.
+  - **Seller, guarantor and witnesses**: role, name, phone, ID number, and the pledged property for a guarantor. The controller's party rules apply at confirmation as in Desk.
+  - **Fill schedule from saved terms** (CC-06): proposes rows from the saved price, installments, due day and dates; asks before replacing existing rows; disabled while there are unsaved changes.
+- **Print** on the contract page opens Frappe's print view with the contract's own print format (Sidra branding, G19).
+- `api/contract_registration.py`: the screen may now also set the term, signing and party fields (anything else is still refused); new `fill_registration_schedule` (stale-edit check and row lock, then the controller's `propose_schedule`) and `get_registration_form` (labels, types, options and a plain "shown when" rule read from the DocType, so the wording lives in one place; a rule it cannot read means the field is always shown). Term, signing and party fields are sent only when that form loaded, so a failed load cannot blank them.
+- Tests: 19 integration tests in `api/test_contract_registration.py` (5 new); 25 frontend unit tests (4 new). Local Frappe v16.55.2 / ERPNext v16.53.0 bench: on a fresh site the full app suite passes with this change once v0.1.26 (demo test order) is in; CI is the check. Browser walk-through against that site at 1440px and 390px, 10 steps, all PASS, including terms shown by rule and kept after reload, a witness, Fill schedule with the replace prompt, and the print view.
+
 ### Fixed (v0.1.26 — the finance demo and pilot dataset tests always run in the same order, 14 Nov 2026)
 - The finance demo test checks absolute totals for Sidra Homes, and its loader refuses a Company holding ledger entries it does not own, so it must run before the pilot dataset is loaded. The two were separate modules, and Frappe discovers test files in file-system order (`os.walk`, unsorted), which differs between machines: whenever the pilot ran first, the finance demo test failed (`180 != 60` units). This made CI fail at random, about half the time (seen on PR #60; PR #59 passed by luck).
 - Both now run from one module, `tests/test_demo_datasets.py`, as two classes that unittest loads in name order (`TestDemo1Finance`, then `TestDemo2Pilot`), each with its own test transaction as before. The test bodies are unchanged; `test_finance_demo.py` and `test_pilot_demo.py` now hold them as `FinanceDemoChecks` and `PilotDemoChecks`, and the pilot's `_foreign_gl_refused` is renamed `_pilot_foreign_gl_refused` so the two do not clash. `test_order` guards the class names.

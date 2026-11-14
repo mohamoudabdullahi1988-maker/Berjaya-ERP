@@ -7,7 +7,8 @@ only decides which fields the interface may set and adds the checks a second scr
 - `save_registration_draft` creates or updates a draft registered (External) installment
   contract. Only the fields in `HEADER_FIELDS`, `UNIT_FIELDS` and `SCHEDULE_FIELDS` can be
   set from here (rules audit R7: a field hidden on a screen must not be writable through it).
-  Penalty, default, title and party terms are edited in Desk for now.
+  Penalty, default and title terms (D6), the buyer's agent, the notary and the parties
+  (seller, guarantor, witnesses) are set here too; the controller checks them as in Desk.
 - `attach_registration_copy` puts an uploaded File on the draft's Signed Copy field, after
   checking it is this contract's own private file.
 - `confirm_registration` submits the draft. Only a user with submit permission (the Sidra
@@ -28,14 +29,22 @@ Safeguards for a second interface:
   controller refuses as before. Desk keeps its own confirmation dialog.
 """
 
+import re
+
 import frappe
 from frappe import _
 from frappe.utils import cint, cstr, flt, fmt_money, get_fullname
 
+from sidra_realestate.sidra_installments.doctype.sidra_contract_profile.sidra_contract_profile import (
+	PENALTY_AND_TITLE_FIELDS,
+)
 from sidra_realestate.sidra_sales.doctype.sidra_contract_settings.sidra_contract_settings import (
 	schedule_tolerance,
 )
-from sidra_realestate.sidra_sales.doctype.sidra_sale_contract.sidra_sale_contract import EXTERNAL
+from sidra_realestate.sidra_sales.doctype.sidra_sale_contract.sidra_sale_contract import (
+	EXTERNAL,
+	propose_schedule,
+)
 
 DOCTYPE = "Sidra Sale Contract"
 
@@ -54,9 +63,15 @@ HEADER_FIELDS = (
 	"grace_months",
 	"terms_summary",
 )
+# The buyer's agent and the notary (recorded where the contract has them, D5).
+SIGNING_FIELDS = ("buyer_agent_name", "buyer_agent_phone", "notary_name", "notary_reference")
+# Penalty, default and title terms as the attached contract states them (D6, G2, G9).
+TERM_FIELDS = tuple(PENALTY_AND_TITLE_FIELDS)
+EDITABLE_FIELDS = (*HEADER_FIELDS, *SIGNING_FIELDS, *TERM_FIELDS)
 UNIT_FIELDS = ("unit", "allocated_price")
 SCHEDULE_FIELDS = ("row_type", "due_date", "amount")
-TABLES = {"units": UNIT_FIELDS, "schedule": SCHEDULE_FIELDS}
+PARTY_FIELDS = ("role", "full_name", "phone", "id_number", "pledged_property")
+TABLES = {"units": UNIT_FIELDS, "schedule": SCHEDULE_FIELDS, "parties": PARTY_FIELDS}
 
 REQUEST_KEY_TTL = 24 * 60 * 60  # seconds a create's request key is remembered
 
@@ -168,16 +183,91 @@ def confirm_registration(
 	return _result(doc)
 
 
+@frappe.whitelist(methods=["POST"])
+def fill_registration_schedule(
+	contract: str, expected_modified: str | None = None, replace: int = 0, down_payment: float | None = None
+) -> dict:
+	"""Propose the schedule from the draft's captured terms (CC-06), as Desk's Fill Schedule does.
+
+	Adds the stale-edit check and the row lock; the controller's `propose_schedule` does the rest,
+	including refusing to replace existing rows unless `replace=1`."""
+	doc = _locked(contract)
+	doc.check_permission("write")
+	_check_registration_draft(doc)
+	check_not_stale(doc, expected_modified)
+	propose_schedule(contract, replace=replace, down_payment=down_payment)
+	return _result(frappe.get_doc(DOCTYPE, contract))
+
+
+@frappe.whitelist(methods=["GET"])
+def get_registration_form() -> dict:
+	"""How the screen draws the term, signing and party fields: label, type, options and when a
+	field applies, read from the DocType so the wording lives in one place. Display only; the
+	controller validates whatever is sent."""
+	frappe.has_permission(DOCTYPE, "read", throw=True)
+	meta = frappe.get_meta(DOCTYPE)
+	party_meta = frappe.get_meta("Sidra Contract Party")
+	return {
+		"terms": [_field(meta, name) for name in _in_form_order(meta, TERM_FIELDS)],
+		"signing": [_field(meta, name) for name in SIGNING_FIELDS],
+		"parties": [_field(party_meta, name) for name in PARTY_FIELDS],
+	}
+
+
 # ---------------------------------------------------------------------- helpers
+def _in_form_order(meta, names):
+	order = {field.fieldname: index for index, field in enumerate(meta.fields)}
+	return sorted(names, key=lambda name: order.get(name, len(order)))
+
+
+def _field(meta, fieldname):
+	field = meta.get_field(fieldname)
+	options = None
+	if field.fieldtype == "Select":
+		options = [value for value in (field.options or "").split("\n") if value]
+	return {
+		"fieldname": fieldname,
+		"label": _(field.label),
+		"fieldtype": field.fieldtype,
+		"options": options,
+		"required": bool(field.reqd),
+		"description": _(field.description) if field.description else None,
+		"show_when": show_when(field.depends_on),
+	}
+
+
+_EQ = re.compile(r"^eval:\s*doc\.(\w+)\s*(==|!=)\s*'([^']*)'\s*$")
+_IN = re.compile(r"^eval:\s*in_list\(\s*\[([^\]]*)\]\s*,\s*doc\.(\w+)\s*\)\s*$")
+_BARE = re.compile(r"^(?:eval:\s*doc\.)?(\w+)$")
+
+
+def show_when(depends_on):
+	"""A field's `depends_on` as a plain rule the screen can apply without evaluating code:
+	{field, op: eq | ne | in | set, values}. An expression not understood here returns None, and
+	the screen then always shows the field: showing too much is safe, hiding a field is not."""
+	if not depends_on:
+		return None
+	expression = depends_on.strip()
+	if match := _EQ.match(expression):
+		field, operator, value = match.groups()
+		return {"field": field, "op": "eq" if operator == "==" else "ne", "values": [value]}
+	if match := _IN.match(expression):
+		values = [value.strip().strip("'\"") for value in match.group(1).split(",") if value.strip()]
+		return {"field": match.group(2), "op": "in", "values": values}
+	if match := _BARE.match(expression):
+		return {"field": match.group(1), "op": "set", "values": []}
+	return None
+
+
 def clean_payload(values) -> dict:
 	"""Keep only the fields the screen may set; refuse anything else instead of ignoring it."""
 	if not isinstance(values, dict):
 		frappe.throw(_("Send the contract's values as an object"))
-	allowed = set(HEADER_FIELDS) | set(TABLES)
+	allowed = set(EDITABLE_FIELDS) | set(TABLES)
 	unknown = sorted(set(values) - allowed)
 	if unknown:
 		frappe.throw(_("These fields cannot be set from this screen: {0}").format(", ".join(unknown)))
-	cleaned = {field: values[field] for field in HEADER_FIELDS if field in values}
+	cleaned = {field: values[field] for field in EDITABLE_FIELDS if field in values}
 	for table, fields in TABLES.items():
 		if table not in values:
 			continue
@@ -201,7 +291,7 @@ def clean_payload(values) -> dict:
 
 def apply_values(doc, values):
 	"""Header fields are set as given; a table sent is replaced whole, in the order sent."""
-	for field in HEADER_FIELDS:
+	for field in EDITABLE_FIELDS:
 		if field in values:
 			doc.set(field, values[field])
 	for table in TABLES:
