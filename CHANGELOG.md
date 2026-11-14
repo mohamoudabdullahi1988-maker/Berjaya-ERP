@@ -4,6 +4,12 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.28 — additional dashboard cards and charts)
+- Four operational cards for open/completed jobs, posted receipts and collection rate, using the existing permission-checked dashboard response.
+- Scheduled amounts by due window and operational exception charts, with visible exact values and unavailable states.
+- Risk/exposure cards and a needs-attention list linked to server-provided supporting records. Existing dashboard sections and company/period filters remain.
+- Frontend tests and isolated browser checks at desktop and phone widths; no backend rule, permission or posting changes.
+
 ### Added (v0.1.27 — registration completed in Berjaya: terms, parties, Fill schedule, Print, 14 Nov 2026; implementation plan Phase 4)
 - The registration screen now covers everything Desk did for a registered (External) contract, so a registration needs no Desk step:
   - **Agent and notary**: buyer's agent and phone, notary and notary reference (D5: recorded where the contract has them).

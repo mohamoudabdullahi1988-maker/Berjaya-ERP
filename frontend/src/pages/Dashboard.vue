@@ -4,6 +4,8 @@ import { LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet } from '../api'
 import CompanyPicker from '../components/CompanyPicker.vue'
+import DashboardChart from '../components/DashboardChart.vue'
+import { numeric } from '../dashboard.js'
 import StatePanel from '../components/StatePanel.vue'
 import { company } from '../company'
 import { dateText, dateTimeText, isAmount, money, percentText, sitePath, textValue } from '../format'
@@ -74,6 +76,16 @@ const trend = computed(() => {
   return { sales: bars(months, (m) => m.sales_value), received: bars(months, (m) => m.received) }
 })
 
+const extraTiles = computed(() => [
+  { label: 'Open construction jobs', value: jobs.value?.available ? count(jobs.value.open) : 'Unavailable', note: 'Current open jobs' },
+  { label: 'Completed construction jobs', value: jobs.value?.available ? count(jobs.value.completed) : 'Unavailable', note: 'Recorded completed jobs' },
+  { label: 'Posted receipts', value: payments.value?.available ? amount(payments.value.received) : 'Unavailable', note: payments.value?.notice || payments.value?.reason },
+  { label: 'Collection rate', value: payments.value?.available && isAmount(payments.value.collection_rate) ? percentText(payments.value.collection_rate) : 'Unavailable', note: 'Collected of amounts due; supplied by the server' },
+])
+const dueChart = computed(() => schedule.value?.available ? (schedule.value.buckets || []).map(b => ({ label: b.label, value: numeric(b.amount) ? Number(b.amount) : null })) : [])
+const exposureItems = computed(() => executive.value?.exposure?.available ? executive.value.exposure.items || [] : [])
+const exposureChart = computed(() => exposureItems.value.filter(item => !item.label.toLowerCase().includes('age')).map(item => ({ label: item.label, value: item.available === true && numeric(item.value) ? Number(item.value) : null })))
+
 async function load() {
   const id = ++request
   data.value = null
@@ -138,6 +150,17 @@ watch([company, period], load, { immediate: true })
           <p v-if="tile.note" class="bj-muted small">{{ tile.note }}</p>
         </article>
       </div>
+
+      <section class="bj-section" aria-label="Operational summary">
+        <h2>Operations at a glance</h2>
+        <div class="bj-grid"><article v-for="tile in extraTiles" :key="tile.label" class="bj-card"><h2>{{ tile.label }}</h2><p class="bj-figure" :class="{ 'bj-unavailable': tile.value === 'Unavailable' }">{{ tile.value }}</p><p class="bj-muted small">{{ tile.note }}</p></article></div>
+      </section>
+      <div class="two additional-charts">
+        <DashboardChart title="Scheduled amounts by due window" :rows="dueChart" :currency="cur" note="Contractual schedule before settlement; these amounts are not expected cash receipts." />
+        <DashboardChart title="Operational exceptions" :rows="exposureChart" kind="count" tone="blue" :note="executive ? 'Current saved exceptions, not approved project baseline performance.' : 'Management reporting unavailable to this role.'" />
+      </div>
+      <section v-if="exposureItems.length" class="bj-section"><h2>Risk and exposure</h2><div class="bj-grid"><article v-for="item in exposureItems" :key="item.label" class="bj-card"><h2>{{ item.label }}</h2><p class="bj-figure">{{ item.available === true ? count(item.value) : 'Unavailable' }}</p><p class="bj-muted small">{{ item.available ? item.detail : item.reason }}</p><a v-if="item.available && sitePath(item.drilldown?.path)" class="bj-link small" :href="sitePath(item.drilldown.path)">View supporting records</a></article></div></section>
+      <section v-if="executive?.decisions?.available" class="bj-section"><h2>Needs attention</h2><p class="bj-muted small">{{ executive.decisions.summary }}</p><div class="bj-grid"><article v-for="item in executive.decisions.items" :key="item.id" class="bj-card"><h2>{{ item.title }}</h2><p>{{ item.reference }}</p><p class="bj-muted small">{{ item.owner || 'Owner not assigned' }} · {{ dateText(item.due_date) }}</p><p>{{ item.next_action }}</p><a v-if="sitePath(item.drilldown?.path)" class="bj-link small" :href="sitePath(item.drilldown.path)">Review record</a></article></div><p v-if="!executive.decisions.items?.length" class="bj-muted">No recorded exceptions in this scope.</p></section>
 
       <!-- Management figures: only for roles the server gives executive reporting to. -->
       <section v-if="executive" class="bj-section">
@@ -392,3 +415,5 @@ watch([company, period], load, { immediate: true })
   white-space: nowrap;
 }
 </style>
+
+<style scoped>.additional-charts { margin: 24px 0; }</style>
