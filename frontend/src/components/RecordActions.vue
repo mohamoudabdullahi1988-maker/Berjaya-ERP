@@ -2,8 +2,9 @@
 import { computed, reactive, ref, watch } from 'vue'
 import { useRouter } from 'vue-router'
 
-import { ApiError } from '../api'
+import { ApiError, apiPost } from '../api'
 import FormField from './FormField.vue'
+import FormNotes from './FormNotes.vue'
 import { changeState, fieldsOf, loadForm, runAction } from '../forms'
 import { RECORDS, recordRoute } from '../records'
 
@@ -26,6 +27,10 @@ const askValues = reactive({})
 const busy = ref(false)
 const error = ref(null)
 const done = ref('')
+const doneDetail = ref('') // e.g. an import's log
+const doneFailed = ref(false)
+const newName = ref('')
+const recordKey = computed(() => Object.keys(RECORDS).find(key => RECORDS[key].doctype === props.doctype && RECORDS[key].form))
 let request = 0
 
 const canEdit = computed(() => form.value?.permissions.write && fieldsOf(form.value).some((field) => field.editable))
@@ -35,6 +40,13 @@ const STEPS = {
   delete: { label: 'Delete', icon: 'lucide-trash-2', tone: 'danger', message: 'Deleting removes this record. This cannot be undone.' },
 }
 const steps = computed(() => Object.keys(STEPS).filter((step) => form.value?.permissions[step]))
+function copyRecord(operation) {
+  router.push({ name: `${recordKey.value}-new`, query: { [operation]: props.name } })
+}
+function askRename() {
+  error.value = null; newName.value = props.name
+  pending.value = { kind: 'rename', title: 'Rename', message: 'The new identifier will replace this name in linked records. Existing records will not be merged.' }
+}
 
 async function load() {
   const id = ++request
@@ -53,8 +65,16 @@ async function load() {
 }
 
 function ask(kind, item) {
+  // An action that only opens another form (e.g. "New inspection report" on a job).
+  if (kind === 'action' && item.navigate) {
+    const key = Object.keys(RECORDS).find((name) => RECORDS[name].doctype === item.navigate.doctype && RECORDS[name].form)
+    if (key) router.push({ name: `${key}-new`, query: item.navigate.values })
+    return
+  }
   error.value = null
   done.value = ''
+  doneDetail.value = ''
+  doneFailed.value = false
   for (const key of Object.keys(askValues)) delete askValues[key]
   if (kind === 'action') {
     for (const field of item.ask) askValues[field.fieldname] = field.default ?? ''
@@ -68,9 +88,16 @@ async function go() {
   busy.value = true
   error.value = null
   try {
-    if (pending.value.kind === 'action') {
+    if (pending.value.kind === 'rename') {
+      const result = await apiPost('sidra_realestate.api.record_operations.rename', { doctype: props.doctype, name: props.name, new_name: newName.value, expected_modified: form.value.modified })
+      pending.value = null
+      await router.push(recordRoute(recordKey.value, result.name))
+      return
+    } else if (pending.value.kind === 'action') {
       const result = await runAction(form.value, pending.value.action, { ...askValues })
       done.value = result?.message || `${pending.value.title}: done.`
+      doneDetail.value = result?.detail || ''
+      doneFailed.value = Boolean(result?.failed)
       // An action that made another record (Revise draft) opens it.
       if (result?.open) {
         const key = Object.keys(RECORDS).find((name) => RECORDS[name].doctype === result.open.doctype)
@@ -91,6 +118,8 @@ async function go() {
       done.value = { submit: 'Submitted.', cancel: 'Cancelled.' }[step]
     }
     pending.value = null
+    // A "Saved." note from an earlier save no longer describes the page.
+    if (router.currentRoute.value.query.saved) await router.replace({ query: {} })
     emit('changed')
     await load()
   } catch (err) {
@@ -107,7 +136,7 @@ defineExpose({ reload: load })
 </script>
 
 <template>
-  <div class="ra">
+  <div id="record-actions" class="ra">
     <div v-if="form && (canEdit || steps.length || form.actions.length)" class="bj-toolbar">
       <RouterLink v-if="canEdit && editRoute" class="bj-btn" :to="editRoute"><span class="lucide-pencil" aria-hidden="true" />Edit</RouterLink>
       <button
@@ -115,7 +144,7 @@ defineExpose({ reload: load })
         :key="action.key"
         type="button"
         class="bj-btn"
-        :class="{ 'bj-btn--primary': action.tone === 'primary' }"
+:class="{ 'bj-btn--primary': action.tone === 'primary' && !action.navigate }"
         :disabled="busy"
         @click="ask('action', action)"
       >
@@ -126,11 +155,25 @@ defineExpose({ reload: load })
       </button>
     </div>
 
-    <p v-if="done" class="bj-note ra__ok" role="status"><span class="lucide-circle-check-big" aria-hidden="true" />{{ done }}</p>
+    <div v-if="form && recordKey" class="bj-toolbar">
+      <button v-if="form.permissions.duplicate" class="bj-btn" :disabled="busy" @click="copyRecord('duplicate')">Duplicate</button>
+      <button v-if="form.permissions.amend" class="bj-btn" :disabled="busy" @click="copyRecord('amend')">Amend</button>
+      <button v-if="form.permissions.rename" class="bj-btn" :disabled="busy" @click="askRename">Rename</button>
+    </div>
+
+    <FormNotes v-if="form" :notes="form.notes" />
+    <div v-if="done" class="bj-note ra__ok" :class="{ 'ra__ok--failed': doneFailed }" role="status">
+      <span :class="doneFailed ? 'lucide-triangle-alert' : 'lucide-circle-check-big'" aria-hidden="true" />
+      <div>
+        <p class="ra__done">{{ done }}</p>
+        <pre v-if="doneDetail" class="ra__log">{{ doneDetail }}</pre>
+      </div>
+    </div>
 
     <section v-if="pending" class="page__card bj-card ra__panel" :class="{ 'ra__panel--danger': pending.tone === 'danger' }" aria-labelledby="ra-title">
       <h2 id="ra-title">{{ pending.title }}: {{ name }}</h2>
       <p v-if="pending.message">{{ pending.message }}</p>
+      <label v-if="pending.kind === 'rename'">New name<input v-model="newName" class="bj-input" maxlength="140" /></label>
       <div v-if="pending.kind === 'action' && pending.action.ask.length" class="ra__ask">
         <FormField
           v-for="field in pending.action.ask"
@@ -198,6 +241,20 @@ defineExpose({ reload: load })
 }
 .ra__ok > span {
   color: var(--bj-state-completed);
+}
+.ra__ok--failed > span {
+  color: var(--bj-state-blocked);
+}
+.ra__done {
+  margin: 0;
+}
+.ra__log {
+  margin: 8px 0 0;
+  max-height: 320px;
+  overflow: auto;
+  font-size: 12px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 .ra__spin {
   width: 14px;

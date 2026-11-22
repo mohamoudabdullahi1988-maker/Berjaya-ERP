@@ -1,14 +1,15 @@
 <script setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 
 import { apiGet, apiUpload } from '../api'
 import { dateText, dateTimeText, fileLink, money, percentText } from '../format'
-import { LONG_TEXT, NUMERIC } from '../forms'
+import { linkTarget, LONG_TEXT, NUMERIC } from '../forms'
 
 // One field of a record form. It draws the value and an input that fits the field's type; it
 // checks nothing itself (the server does, on save).
 const props = defineProps({
   field: { type: Object, required: true },
+  values: { type: Object, default: () => ({}) },
   modelValue: { default: null },
   editable: { type: Boolean, default: false },
   required: { type: Boolean, default: false },
@@ -22,7 +23,12 @@ const emit = defineEmits(['update:modelValue'])
 
 const id = `ff-${Math.random().toString(36).slice(2, 9)}`
 const type = computed(() => props.field.fieldtype)
-const options = computed(() => (Array.isArray(props.field.options) ? props.field.options : []))
+// Select options are plain values, or { value, label } pairs (e.g. the stages to certify).
+const options = computed(() =>
+  (Array.isArray(props.field.options) ? props.field.options : []).map((option) =>
+    option && typeof option === 'object' ? { value: option.value, label: option.label } : { value: option, label: option || '—' },
+  ),
+)
 const name = computed(() => props.label || props.field.label)
 const value = computed({
   get: () => props.modelValue,
@@ -30,17 +36,20 @@ const value = computed({
 })
 
 // Link suggestions from Frappe's own permission-checked search; the server validates the value.
+const target = computed(() => linkTarget(props.field, props.values))
 const suggestions = ref([])
 let searchTimer = null
 let searchRequest = 0
 function search(text) {
-  if (type.value !== 'Link' || !props.field.options) return
   clearTimeout(searchTimer)
+  const id = ++searchRequest
+  suggestions.value = []
+  if (!target.value) return
+  const doctype = target.value
   searchTimer = setTimeout(async () => {
-    const id = ++searchRequest
     try {
       const response = await apiGet('/api/method/frappe.desk.search.search_link', {
-        doctype: props.field.options,
+        doctype,
         txt: text || '',
         page_length: 20,
         filters: props.field.link_filters || undefined,
@@ -52,6 +61,14 @@ function search(text) {
   }, 200)
 }
 
+watch(target, (next, previous) => {
+  clearTimeout(searchTimer)
+  ++searchRequest
+  suggestions.value = []
+  if (type.value === 'Dynamic Link' && previous && next !== previous) value.value = null
+})
+onBeforeUnmount(() => { clearTimeout(searchTimer); ++searchRequest })
+
 // Datetime: Frappe sends "YYYY-MM-DD HH:MM:SS"; the browser's box uses "YYYY-MM-DDTHH:MM".
 const datetimeBox = computed({
   get: () => (value.value ? String(value.value).replace(' ', 'T').slice(0, 16) : ''),
@@ -62,11 +79,11 @@ const uploading = ref(false)
 const uploadError = ref('')
 async function upload(event) {
   const file = event.target.files?.[0]
-  if (!file || !props.docname) return
+  if (!file) return
   uploading.value = true
   uploadError.value = ''
   try {
-    const saved = await apiUpload(file, { doctype: props.doctype, docname: props.docname, fieldname: props.field.fieldname, isPrivate: true })
+    const saved = await apiUpload(file, props.docname ? { doctype: props.doctype, docname: props.docname, fieldname: props.field.fieldname, isPrivate: true } : { isPrivate: true })
     if (!saved?.file_url) throw new Error('The server did not return the uploaded file.')
     value.value = saved.file_url
   } catch (err) {
@@ -102,14 +119,16 @@ const display = computed(() => {
         <span v-if="!compact">{{ field.description || 'Yes' }}</span>
       </label>
       <select v-else-if="type === 'Select'" :id="id" v-model="value" class="bj-select ff__input" :aria-label="name" :required="required">
-        <option v-for="option in options" :key="option" :value="option">{{ option || '—' }}</option>
+        <option v-if="!options.some((option) => option.value === '')" value="" disabled>Choose…</option>
+        <option v-for="option in options" :key="option.value" :value="option.value">{{ option.label }}</option>
       </select>
-      <template v-else-if="type === 'Link'">
+      <template v-else-if="type === 'Link' || type === 'Dynamic Link'">
         <input
           :id="id"
           v-model="value"
           class="bj-input ff__input"
           :list="`${id}-list`"
+          :disabled="!target"
           :aria-label="name"
           :required="required"
           autocomplete="off"
@@ -137,11 +156,8 @@ const display = computed(() => {
       <div v-else-if="type === 'Attach' || type === 'Attach Image'" class="ff__attach">
         <a v-if="fileLink(value)" class="bj-link" :href="fileLink(value)" target="_blank" rel="noopener">{{ String(value).split('/').pop() }}</a>
         <span v-else class="bj-muted">No file</span>
-        <template v-if="docname">
-          <input :id="id" type="file" :aria-label="name" :disabled="uploading" @change="upload" />
-          <span v-if="uploading" class="bj-muted" role="status">Uploading…</span>
-        </template>
-        <span v-else class="bj-muted">Save first, then attach the file.</span>
+        <input :id="id" type="file" :aria-label="name" :disabled="uploading" @change="upload" />
+        <span v-if="uploading" class="bj-muted" role="status">Uploading…</span>
         <span v-if="uploadError" class="ff__error" role="alert">{{ uploadError }}</span>
       </div>
       <input v-else :id="id" v-model="value" class="bj-input ff__input" :type="type === 'Phone' ? 'tel' : 'text'" :aria-label="name" :required="required" autocomplete="off" />

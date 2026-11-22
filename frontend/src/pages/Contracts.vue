@@ -1,16 +1,19 @@
 <script setup>
+import BulkActions from '../components/BulkActions.vue'
+import TransactionGuide from '../components/TransactionGuide.vue'
+import ListInsights from '../components/ListInsights.vue'
 import { computed, onMounted, ref } from 'vue'
 import { LoadingIndicator } from 'frappe-ui'
 
 import { ApiError, apiGet } from '../api'
 import SectionTabs from '../components/SectionTabs.vue'
-import { deskNewLink, textValue } from '../format'
+import { textValue } from '../format'
 import StatePanel from '../components/StatePanel.vue'
 import { canCreate } from '../boot'
 import { CONTRACT, sourceText, statusText, statusTone } from '../contracts'
 
 const PAGE = 25
-const newLink = canCreate('contracts') ? deskNewLink('Sidra Sale Contract') : null
+const newLink = canCreate('contracts')
 const LIST_FIELDS = ['name', 'customer', 'docstatus', 'source', 'contract_type', 'external_reference']
 
 const rows = ref([])
@@ -78,9 +81,11 @@ function clear() {
 }
 
 onMounted(() => load())
+const selected = ref([])
 </script>
 
 <template>
+  <TransactionGuide />
   <section class="page">
     <header class="bj-head">
       <div>
@@ -96,6 +101,8 @@ onMounted(() => load())
         <RouterLink v-if="newLink" class="bj-btn" :to="{ name: 'contracts-new' }"><span class="lucide-plus" aria-hidden="true" />New contract</RouterLink>
       </form>
     </header>
+    <ListInsights :rows="rows" group="source" :columns="[{field:'name',label:'Contract'},{field:'customer',label:'Customer'},{field:'source',label:'Source'},{field:'contract_type',label:'Type'}]" :busy="loading || !!error" />
+    <BulkActions v-model="selected" :doctype="'Sidra Sale Contract'" :rows="rows" :loading="loading" @changed="load(0)" />
 
     <SectionTabs section="contracts" current="contracts" />
 
@@ -126,6 +133,7 @@ onMounted(() => load())
           <table class="bj-table bj-table--stack">
             <thead>
               <tr>
+                <th scope="col">Select</th>
                 <th scope="col">Reference</th>
                 <th scope="col">Customer</th>
                 <th scope="col">Property</th>
@@ -135,6 +143,7 @@ onMounted(() => load())
             </thead>
             <tbody>
               <tr v-for="row in rows" :key="row.name">
+                <td data-label="Select"><input v-model="selected" type="checkbox" :value="row.name" :aria-label="`Select ${row.name}`" :disabled="loading" /></td>
                 <td data-label="Reference">
                   <span>
                     <RouterLink class="bj-link" :to="{ name: 'contract-detail', params: { name: row.name } }">{{ row.name }}</RouterLink>
