@@ -1,4 +1,9 @@
 <script setup>
+import RecordWorkflow from '../components/RecordWorkflow.vue'
+import CustomerConnections from '../components/CustomerConnections.vue'
+import ContactChannels from '../components/ContactChannels.vue'
+import LocationPanel from '../components/LocationPanel.vue'
+import RecordExtras from '../components/RecordExtras.vue'
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { LoadingIndicator } from 'frappe-ui'
@@ -60,6 +65,7 @@ onBeforeUnmount(() => ++request)
 </script>
 
 <template>
+  <RecordWorkflow :doctype="config.doctype" :name="route.params.name" :reload-key="doc?.modified" />
   <section class="page">
     <nav class="bj-crumb" aria-label="Breadcrumb">
       <RouterLink class="bj-link" :to="{ name: listRoute(key) }">{{ config.title }}</RouterLink>
@@ -110,12 +116,15 @@ onBeforeUnmount(() => ++request)
         v-if="config.form"
         :doctype="config.doctype"
         :name="doc.name"
+        :reload-key="doc.modified"
         :edit-route="{ name: `${key}-edit`, params: { name: doc.name } }"
         :list-route="{ name: listRoute(key) }"
         @changed="load"
         @form="(form) => (formValues = form?.values ?? null)"
       />
 
+      <CustomerConnections v-if="['customers', 'contacts', 'addresses'].includes(key)" :doctype="config.doctype" :name="doc.name" :reload-key="doc.modified" @changed="load" />
+      <ContactChannels v-if="['leads', 'customers', 'contacts'].includes(key)" :doc="doc" />
       <div class="bj-grid">
         <article v-for="group in detail.groups" :key="group.title" class="bj-card">
           <h2>{{ group.title }}</h2>
@@ -162,6 +171,8 @@ onBeforeUnmount(() => ++request)
       </section>
 
       <RelatedList v-for="item in related" :key="item.list" :item="item" :value="doc.name" />
+      <LocationPanel v-if="config.doctype === 'Sidra Unit'" :doctype="config.doctype" :name="doc.name" />
+      <RecordExtras v-if="config.form && !config.single" :doctype="config.doctype" :name="doc.name" :reload-key="doc.modified" />
     </template>
   </section>
 </template>

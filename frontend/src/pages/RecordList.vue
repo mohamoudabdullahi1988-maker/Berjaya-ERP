@@ -1,4 +1,7 @@
 <script setup>
+import BulkActions from '../components/BulkActions.vue'
+import TransactionGuide from '../components/TransactionGuide.vue'
+import ListInsights from '../components/ListInsights.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
@@ -20,13 +23,37 @@ const config = RECORDS[key]
 
 const query = ref('')
 const applied = ref('')
+const filterField = ref(''), filterValue = ref(''), filterOperator = ref('=')
+const sortField = ref('modified'), sortDirection = ref('desc')
+const appliedFilter = ref(null)
+const validColumns = new Set(config.list.map(c => c.field))
+const filters = () => ({ ...(config.fixedFilters ?? {}), ...(config.company && company.value ? { company: company.value } : {}), ...(appliedFilter.value ? { [appliedFilter.value.field]: [appliedFilter.value.operator, appliedFilter.value.value] } : {}) })
+function applyTools() {
+  appliedFilter.value = validColumns.has(filterField.value) && !Object.hasOwn(config.fixedFilters ?? {}, filterField.value) && filterValue.value !== '' ? { field: filterField.value, operator: filterOperator.value, value: filterValue.value } : null
+  reload()
+}
+function saveView() {
+  try { localStorage.setItem(`berjaya-view-${key}`, JSON.stringify({ filterField: filterField.value, filterValue: filterValue.value, filterOperator: filterOperator.value, sortField: sortField.value, sortDirection: sortDirection.value })) } catch {}
+}
+function restoreView() {
+  try {
+    const v = JSON.parse(localStorage.getItem(`berjaya-view-${key}`) || '{}')
+    filterField.value = validColumns.has(v.filterField) ? v.filterField : ''
+    filterValue.value = typeof v.filterValue === 'string' ? v.filterValue : ''
+    filterOperator.value = ['=', '!=', 'like', '>', '<', '>=', '<='].includes(v.filterOperator) ? v.filterOperator : '='
+    sortField.value = validColumns.has(v.sortField) ? v.sortField : 'modified'
+    sortDirection.value = v.sortDirection === 'asc' ? 'asc' : 'desc'
+    applyTools()
+  } catch {}
+}
 const fields = [...new Set(['name', ...config.list.map((c) => c.field), ...(config.extra ?? [])])]
 
 const list = useList(config.doctype, {
   fields,
-  filters: () => (config.company && company.value ? { company: company.value } : undefined),
+  // A list may have fixed conditions (e.g. design jobs are jobs with a design or inspection service).
+  filters,
   orFilters: () => (applied.value ? config.search.map((field) => [field, 'like', `%${applied.value}%`]) : undefined),
-  orderBy: config.orderBy,
+  orderBy: () => `${validColumns.has(sortField.value) ? sortField.value : 'modified'} ${sortDirection.value === 'asc' ? 'asc' : 'desc'}`,
 })
 const { rows, hasMore, loading, error, count, state, reload, loadMore } = list
 
@@ -44,9 +71,11 @@ function clear() {
 }
 
 watch(company, reload, { immediate: true })
+const selected = ref([])
 </script>
 
 <template>
+  <TransactionGuide />
   <section class="page">
     <header class="bj-head">
       <div>
@@ -67,6 +96,8 @@ watch(company, reload, { immediate: true })
         </a>
       </div>
     </header>
+    <ListInsights :rows="rows" :columns="config.list" :group="config.list.find(c => c.field === 'status' || c.field === 'docstatus')?.field || config.list.find(c => c.type === 'select')?.field || config.list[1]?.field || 'name'" :busy="loading || !!error" />
+    <BulkActions v-model="selected" :doctype="config.doctype" :rows="rows" :loading="loading" @changed="reload" />
 
     <SectionTabs :section="config.section" :current="key" />
 
@@ -78,6 +109,16 @@ watch(company, reload, { immediate: true })
       <button type="button" class="bj-btn" :disabled="loading" @click="reload">Refresh</button>
     </form>
 
+    <details class="page__card bj-card" style="margin-bottom:16px"><summary>Filter, sort and saved view</summary>
+      <form class="bj-toolbar" style="margin-top:12px" @submit.prevent="applyTools">
+        <label>Field<select v-model="filterField" class="bj-select"><option value="">No extra filter</option><option v-for="c in config.list" :key="c.field" :value="c.field">{{ c.label }}</option></select></label>
+        <label>Operator<select v-model="filterOperator" class="bj-select"><option v-for="op in ['=', '!=', 'like', '>', '<', '>=', '<=']" :key="op">{{ op }}</option></select></label>
+        <label>Value<input v-model="filterValue" class="bj-input" placeholder="Use % as wildcard for like" /></label>
+        <label>Sort<select v-model="sortField" class="bj-select"><option value="modified">Updated</option><option v-for="c in config.list" :key="c.field" :value="c.field">{{ c.label }}</option></select></label>
+        <label>Order<select v-model="sortDirection" class="bj-select"><option value="desc">Descending</option><option value="asc">Ascending</option></select></label>
+        <button class="bj-btn">Apply to full list</button><button type="button" class="bj-btn" @click="saveView">Save view on this browser</button><button type="button" class="bj-btn" @click="restoreView">Restore saved view</button>
+      </form>
+    </details>
     <div class="page__card">
       <ListStates
         :state="state"
@@ -91,11 +132,13 @@ watch(company, reload, { immediate: true })
           <table class="bj-table bj-table--stack">
             <thead>
               <tr>
+                <th scope="col">Select</th>
                 <th v-for="column in config.list" :key="column.field" scope="col" :class="{ 'bj-right': right(column) }">{{ column.label }}</th>
               </tr>
             </thead>
             <tbody>
               <tr v-for="row in rows" :key="row.name">
+                <td data-label="Select"><input v-model="selected" type="checkbox" :value="row.name" :aria-label="`Select ${row.name}`" :disabled="loading" /></td>
                 <td v-for="column in config.list" :key="column.field" :data-label="column.label" :class="{ 'bj-right': right(column) }">
                   <FieldValue
                     :value="row[column.field]"

@@ -2,6 +2,7 @@
 """The /berjaya page: existing session only, staff only, and a boot that follows permissions."""
 
 import os
+from unittest.mock import patch
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -78,13 +79,24 @@ class TestBerjayaPage(IntegrationTestCase):
 			boot = page.get_boot()
 		self.assertEqual(boot["user"]["name"], SALES_MANAGER)
 		self.assertEqual(boot["product_name"], branding.BRAND_NAME)
+		self.assertEqual(boot["company_logo"], branding.COMPANY_LOGO)
 		self.assertTrue(set(boot["properties"]["readable_fields"]) <= set(page.UNIT_LIST_FIELDS))
 		self.assertIn("unit_code", boot["properties"]["readable_fields"])
 		with as_user(PROJECT_MANAGER):
 			self.assertEqual(page.get_boot()["properties"]["readable_fields"], [])
 		self.assertEqual(
 			set(boot),
-			{"product_name", "favicon", "user", "company", "nav", "lists", "properties", "currencies"},
+			{
+				"product_name",
+				"favicon",
+				"company_logo",
+				"user",
+				"company",
+				"nav",
+				"lists",
+				"properties",
+				"currencies",
+			},
 		)
 
 	def test_every_path_under_berjaya_reaches_the_page(self):
@@ -103,3 +115,22 @@ class TestBerjayaPage(IntegrationTestCase):
 		self.assertIn('window["berjaya_boot"]', html)
 		self.assertIn("/assets/sidra_realestate/berjaya/assets/", html)
 		self.assertIn(SALES_MANAGER, html)
+
+	def test_retired_demo_companies_are_hidden_without_deleting_records(self):
+		rows = [
+			frappe._dict(name=name, default_currency="USD")
+			for name in ("Sidra Homes", "Sidra Demo Homes", "Sidra Finance Demo - Fictional")
+		]
+		original_get_list = frappe.get_list
+
+		def company_rows(doctype, *args, **kwargs):
+			return rows if doctype == "Company" else original_get_list(doctype, *args, **kwargs)
+
+		with (
+			as_user("Administrator"),
+			patch.object(page.frappe, "get_list", side_effect=company_rows),
+			patch.object(page.frappe.defaults, "get_user_default", return_value="Sidra Demo Homes"),
+		):
+			boot = page.get_boot()
+		self.assertEqual(boot["currencies"], {"Sidra Homes": "USD"})
+		self.assertEqual(boot["company"], "Sidra Homes")

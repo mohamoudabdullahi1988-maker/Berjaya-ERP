@@ -1,4 +1,7 @@
 <script setup>
+import BulkActions from '../components/BulkActions.vue'
+import TransactionGuide from '../components/TransactionGuide.vue'
+import ListInsights from '../components/ListInsights.vue'
 import { ref, watch } from 'vue'
 
 import CompanyPicker from '../components/CompanyPicker.vue'
@@ -7,12 +10,12 @@ import SectionTabs from '../components/SectionTabs.vue'
 import { canCreate } from '../boot'
 import { company } from '../company'
 import { JOB_DOCTYPE, jobTone } from '../construction'
-import { dateText, deskNewLink, money, textValue } from '../format'
+import { dateText, money, textValue } from '../format'
 import { useList } from '../list'
 
 const STATUSES = ['Enquiry', 'Quoted', 'Contracted', 'In Progress', 'On Hold', 'Completed', 'Defects Period', 'Closed', 'Cancelled']
 const status = ref('')
-const newLink = canCreate('jobs') ? deskNewLink(JOB_DOCTYPE) : null
+const newLink = canCreate('jobs')
 
 const { rows, hasMore, loading, error, count, state, reload, loadMore } = useList(JOB_DOCTYPE, {
   fields: ['name', 'customer', 'service_type', 'status', 'site_location', 'plot_number', 'engineer', 'current_contract_value', 'currency', 'contract_end_date'],
@@ -21,9 +24,11 @@ const { rows, hasMore, loading, error, count, state, reload, loadMore } = useLis
 })
 
 watch([company, status], reload, { immediate: true })
+const selected = ref([])
 </script>
 
 <template>
+  <TransactionGuide />
   <section class="page">
     <header class="bj-head">
       <div>
@@ -41,9 +46,11 @@ watch([company, status], reload, { immediate: true })
           <option v-for="name in STATUSES" :key="name" :value="name">{{ name }}</option>
         </select>
         <button type="button" class="bj-btn" :disabled="loading" @click="reload">Refresh</button>
-        <a v-if="newLink" class="bj-btn bj-btn--primary" :href="newLink"><span class="lucide-plus" aria-hidden="true" />New in Desk</a>
+        <RouterLink v-if="newLink" class="bj-btn bj-btn--primary" :to="{ name: 'jobs-new' }"><span class="lucide-plus" aria-hidden="true" />New job</RouterLink>
       </div>
     </header>
+    <ListInsights :rows="rows" :columns="[{field:'name',label:'Job'},{field:'customer',label:'Customer'},{field:'status',label:'Status'},{field:'engineer',label:'Engineer'}]" :busy="loading || !!error" />
+    <BulkActions v-model="selected" :doctype="JOB_DOCTYPE" :rows="rows" :loading="loading" @changed="reload" />
 
     <SectionTabs section="construction" current="jobs" />
 
@@ -53,6 +60,7 @@ watch([company, status], reload, { immediate: true })
           <table class="bj-table bj-table--stack">
             <thead>
               <tr>
+                <th scope="col">Select</th>
                 <th scope="col">Job</th>
                 <th scope="col">Client</th>
                 <th scope="col">Service</th>
@@ -64,6 +72,7 @@ watch([company, status], reload, { immediate: true })
             </thead>
             <tbody>
               <tr v-for="row in rows" :key="row.name">
+                <td data-label="Select"><input v-model="selected" type="checkbox" :value="row.name" :aria-label="`Select ${row.name}`" :disabled="loading" /></td>
                 <td data-label="Job">
                   <RouterLink class="bj-link" :to="{ name: 'construction-detail', params: { name: row.name } }">{{ row.name }}</RouterLink>
                 </td>

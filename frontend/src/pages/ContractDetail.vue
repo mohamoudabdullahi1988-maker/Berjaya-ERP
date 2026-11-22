@@ -1,4 +1,5 @@
 <script setup>
+import RecordExtras from '../components/RecordExtras.vue'
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { LoadingIndicator } from 'frappe-ui'
@@ -195,6 +196,7 @@ onBeforeUnmount(() => {
         </div>
       </header>
 
+      <p v-if="route.query.saved" class="bj-note saved-note" role="status"><span class="lucide-circle-check-big" aria-hidden="true" />Saved.</p>
       <!-- Generated and cash contracts: Edit, Submit (sign), Revise draft, Cancel, Delete through the form
            engine (G23). A registered contract is edited and confirmed by the buttons above. -->
       <RecordActions
@@ -325,6 +327,7 @@ onBeforeUnmount(() => {
           </template>
         </div>
       </section>
+      <RecordExtras :doctype="CONTRACT_DOCTYPE" :name="doc.name" :reload-key="doc.modified" />
     </template>
 
     <Teleport defer to="#berjaya-panel">
@@ -334,6 +337,12 @@ onBeforeUnmount(() => {
 </template>
 
 <style scoped>
+.saved-note {
+  margin: 12px 0;
+}
+.saved-note > span {
+  color: var(--bj-state-completed);
+}
 .confirm {
   margin: 16px 0;
   border-color: var(--bj-terracotta);

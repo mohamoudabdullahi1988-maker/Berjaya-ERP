@@ -32,15 +32,26 @@ LISTS = {
 	"price_history": "Sidra Unit Price History",
 	"customers": "Customer",
 	"kyc": "Sidra Customer KYC",
+	# CRM: ERPNext's own CRM records.
+	"leads": "Lead",
+	"opportunities": "Opportunity",
+	"contacts": "Contact",
+	"addresses": "Address",
 	"reservations": "Sidra Reservation",
 	"sale_quotations": "Sidra Sale Quotation",
 	"contracts": "Sidra Sale Contract",
 	"title_transfers": "Sidra Title Transfer",
 	"jobs": "Sidra Construction Job",
+	"design_jobs": "Sidra Construction Job",  # jobs with a design or inspection service
 	"construction_quotations": "Sidra Construction Quotation",
 	"boq_revisions": "Sidra BOQ Revision",
 	"variations": "Sidra Variation Order",
 	"inspections": "Sidra Inspection Report",
+	"risks": "Sidra Project Risk",
+	"profiles": "Sidra Contract Profile",
+	"clauses": "Sidra Contract Clause",
+	"imports": "Sidra Contract Import",
+	"contract_settings": "Sidra Contract Settings",
 }
 
 # (key, label, lists whose read permission opens the section). Dashboard is open to all staff; it
@@ -50,15 +61,25 @@ LISTS = {
 NAV = (
 	("dashboard", "Dashboard", ()),
 	("properties", "Properties", ("units", "schemes", "price_history")),
-	("customers", "Customers", ("customers", "kyc")),
+	# CRM (Mohamoud, 15 Nov 2026): ERPNext's Lead, Opportunity and Contact beside Customer and KYC.
+	("customers", "CRM", ("leads", "opportunities", "customers", "contacts", "addresses", "kyc")),
 	("sales", "Sales", ("reservations", "sale_quotations")),
 	("contracts", "Contracts", ("contracts", "title_transfers")),
 	("collections", "Collections", ("contracts",)),
 	(
 		"construction",
 		"Construction",
-		("jobs", "construction_quotations", "boq_revisions", "variations", "inspections"),
+		(
+			"jobs",
+			"construction_quotations",
+			"boq_revisions",
+			"variations",
+			"inspections",
+			"risks",
+			"design_jobs",
+		),
 	),
+	("setup", "Setup", ("profiles", "clauses", "imports", "contract_settings")),
 	("finance", "Finance", ("ledger",)),
 )
 LEDGER = "GL Entry"
@@ -109,14 +130,22 @@ def get_boot() -> dict:
 		currencies = {
 			row.name: row.default_currency
 			for row in frappe.get_list("Company", fields=["name", "default_currency"], limit_page_length=0)
-			if row.default_currency
+			if row.default_currency and row.name not in {"Sidra Demo Homes", "Sidra Finance Demo - Fictional"}
 		}
 	return {
 		# The software's name and icon, from the one source (branding.py, decisions G17-G19).
 		"product_name": branding.BRAND_NAME,
 		"favicon": branding.ICON,
+		# The client company's own logo (decision G19: Sidra is the company using Berjaya).
+		"company_logo": branding.COMPANY_LOGO,
 		"user": {"name": user, "full_name": frappe.utils.get_fullname(user)},
-		"company": frappe.defaults.get_user_default("Company"),
+		"company": (
+			frappe.defaults.get_user_default("Company")
+			if frappe.defaults.get_user_default("Company") in currencies
+			else "Sidra Homes"
+			if "Sidra Homes" in currencies
+			else next(iter(currencies), None)
+		),
 		"nav": [
 			{"key": key, "label": _(label)}
 			for key, label, lists in NAV

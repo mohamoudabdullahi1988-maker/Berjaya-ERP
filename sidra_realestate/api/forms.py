@@ -273,7 +273,231 @@ def _run_revise_draft(doc, args):
 	return {"message": _("New draft {0} made").format(name), "open": {"doctype": doc.doctype, "name": name}}
 
 
+CONSTRUCTION_CLOSED = ("Closed", "Cancelled")
+
+
+def _job_actions(doc):
+	"""Desk's job buttons: create the job's quotation, BOQ revision, variation order, inspection
+	report or risk (opens that form with the job filled in), and Certify Stage for a Project Manager."""
+	if doc.get("status") in CONSTRUCTION_CLOSED:
+		return []
+	actions = []
+	for doctype, label, wanted in (
+		("Sidra Construction Quotation", _("New quotation"), not doc.contract_quotation),
+		("Sidra BOQ Revision", _("New BOQ revision"), True),
+		("Sidra Variation Order", _("New variation order"), bool(doc.contract_quotation)),
+		("Sidra Inspection Report", _("New inspection report"), True),
+		("Sidra Project Risk", _("New risk"), True),
+	):
+		if wanted and frappe.has_permission(doctype, "create"):
+			values = {"job": doc.name}
+			if doctype == "Sidra Project Risk":
+				values["company"] = doc.company  # a risk names its Company; the job's is the one
+			actions.append(
+				{
+					"key": "new_" + frappe.scrub(doctype),
+					"label": label,
+					"navigate": {"doctype": doctype, "values": values},
+					"tone": "secondary",
+				}
+			)
+	ready = [
+		stage
+		for stage in doc.get("stages") or []
+		if not stage.certified
+		and stage.status == "Completed"
+		and float(stage.completion_pct or 0) == 100
+		and stage.actual_end
+	]
+	if ready and "Sidra Project Manager" in frappe.get_roles():
+		actions.append(
+			{
+				"key": "certify_stage",
+				"label": _("Certify stage"),
+				"confirm": _("Certification records completion only. It is not an invoice."),
+				"ask": [
+					{
+						"fieldname": "stage",
+						"label": _("Completed stage"),
+						"fieldtype": "Select",
+						"reqd": 1,
+						"options": [
+							{"value": row.name, "label": f"{row.idx}. {row.stage_name}"} for row in ready
+						],
+						"default": ready[0].name if len(ready) == 1 else "",
+					}
+				],
+			}
+		)
+	return actions
+
+
+def _job_locked(doc):
+	"""The BOQ is controlled by an approved revision once there is one (Desk's read-only BOQ)."""
+	return {"boq"} if doc.get("boq_revision") else set()
+
+
+def _construction_quotation_actions(doc):
+	if (
+		doc.docstatus == 1
+		and not doc.contract_approved_on
+		and doc.client_accepted_on
+		and doc.client_acceptance_document
+		and "Sidra General Manager" in frappe.get_roles()
+	):
+		return [
+			{
+				"key": "approve_contract",
+				"label": _("Approve contract"),
+				"confirm": _(
+					"Make this quotation the job's contract? This sets the job's contract value, dates and retention."
+				),
+			}
+		]
+	return []
+
+
+def _run_certify_stage(doc, args):
+	from sidra_realestate.sidra_construction.doctype.sidra_construction_job.sidra_construction_job import (
+		certify_stage,
+	)
+
+	if not args.get("stage"):
+		frappe.throw(_("Choose the completed stage to certify"))
+	certify_stage(doc.name, args["stage"])
+	return {"message": _("Stage certified")}
+
+
+def _run_approve_contract(doc, args):
+	from sidra_realestate.sidra_construction.doctype.sidra_construction_quotation.sidra_construction_quotation import (
+		approve_contract,
+	)
+
+	approve_contract(doc.name)
+	return {"message": _("Contract approved; the job's contract value is set")}
+
+
+IMPORT_TEMPLATE = "/assets/sidra_realestate/templates/sidra_contract_import_template.csv"
+
+
+def _profile_notes(doc):
+	return [
+		{
+			"text": _(
+				"{0} monthly installments; due day {1}. Agreed-price sales with no additional markup. Penalty, refund and title terms are recorded for the contract document, not calculated or posted by the system."
+			).format(doc.installments or 0, doc.due_day or 0)
+		}
+	]
+
+
+def _clause_notes(doc):
+	if (doc.text_so or "").strip() and (doc.text_en or "").strip():
+		return []
+	return [
+		{
+			"text": _(
+				"Wording is incomplete. Sidra must supply both Somali and English text before General Manager approval. Do not use this clause as approved wording."
+			),
+			"tone": "warning",
+		}
+	]
+
+
+def _import_notes(doc):
+	return [
+		{
+			"text": _(
+				"Import dates use YYYY-MM-DD or DD/MM/YYYY, independently of your display settings. Imported records are registered installment contracts."
+			),
+			"link": {"label": _("Download template"), "url": IMPORT_TEMPLATE},
+		}
+	]
+
+
+def _import_actions(doc):
+	"""Desk's Validate (any time a file is attached) and Import (only after a successful Validate)."""
+	if not doc.import_file or not doc.has_permission("write"):
+		return []
+	actions = [
+		{
+			"key": "validate_import",
+			"label": _("Validate"),
+			"confirm": _("Check every contract in the file? Nothing is kept."),
+			"tone": "secondary",
+		}
+	]
+	if doc.status == "Validated":
+		actions.append(
+			{
+				"key": "run_import",
+				"label": _("Import"),
+				"confirm": _("Create the draft registered contracts from this file? All or nothing."),
+			}
+		)
+	return actions
+
+
+def _run_import_step(method):
+	def run(doc, args):
+		from sidra_realestate.sidra_sales.doctype.sidra_contract_import import sidra_contract_import
+
+		result = getattr(sidra_contract_import, method)(doc.name) or {}
+		return {
+			"message": result.get("status") or _("Done"),
+			"detail": result.get("log"),
+			"failed": result.get("status") == "Failed",
+		}
+
+	return run
+
+
+def _lead_actions(doc):
+	actions = []
+	if frappe.has_permission("Opportunity", "create"):
+		actions.append(
+			{
+				"key": "create_opportunity",
+				"label": _("Create opportunity"),
+				"navigate": {
+					"doctype": "Opportunity",
+					"values": {"opportunity_from": "Lead", "party_name": doc.name},
+				},
+			}
+		)
+	if frappe.has_permission("Customer", "create"):
+		actions.append(
+			{
+				"key": "make_customer",
+				"label": _("Make customer"),
+				"confirm": _("Create a customer from this lead?"),
+			}
+		)
+	return actions
+
+
+def _run_make_customer(doc, args):
+	from erpnext.crm.doctype.lead.lead import make_customer
+
+	doc = _locked("Lead", doc.name)
+	doc.check_permission("read")
+	frappe.has_permission("Customer", "create", throw=True)
+	existing = frappe.db.get_value("Customer", {"lead_name": doc.name}, "name")
+	if existing:
+		customer = frappe.get_doc("Customer", existing)
+		customer.check_permission("read")
+	else:
+		customer = make_customer(doc.name)
+		customer.check_permission("create")
+		customer.insert()
+	return {"open": {"doctype": "Customer", "name": customer.name}}
+
+
 RUNNERS = {
+	"make_customer": _run_make_customer,
+	"validate_import": _run_import_step("validate_import"),
+	"run_import": _run_import_step("run_import"),
+	"certify_stage": _run_certify_stage,
+	"approve_contract": _run_approve_contract,
 	"reserve_unit": _run_reserve,
 	"cancel_reservation": _run_cancel_reservation,
 	"verify_kyc": _run_verify_kyc,
@@ -287,6 +511,8 @@ RUNNERS = {
 # fields the DocType marks read-only that its controller reads on insert; `create`/`edit`: False
 # when the record changes only through actions.
 FORMS = {
+	"Contact": {"locked": lambda doc: {"links"}},
+	"Address": {"locked": lambda doc: {"links"}},
 	"Customer": {
 		"fields": (
 			"customer_name",
@@ -298,11 +524,56 @@ FORMS = {
 			"tax_id",
 			"default_currency",
 			"customer_details",
+			"customer_primary_contact",
+			"customer_primary_address",
 			"disabled",
 		),
 		"create_only": ("mobile_no", "email_id"),
 	},
 	"Sidra Customer KYC": {"actions": _kyc_actions},
+	# CRM uses ERPNext records and its native Lead-to-Customer mapping. Opportunity party
+	# links are explicitly limited to the three supported CRM party types.
+	"Lead": {
+		"actions": _lead_actions,
+		"fields": (
+			"first_name",
+			"last_name",
+			"company",
+			"phone",
+			"whatsapp_no",
+			"unsubscribed",
+			"language",
+			"company_name",
+			"mobile_no",
+			"email_id",
+			"utm_source",  # the channel (ERPNext v15+); the form engine skips a field the DocType lacks
+			"source",
+			"status",
+			"qualification_status",
+			"territory",
+			"city",
+			"country",
+			"lead_owner",
+		),
+	},
+	"Opportunity": {
+		"dynamic_links": {"party_name": ("Lead", "Customer", "Prospect")},
+		"fields": (
+			"opportunity_from",
+			"party_name",
+			"company",
+			"currency",
+			"status",
+			"sales_stage",
+			"opportunity_type",
+			"utm_source",
+			"source",
+			"opportunity_amount",
+			"probability",
+			"expected_closing",
+			"opportunity_owner",
+		),
+	},
 	"Sidra Scheme": {},
 	"Sidra Unit": {"actions": _unit_actions},
 	"Sidra Reservation": {"create": False, "edit": False, "actions": _reservation_actions},
@@ -324,6 +595,16 @@ FORMS = {
 		"actions": _title_transfer_actions,
 		"link_filters": {"contract": {"docstatus": 1}},
 	},
+	"Sidra Construction Job": {"actions": _job_actions, "locked": _job_locked},
+	"Sidra Construction Quotation": {"actions": _construction_quotation_actions},
+	"Sidra BOQ Revision": {},
+	"Sidra Variation Order": {},
+	"Sidra Inspection Report": {},
+	"Sidra Project Risk": {},
+	"Sidra Contract Profile": {"notes": _profile_notes},
+	"Sidra Contract Clause": {"notes": _clause_notes},
+	"Sidra Contract Settings": {},
+	"Sidra Contract Import": {"notes": _import_notes, "actions": _import_actions},
 }
 
 
@@ -353,6 +634,7 @@ def get_form(doctype: str, name: str | None = None) -> dict:
 		"values": values,
 		"layout": _layout(meta, config, editable, doc),
 		"permissions": _permissions(doc, config, is_new=not name),
+		"notes": (config.get("notes") or (lambda d: []))(doc),
 		"actions": [_public_action(action) for action in (config.get("actions") or (lambda d: []))(doc)]
 		if name
 		else [],
@@ -366,6 +648,7 @@ def save_form(
 	name: str | None = None,
 	expected_modified: str | None = None,
 	request_key: str | None = None,
+	link_customer: str | None = None,
 ) -> dict:
 	"""Create (no `name`) or update a record with the fields its form allows this user to change."""
 	config = _config(doctype)
@@ -383,6 +666,10 @@ def save_form(
 		doc = frappe.new_doc(doctype)
 		_apply(doc, values, config)
 		doc.insert()
+		if link_customer:
+			from sidra_realestate.api.customer_connections import link_customer as connect
+
+			connect(link_customer, doctype, doc.name)
 		_remember(doctype, request_key, doc.name)
 		return _result(doc)
 
@@ -453,7 +740,7 @@ def run_action(
 	doc.check_permission("read")
 	check_not_stale(doc, expected_modified)
 	offered = {item["key"]: item for item in (config.get("actions") or (lambda d: []))(doc)}
-	if action not in offered or action not in RUNNERS:
+	if action not in offered or action not in RUNNERS or offered[action].get("navigate"):
 		frappe.throw(_("{0} is not available for {1} now. Reload it.").format(action, name))
 	args = frappe.parse_json(args) if isinstance(args, str) else (args or {})
 	if not isinstance(args, dict):
@@ -518,12 +805,20 @@ def _editable_fields(doc, config, rules=True):
 		return set()
 	levels = _write_levels(doc)
 	create_only = set(config.get("create_only") or ()) if is_new else set()
+	locked = (config.get("locked") or (lambda d: set()))(doc)
 	editable = set()
 	for field in _selected(meta, config):
 		if field.fieldname in create_only:
 			editable.add(field.fieldname)
 			continue
-		if field.fieldtype in DISPLAY_ONLY_TYPES or field.read_only or (field.permlevel or 0) not in levels:
+		dynamic = field.fieldtype == "Dynamic Link" and field.fieldname in config.get("dynamic_links", {})
+		if (
+			(field.fieldtype in DISPLAY_ONLY_TYPES and not dynamic)
+			or field.read_only
+			or (field.permlevel or 0) not in levels
+		):
+			continue
+		if field.fieldname in locked:
 			continue
 		if doc.docstatus == 1 and not field.allow_on_submit:
 			continue
@@ -595,6 +890,12 @@ def _layout(meta, config, editable, doc):
 			continue
 		filters = config.get("link_filters") or {}
 		entry = _field(field, field.fieldname in editable, filters.get(field.fieldname))
+		if field.fieldtype == "Dynamic Link":
+			entry["allowed_doctypes"] = list(config.get("dynamic_links", {}).get(field.fieldname, ()))
+		for linked, allowed in config.get("dynamic_links", {}).items():
+			if meta.get_field(linked).options == field.fieldname:
+				entry["fieldtype"] = "Select"
+				entry["options"] = list(allowed)
 		if field.fieldtype == "Table":
 			child_editable = {child.fieldname for child in _child_editable(field.options)}
 			entry["columns"] = [
@@ -624,12 +925,24 @@ def _readable_values(doc):
 
 
 def _permissions(doc, config, is_new):
+	from sidra_realestate.api.record_operations import capabilities
+
 	meta = frappe.get_meta(doc.doctype)
 	if is_new:
 		return {"write": True, "submit": False, "cancel": False, "delete": False}
 	editable_type = config.get("edit", True)
 	return {
-		"write": bool(editable_type and doc.docstatus == 0 and doc.has_permission("write")),
+		**capabilities(doc),
+		# A submitted record stays editable where its DocType lets fields change after submission
+		# (e.g. a construction quotation's client acceptance).
+		"write": bool(
+			editable_type
+			and doc.has_permission("write")
+			and (
+				doc.docstatus == 0
+				or (doc.docstatus == 1 and any(field.allow_on_submit for field in _selected(meta, config)))
+			)
+		),
 		"submit": bool(
 			editable_type
 			and meta.is_submittable
@@ -638,7 +951,9 @@ def _permissions(doc, config, is_new):
 			and not (config.get("submit_refused") or (lambda d: None))(doc)
 		),
 		"cancel": bool(meta.is_submittable and doc.docstatus == 1 and doc.has_permission("cancel")),
-		"delete": bool(editable_type and doc.docstatus != 1 and doc.has_permission("delete")),
+		"delete": bool(
+			editable_type and not meta.issingle and doc.docstatus != 1 and doc.has_permission("delete")
+		),
 	}
 
 
@@ -649,6 +964,7 @@ def _public_action(action):
 		"ask": action.get("ask") or [],
 		"confirm": action.get("confirm"),
 		"tone": action.get("tone") or "primary",
+		"navigate": action.get("navigate"),
 	}
 
 
@@ -667,6 +983,13 @@ def _apply(doc, values, config):
 			_apply_table(doc, field, value)
 		else:
 			doc.set(fieldname, value)
+	for fieldname, allowed in config.get("dynamic_links", {}).items():
+		field = meta.get_field(fieldname)
+		target = doc.get(field.options)
+		if target not in allowed:
+			frappe.throw(_("This party type is not allowed"), frappe.PermissionError)
+		if doc.get(fieldname):
+			frappe.get_doc(target, doc.get(fieldname)).check_permission("read")
 	# A field that is read-only by rule for the values as they will be saved keeps its value.
 	for fieldname in values:
 		field = meta.get_field(fieldname)
@@ -674,6 +997,10 @@ def _apply(doc, values, config):
 			continue
 		if _comparable(doc.get(fieldname)) != _comparable(original[fieldname]):
 			frappe.throw(_("{0} is read-only for these values").format(_(field.label)))
+	if doc.doctype == "Customer" and {"customer_primary_contact", "customer_primary_address"} & set(values):
+		from sidra_realestate.api.customer_connections import validate_primary_connections
+
+		validate_primary_connections(doc)
 
 
 def _comparable(value):
@@ -733,6 +1060,9 @@ class StaleRecord(frappe.ValidationError):
 
 
 def _locked(doctype, name):
+	if frappe.get_meta(doctype).issingle:
+		# A single record (e.g. Contract Settings) has no row to lock; its version check still applies.
+		return frappe.get_doc(doctype)
 	if not frappe.db.get_value(doctype, name, "name", for_update=True):
 		frappe.throw(_("{0} {1} not found").format(_(doctype), name), frappe.DoesNotExistError)
 	return frappe.get_doc(doctype, name)

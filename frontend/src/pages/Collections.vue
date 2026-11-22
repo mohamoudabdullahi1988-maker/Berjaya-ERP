@@ -1,4 +1,6 @@
 <script setup>
+import TransactionGuide from '../components/TransactionGuide.vue'
+import ListInsights from '../components/ListInsights.vue'
 import { computed, ref, watch } from 'vue'
 
 import { ApiError, apiGet } from '../api'
@@ -68,6 +70,7 @@ watch([company, month], load, { immediate: true })
 </script>
 
 <template>
+  <TransactionGuide />
   <section class="page">
     <header class="bj-head">
       <div>
@@ -86,6 +89,7 @@ watch([company, month], load, { immediate: true })
         <button type="button" class="bj-btn" :disabled="loading" @click="load">Refresh</button>
       </div>
     </header>
+    <ListInsights :rows="events" group="date_state" :columns="[{field:'contract_id',label:'Contract'},{field:'due_date',label:'Due date'},{field:'date_state',label:'Date state'},{field:'amount',label:'Amount'},{field:'currency',label:'Currency'}]" :busy="loading || !!error" />
 
     <div v-if="!company" class="page__card">
       <StatePanel icon="lucide-building" title="No Company is available to you" message="Collections are shown for one Company at a time, and your account can read none." />
