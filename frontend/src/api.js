@@ -168,6 +168,14 @@ export async function apiPost(method, args = {}) {
   return body.message
 }
 
+export async function apiPostFile(method, file, args) {
+  const form = new FormData()
+  for (const [key, value] of Object.entries(args)) form.append(key, value)
+  form.append('file', file, file.name)
+  const body = await send('/api/method/' + method, { body: form })
+  return body.message
+}
+
 /** Upload one file through Frappe's own upload method. Returns the File. With a saved record it is
  * attached to that record's field; without one (a new record) it stays unattached and Frappe
  * attaches it to the record when the record is saved with it (attach_files_to_document). */
