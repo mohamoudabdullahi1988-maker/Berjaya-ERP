@@ -5,6 +5,15 @@
 - Start Berjaya on a dashboard with three priority reports and shortcuts for agreement payments, Cashbook & Reconciliation, reservations and quotations.
 - Show agreed terms by contract, overdue ERPNext invoice payment terms, native Accounts Payable and submitted supplier payments. Contract receipts and remaining balances depend on the approved invoice mapping.
 
+## 0.1.65 — 25 Nov 2026
+
+- Plan construction jobs in ERPNext Projects (decision G37): "Create → Project" on a job builds one Project and one Task per stage, linked both ways. The Tasks follow the job's stages on every save (dates, progress, status, payment milestone and certification); the job stays the record of the contract, milestones and certification. No live job is converted automatically and no money moves. Mapping and adoption path: `docs/CONSTRUCTION-PROJECTS_v0.1.md`.
+
+## 0.1.64 — 25 Nov 2026
+
+- Staff can use ERPNext Desk again with their normal Frappe permissions (decision G36): the G24 redirect from Desk to Berjaya is removed. Berjaya stays the landing page after sign-in, and its "Open in Desk" links now open Desk.
+- Buyer identity (KYC) records cannot be shared from Desk either (decision G32): any share that grants access to a KYC record is refused, including Desk's Share button, "everyone" shares and the automatic share when a record is assigned to someone who cannot read it.
+
 ## 0.1.63 — 24 Nov 2026
 
 - Group Land Contracts and Brokerage under Real Estate and Design & Engineering under Construction. Add an Investment landing page and keep Finance separate with Cashbook & Reconciliation.
