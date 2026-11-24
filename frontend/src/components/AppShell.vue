@@ -14,33 +14,28 @@ const ICONS = {
   finance: 'lucide-landmark',
 }
 
-// The menu, by business line (decision of 14 Nov 2026, option A). The five business-line items
-// open sample screens every staff member may see; records screens keep their server-given
-// permission (boot.js) and are reached from the business line they belong to.
 const LINES = [
   { key: 'executive', label: 'Executive', icon: 'lucide-gauge', also: ['dashboard'] },
-  { key: 'construction-hub', label: 'Construction', icon: 'lucide-hard-hat', also: ['construction'] },
-  { key: 'design', label: 'Design & Engineering', icon: 'lucide-drafting-compass', also: [] },
-  { key: 'realestate', label: 'Real Estate Sales', icon: 'lucide-building-2', also: ['properties', 'sales', 'contracts', 'collections'] },
-  { key: 'brokerage', label: 'Brokerage', icon: 'lucide-key-round', also: [] },
+  { key: 'construction-hub', label: 'Construction', icon: 'lucide-hard-hat', also: ['construction', 'design'] },
+  { key: 'realestate', label: 'Real Estate', icon: 'lucide-building-2', also: ['brokerage', 'properties', 'sales', 'contracts', 'collections'] },
+  { key: 'investment', label: 'Investment', icon: 'lucide-landmark', also: [] },
 ]
 const SHARED = ['customers', 'finance', 'setup']
 // CRM and Finance open their dashboards, for the users the server already shows Finance to; the
 // live ledger screen is one click away from it.
 const SHARED_ROUTE = { customers: { key: 'crm-hub', also: ['customers'] }, finance: { key: 'finance-hub', also: ['finance', 'cashbook'] } }
-const SET_LINE = { build: 'construction-hub', design: 'design', realestate: 'realestate', crm: 'crm-hub', brokerage: 'brokerage', finance: 'finance-hub' }
+const SET_LINE = { build: 'construction-hub', design: 'construction-hub', realestate: 'realestate', crm: 'crm-hub', brokerage: 'realestate', finance: 'finance-hub' }
 
 // Each business line's sub-menu (Mohamoud, 15 Nov 2026): its dashboard, then the record screens
 // of its transactions. A record list shows only when the server lets this user read it; a page of
 // its own (Units, Contracts, ...) only when its section is open to the user.
 const list = (key) => ({ key, label: RECORDS[key].title, to: { name: listRoute(key) }, show: () => canRead(key) })
 const page = (name, label, section = name) => ({ key: name, label, to: { name }, show: () => canOpen(section) })
-const DASHBOARD = (name) => ({ key: name, label: 'Dashboard', to: { name }, show: () => true })
+const DASHBOARD = (name, label = 'Dashboard') => ({ key: name, label, to: { name }, show: () => true })
 const CHILDREN = {
   executive: [DASHBOARD('executive'), page('dashboard', 'Live dashboard')],
-  'construction-hub': [DASHBOARD('construction-hub'), { ...page('construction', 'Jobs'), list: 'jobs' }, list('construction_quotations'), list('boq_revisions'), list('variations'), list('inspections'), list('risks')],
-  design: [DASHBOARD('design'), list('design_jobs'), list('inspections')],
-  realestate: [DASHBOARD('realestate'), { ...page('properties', 'Units'), list: 'units' }, list('reservations'), list('sale_quotations'), { ...page('contracts', 'Contracts'), list: 'contracts' }, list('title_transfers'), page('collections', 'Collections')],
+  'construction-hub': [DASHBOARD('construction-hub'), { ...page('construction', 'Jobs'), list: 'jobs' }, list('construction_quotations'), list('boq_revisions'), list('variations'), list('inspections'), list('risks'), DASHBOARD('design', 'Design & Engineering'), list('design_jobs')],
+  realestate: [DASHBOARD('realestate'), { ...page('properties', 'Units'), list: 'units' }, list('reservations'), list('sale_quotations'), { ...page('contracts', 'Land Contracts'), list: 'contracts' }, list('title_transfers'), page('collections', 'Collections'), DASHBOARD('brokerage', 'Brokerage')],
   'crm-hub': [DASHBOARD('crm-hub'), list('leads'), list('opportunities'), list('customers'), list('contacts'), list('addresses'), list('kyc')],
   'finance-hub': [DASHBOARD('finance-hub'), page('finance', 'Ledger and invoices'), page('cashbook', 'Cashbook & Reconciliation')],
   setup: [list('profiles'), list('clauses'), list('imports'), list('contract_settings')],
@@ -60,8 +55,7 @@ const route = useRoute()
 const activeSection = computed(() => {
   if (route.name === 'sample') return SET_LINE[DATASETS[route.params.set]?.section] ?? null
   const line = RECORDS[route.meta.list]?.navLine // a list shown under another line (design jobs)
-  if (line) return line
-  const section = route.meta.section ?? route.name
+  const section = line ?? route.meta.section ?? route.name
   return items.find((item) => item.key === section || item.also.includes(section))?.key ?? section
 })
 

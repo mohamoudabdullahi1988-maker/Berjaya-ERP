@@ -770,7 +770,7 @@ def executive(page):
 	expect(page.get_by_role("heading", name="Executive overview")).to_be_visible()
 	expect(page.get_by_text("Sample data").first).to_be_visible()
 	expect(page.locator(".nav__item--active", has_text="Executive")).to_have_count(1)
-	for name in ("Construction", "Design & Engineering", "Real Estate Sales", "Brokerage"):
+	for name in ("Construction", "Real Estate", "Investment"):
 		expect(page.locator(".nav__item", has_text=name)).to_have_count(1)
 	page.locator(".kpi", has_text="Active projects").click()
 	expect(page.get_by_role("heading", name="Construction projects")).to_be_visible()

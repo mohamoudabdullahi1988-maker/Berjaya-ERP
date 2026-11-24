@@ -57,6 +57,7 @@ const routes = [
   { path: '/design/:tab?', name: 'design', component: Showcase, meta: { showcase: 'design' } },
   { path: '/real-estate/:tab?', name: 'realestate', component: Showcase, meta: { showcase: 'realestate' } },
   { path: '/crm', name: 'crm-hub', component: Showcase, meta: { showcase: 'crm' } },
+  { path: '/investment', name: 'investment', component: () => import('./pages/Investment.vue') },
   { path: '/brokerage', name: 'brokerage', component: Showcase, meta: { showcase: 'brokerage' } },
   { path: '/finance-overview', name: 'finance-hub', component: Showcase, meta: { showcase: 'finance' } },
   { path: '/sample/:set', name: 'sample', component: () => import('./pages/SampleList.vue'), meta: { showcase: 'sample' } },
@@ -87,7 +88,7 @@ const router = createRouter({
   routes,
 })
 
-const OPEN_TO_ALL = new Set(['home', 'no-access', 'not-found', 'my-work', 'global-search', 'reports'])
+const OPEN_TO_ALL = new Set(['investment', 'home', 'no-access', 'not-found', 'my-work', 'global-search', 'reports'])
 
 // Convenience only: the server refuses the data whatever this guard does. A list page needs the
 // server's read permission for that list; any other page needs its section in the navigation.
