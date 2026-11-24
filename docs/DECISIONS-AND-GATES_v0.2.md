@@ -2,6 +2,8 @@
 
 7 Nov 2026 · decisions by Mohamoud Abdullahi Sheikh, recorded by Claude Code. This is the `DECISIONS-AND-GATES.md` that `docs/CLAUDE-CODE-HANDOFF_v2.0.md` lists as an input. Where it conflicts with `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/SREMS-SRS_v1.6.md` or `docs/HANDOVER_v1.0.md`, this document wins. A new decision gets a new version of this file.
 
+The [24 Nov 2026 delivery decision](DECISIONS-AND-GATES_v0.3.md) supersedes the earlier interface, Desk access and Construction delivery scope where they overlap.
+
 ## 1. Decisions
 
 | ID | Date | Decision | Replaces / resolves |

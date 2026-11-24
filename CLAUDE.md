@@ -1,12 +1,12 @@
-# CLAUDE.md — sidra-erp
+# CLAUDE.md — Berjaya-ERP
 
-You are the **implementation** agent for Sidra Real Estate's ERPNext system. Read `docs/DECISIONS-AND-GATES_v0.2.md` (decisions win over older documents), `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/CLAUDE-CODE-HANDOFF_v2.0.md` and `docs/HANDOVER_v1.0.md` before any work.
+Start with [the 24 Nov 2026 delivery decision and work split](docs/DECISIONS-AND-GATES_v0.3.md). Read [v0.2](docs/DECISIONS-AND-GATES_v0.2.md) for existing decisions and financial gates, plus `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/CLAUDE-CODE-HANDOFF_v2.0.md` and `docs/HANDOVER_v1.0.md` for the underlying requirements and controls.
 
 ## Project
 - Custom Frappe app `sidra_realestate` on **ERPNext v16 / Frappe v16**, Python 3.14, Node 24, MariaDB 11.8. Pinned patch versions: see `docs/ENVIRONMENT_v0.1.md`.
 - Modules: Sidra Property, Sidra Sales, Sidra Installments, Sidra Construction, Sidra Brokerage.
 - Working spec: `docs/SREMS-SRS_v2.0-DRAFT.md` (decided 5 Nov 2026). Business requirements and IDs come from `docs/SREMS-SRS_v1.6.md`; traceability in `docs/REQUIREMENTS-TRACEABILITY_v2.0-DRAFT.csv`. Handover v1.0 applies where v2.0 is silent.
-- The repository stays `sidra-erp` and the app stays `sidra_realestate` (v2.0 writes `sidra_real_estate`).
+- Work in `Berjaya-ERP` on the delivery branches. The app identifier is `sidra_realestate`.
 
 ## Product and client names (decisions G17–G19, 13 Nov 2026)
 Users see **Berjaya** as the software and **Sidra** as the company using it. Test for any string: does it name the software or the business?
@@ -15,10 +15,10 @@ Users see **Berjaya** as the software and **Sidra** as the company using it. Tes
 - Internal identifier a user does not read as branding (app `sidra_realestate`, site `sidra.local`, `sidra_*` flags, DocType, field and role names, naming series such as `SSC-…`, routes, the repository) → unchanged.
 
 ## Roles
-- Current dashboard assignment (Mohamoud, 8 Nov 2026): Codex implements the dashboard backend, staff web/native clients, supporting reports and integration tests end to end. This supersedes the older dashboard role allocations below; no Claude handoff is required to continue this work. Other repository rules and business gates remain in force. The staff front page at `/sidra` (decision G15, `docs/SHELL_v0.1.md`) is Claude Code's.
-- ChatGPT: architecture, specs, acceptance criteria, security and code review.
-- Claude Code (you): code, DocTypes, UI, tests, pull requests. Confirmed by Mohamoud on 7 Nov 2026, including the contract capture brief (`docs/CONTRACT-CAPTURE_v0.3.md`), whose Codex role is superseded. When Claude Code's usage limit is reached, Codex continues the same work under the same rules (`AGENTS.md`; decision G7).
-- Mohamoud / Sidra management: final approval.
+
+- Claude Code owns ERPNext Desk access and the native ERPNext Projects/Tasks foundation for Construction.
+- Codex owns the Berjaya dashboard, report queries and transaction shortcuts.
+- Mohamoud / Sidra management owns business decisions and final approval.
 
 ## Hard rules
 1. Build only against the working spec. Ambiguity or conflict → open a GitHub issue labelled `spec-question`; never guess on money, dates, penalties, refunds or ownership.
@@ -42,4 +42,5 @@ bench --site sidra.local export-fixtures --app sidra_realestate
 ```
 
 ## Next task
-P0 prototype (SRS v2.0 section 7): 10 DocTypes, reservation, Profile A / B, contract snapshot, installment generator, construction job; bench CI. Then the handoff's subsequent PRs.
+
+From `develop`, use `feature/construction-erpnext-projects` for the Claude Code package in the [delivery handover](docs/DECISIONS-AND-GATES_v0.3.md). Check for related open PRs and branches before starting.
