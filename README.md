@@ -10,6 +10,7 @@ Current version: **v0.1.1** (Phase 0 skeleton and handover — no DocTypes yet).
 
 | File | What it is |
 | --- | --- |
+| [Current delivery decision and handover](docs/DECISIONS-AND-GATES_v0.3.md) | Berjaya dashboard, ERPNext Projects and the Claude Code / Codex work split |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for Claude Code |
 | [docs/HANDOVER_v1.0.md](docs/HANDOVER_v1.0.md) | Handover to Claude Code: roles, rules, decisions, plan, acceptance cases, first tasks |
 | [docs/SREMS-SRS_v1.6.md](docs/SREMS-SRS_v1.6.md) | Requirements specification v1.6 (business rules, contract profiles, decisions) |
