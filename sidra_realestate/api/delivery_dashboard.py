@@ -73,9 +73,15 @@ def find_agreements(company, text):
 		)
 
 	unit_filter = None
-	if frappe.has_permission(CONTRACT, "read") and "units" in frappe.get_meta(
-		CONTRACT
-	).get_permitted_fieldnames(user=frappe.session.user):
+	contract_meta = frappe.get_meta(CONTRACT)
+	user = frappe.session.user
+	if (
+		frappe.has_permission(CONTRACT, "read")
+		and contract_meta.get_field("units").permlevel
+		in contract_meta.get_permlevel_access("read", user=user)
+		and "unit"
+		in frappe.get_meta("Sidra Contract Unit").get_permitted_fieldnames(parenttype=CONTRACT, user=user)
+	):
 		# Only return matching parent records after Frappe applies their permissions below.
 		parents = frappe.get_all(
 			"Sidra Contract Unit",
@@ -132,7 +138,7 @@ def overdue_installments(company, start=0):
 			"outstanding": money(row["outstanding"]),
 		}
 		for row in data.get("result") or []
-		if row
+		if isinstance(row, dict)
 		and row.get("voucher_type") == "Sales Invoice"
 		and "payment_term" in row
 		and row.get("due_date")

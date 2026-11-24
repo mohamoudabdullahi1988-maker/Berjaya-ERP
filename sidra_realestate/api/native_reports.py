@@ -61,7 +61,14 @@ def _run(name, filters, *, payment_terms=False):
 		filters = {**filters, "ageing_based_on": "Due Date", "range": "30, 60, 90, 120"}
 	if payment_terms:
 		filters["based_on_payment_terms"] = 1
-	return run(name, filters=filters, ignore_prepared_report=True, are_default_filters=False)
+	data = run(name, filters=filters, ignore_prepared_report=True, are_default_filters=False)
+	# Frappe adds its totals as a positional row even when the report returns records as dicts.
+	fields = [column.get("fieldname") for column in data.get("columns") or []]
+	data["result"] = [
+		dict(zip(fields, row, strict=False)) if isinstance(row, (list, tuple)) else row
+		for row in data.get("result") or []
+	]
+	return data
 
 
 @frappe.whitelist(methods=["GET"])

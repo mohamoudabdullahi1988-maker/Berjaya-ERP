@@ -79,6 +79,7 @@ class TestBerjayaPage(IntegrationTestCase):
 			boot = page.get_boot()
 		self.assertEqual(boot["user"]["name"], SALES_MANAGER)
 		self.assertEqual(boot["product_name"], branding.BRAND_NAME)
+		self.assertFalse(boot["can_open_projects"])
 		self.assertEqual(boot["company_logo"], branding.COMPANY_LOGO)
 		self.assertTrue(set(boot["properties"]["readable_fields"]) <= set(page.UNIT_LIST_FIELDS))
 		self.assertIn("unit_code", boot["properties"]["readable_fields"])
@@ -88,6 +89,7 @@ class TestBerjayaPage(IntegrationTestCase):
 			set(boot),
 			{
 				"product_name",
+				"can_open_projects",
 				"favicon",
 				"company_logo",
 				"user",
