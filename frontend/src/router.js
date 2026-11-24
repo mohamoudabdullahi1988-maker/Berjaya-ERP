@@ -73,6 +73,7 @@ const routes = [
   { path: '/construction', name: 'construction', component: () => import('./pages/Construction.vue'), meta: { list: 'jobs', section: 'construction' } },
   { path: '/construction/:name', name: 'construction-detail', component: () => import('./pages/ConstructionDetail.vue'), meta: { section: 'construction' } },
   { path: '/finance', name: 'finance', component: () => import('./pages/Finance.vue'), meta: { section: 'finance' } },
+  { path: '/finance/cashbook', name: 'cashbook', component: () => import('./pages/Cashbook.vue'), meta: { section: 'cashbook' } },
   ...forms,
   ...singles,
   ...generic,

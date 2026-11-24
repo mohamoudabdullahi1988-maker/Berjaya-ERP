@@ -27,7 +27,7 @@ const LINES = [
 const SHARED = ['customers', 'finance', 'setup']
 // CRM and Finance open their dashboards, for the users the server already shows Finance to; the
 // live ledger screen is one click away from it.
-const SHARED_ROUTE = { customers: { key: 'crm-hub', also: ['customers'] }, finance: { key: 'finance-hub', also: ['finance'] } }
+const SHARED_ROUTE = { customers: { key: 'crm-hub', also: ['customers'] }, finance: { key: 'finance-hub', also: ['finance', 'cashbook'] } }
 const SET_LINE = { build: 'construction-hub', design: 'design', realestate: 'realestate', crm: 'crm-hub', brokerage: 'brokerage', finance: 'finance-hub' }
 
 // Each business line's sub-menu (Mohamoud, 15 Nov 2026): its dashboard, then the record screens
@@ -42,7 +42,7 @@ const CHILDREN = {
   design: [DASHBOARD('design'), list('design_jobs'), list('inspections')],
   realestate: [DASHBOARD('realestate'), { ...page('properties', 'Units'), list: 'units' }, list('reservations'), list('sale_quotations'), { ...page('contracts', 'Contracts'), list: 'contracts' }, list('title_transfers'), page('collections', 'Collections')],
   'crm-hub': [DASHBOARD('crm-hub'), list('leads'), list('opportunities'), list('customers'), list('contacts'), list('addresses'), list('kyc')],
-  'finance-hub': [DASHBOARD('finance-hub'), page('finance', 'Ledger and invoices')],
+  'finance-hub': [DASHBOARD('finance-hub'), page('finance', 'Ledger and invoices'), page('cashbook', 'Cashbook & Reconciliation')],
   setup: [list('profiles'), list('clauses'), list('imports'), list('contract_settings')],
 }
 const children = (key) => (CHILDREN[key] ?? []).filter((child) => child.show())

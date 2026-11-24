@@ -12,6 +12,9 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 
 ## [Unreleased]
 
+### Added (v0.1.62)
+- Add Cashbook & Reconciliation to Finance with account-currency balances, native voucher matching, CSV and Excel statement entry, private PDF evidence and physical cash comparisons.
+
 ### Added (v0.1.61 — record workflows and operations, 16 Nov 2026)
 - Saved-record workflow panels show native status, approval evidence, submission/cancellation and construction stage certification. Registered contracts keep their detailed validation timeline.
 - Link and unlink native Contacts and Addresses from either side of a customer connection, choose primary records, and create a linked record from a customer. Primary pickers reject unrelated records.

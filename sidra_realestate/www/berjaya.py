@@ -18,6 +18,7 @@ import frappe
 from frappe import _
 
 from sidra_realestate import branding
+from sidra_realestate.api.cashbook import can_open as can_open_cashbook
 from sidra_realestate.api.shell import is_staff
 
 no_cache = 1
@@ -121,6 +122,13 @@ def get_boot() -> dict:
 	user = frappe.session.user
 	readable = {key: _can_read(doctype) for key, doctype in LISTS.items()}
 	readable["ledger"] = _can_read(LEDGER)
+	nav = [
+		{"key": key, "label": _(label)}
+		for key, label, lists in NAV
+		if not lists or any(readable.get(name) for name in lists)
+	]
+	if can_open_cashbook():
+		nav.append({"key": "cashbook", "label": _("Cashbook & Reconciliation")})
 	readable_unit_fields = []
 	if _can_read("Sidra Unit"):
 		permitted = set(frappe.get_meta("Sidra Unit").get_permitted_fieldnames(user=user))
@@ -146,11 +154,7 @@ def get_boot() -> dict:
 			if "Sidra Homes" in currencies
 			else next(iter(currencies), None)
 		),
-		"nav": [
-			{"key": key, "label": _(label)}
-			for key, label, lists in NAV
-			if not lists or any(readable.get(name) for name in lists)
-		],
+		"nav": nav,
 		# What the user may do with each list. Create opens Desk's own form, which checks again.
 		"lists": {
 			key: {"read": readable[key], "create": readable[key] and _can_create(doctype)}
