@@ -44,7 +44,7 @@ def catalogue():
 	return result
 
 
-def _run(name, filters):
+def _run(name, filters, *, payment_terms=False):
 	from frappe.desk.query_report import run
 
 	_report(name)
@@ -59,7 +59,16 @@ def _run(name, filters):
 		frappe.throw(_("From date must be on or before To date"))
 	if name != "General Ledger":
 		filters = {**filters, "ageing_based_on": "Due Date", "range": "30, 60, 90, 120"}
-	return run(name, filters=filters, ignore_prepared_report=True, are_default_filters=False)
+	if payment_terms:
+		filters["based_on_payment_terms"] = 1
+	data = run(name, filters=filters, ignore_prepared_report=True, are_default_filters=False)
+	# Frappe adds its totals as a positional row even when the report returns records as dicts.
+	fields = [column.get("fieldname") for column in data.get("columns") or []]
+	data["result"] = [
+		dict(zip(fields, row, strict=False)) if isinstance(row, (list, tuple)) else row
+		for row in data.get("result") or []
+	]
+	return data
 
 
 @frappe.whitelist(methods=["GET"])

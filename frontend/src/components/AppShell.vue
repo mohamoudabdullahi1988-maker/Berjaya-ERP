@@ -15,6 +15,7 @@ const ICONS = {
 }
 
 const LINES = [
+  { key: 'delivery', label: 'Dashboard', icon: 'lucide-layout-dashboard', also: [] },
   { key: 'executive', label: 'Executive', icon: 'lucide-gauge', also: ['dashboard'] },
   { key: 'construction-hub', label: 'Construction', icon: 'lucide-hard-hat', also: ['construction', 'design'] },
   { key: 'realestate', label: 'Real Estate', icon: 'lucide-building-2', also: ['brokerage', 'properties', 'sales', 'contracts', 'collections'] },

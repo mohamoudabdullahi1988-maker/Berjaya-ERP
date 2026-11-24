@@ -10,6 +10,7 @@ Stages, BOQ and contract. P1 controls (docs/CONSTRUCTION-CONTROLS_v0.2.md; decis
   recalculated from submitted variation orders on every save;
 - a stage certified by the Project Manager (`certify_stage`) can no longer be changed or removed.
 Certification is a record of completion, not an invoice or revenue (CON-07 waits for P2).
+The linked ERPNext Project's Tasks mirror the stages on every save (decision G37).
 """
 
 import frappe
@@ -25,6 +26,7 @@ from sidra_realestate.services.construction import (
 	money,
 )
 from sidra_realestate.services.construction_jobs import approved_variation_amounts, lock_job
+from sidra_realestate.services.construction_projects import sync_tasks
 
 STAGE_FIELDS = (
 	"stage_name",
@@ -89,6 +91,10 @@ class SidraConstructionJob(Document):
 		self.protect_boq(before)
 		self.protect_contract(before)
 		self.set_contract_values()
+
+	def on_update(self):
+		# G37: the linked ERPNext Project's Tasks mirror the stages (services/construction_projects.py).
+		sync_tasks(self)
 
 	def validate_project(self):
 		if not self.project:

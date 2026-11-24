@@ -22,6 +22,7 @@ from sidra_realestate.api.cashbook import (
 	match_voucher,
 	matching_vouchers,
 )
+from sidra_realestate.api.delivery_dashboard import overdue_installments
 from sidra_realestate.tests.helpers import (
 	BUYER,
 	COMPANY,
@@ -112,7 +113,7 @@ class TestCashbook(IntegrationTestCase):
 				).insert()
 		return account.name
 
-	def _record(self, account, reference):
+	def _record(self, account, reference, *, pay=True):
 		"""The demo's native invoice → get_payment_entry → submit flow with invoice payment terms."""
 		with as_user("Administrator"):
 			term = frappe.get_doc(
@@ -184,6 +185,8 @@ class TestCashbook(IntegrationTestCase):
 				.insert()
 				.submit()
 			)
+			if not pay:
+				return invoice, None
 			payment = get_payment_entry("Sales Invoice", invoice.name, bank_account=account)
 			payment.reference_date = self.day
 			payment.reference_no = reference
@@ -251,6 +254,17 @@ class TestCashbook(IntegrationTestCase):
 			[(invoice.name, 300)],
 		)
 		self.assertEqual(getdate(payment.clearance_date), self.day)
+
+	def test_overdue_report_uses_posted_invoice_terms(self):
+		account = self._account("Overdue", "Bank")
+		unpaid, _ = self._record(account, "REPORT-UNPAID", pay=False)
+		paid, _ = self._record(account, "REPORT-PAID")
+		tomorrow = self.day + timedelta(days=1)
+		with as_user(FINANCE), patch("sidra_realestate.api.delivery_dashboard.nowdate", return_value=str(tomorrow)):
+			report = overdue_installments(COMPANY)
+		rows = {row["invoice"]: row["outstanding"] for row in report["rows"]}
+		self.assertEqual(rows[unpaid.name], "300.00")
+		self.assertNotIn(paid.name, rows)
 
 	def test_zaad_csv_import_is_idempotent(self):
 		self._import_twice("ZAAD", "fictional-zaad.csv")

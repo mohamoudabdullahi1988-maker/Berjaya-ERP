@@ -143,6 +143,7 @@ def get_boot() -> dict:
 	return {
 		# The software's name and icon, from the one source (branding.py, decisions G17-G19).
 		"product_name": branding.BRAND_NAME,
+		"can_open_projects": _can_read("Project"),
 		"favicon": branding.ICON,
 		# The client company's own logo (decision G19: Sidra is the company using Berjaya).
 		"company_logo": branding.COMPANY_LOGO,
