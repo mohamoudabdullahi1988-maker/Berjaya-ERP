@@ -31,6 +31,30 @@ frappe.ui.form.on("Sidra Construction Job", {
 		if (frappe.model.can_create("Sidra Inspection Report")) {
 			frm.add_custom_button(__("Inspection Report"), () => make("Sidra Inspection Report"), __("Create"));
 		}
+		// G37: one ERPNext Project per job, one Task per stage; the Tasks follow the stages.
+		if (
+			!frm.doc.project &&
+			(frm.doc.stages || []).length &&
+			frappe.model.can_create("Project") &&
+			frappe.model.can_create("Task")
+		) {
+			frm.add_custom_button(
+				__("Project"),
+				() =>
+					frappe.confirm(
+						__("Create an ERPNext Project for this job, with one Task per stage? The Tasks will follow the job's stages from now on."),
+						() =>
+							frappe
+								.call({
+									method: "sidra_realestate.services.construction_projects.create_project",
+									args: { job: frm.doc.name },
+									freeze: true,
+								})
+								.then(() => frm.reload_doc())
+					),
+				__("Create")
+			);
+		}
 
 		const ready = (frm.doc.stages || []).filter(
 			(s) => !s.certified && s.status === "Completed" && flt(s.completion_pct) === 100 && s.actual_end

@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.65 — 25 Nov 2026
+
+- Plan construction jobs in ERPNext Projects (decision G37): "Create → Project" on a job builds one Project and one Task per stage, linked both ways. The Tasks follow the job's stages on every save (dates, progress, status, payment milestone and certification); the job stays the record of the contract, milestones and certification. No live job is converted automatically and no money moves. Mapping and adoption path: `docs/CONSTRUCTION-PROJECTS_v0.1.md`.
+
 ## 0.1.63 — 24 Nov 2026
 
 - Group Land Contracts and Brokerage under Real Estate and Design & Engineering under Construction. Add an Investment landing page and keep Finance separate with Cashbook & Reconciliation.
