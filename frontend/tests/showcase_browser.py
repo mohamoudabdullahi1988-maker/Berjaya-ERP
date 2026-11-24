@@ -263,7 +263,7 @@ def main():
 				page.goto(BASE + "/design")
 				page.locator(".nav__sub").get_by_role("link", name="Design and inspection jobs").click()
 				expect(page.locator("h1.page__title")).to_have_text("Design and inspection jobs")
-				expect(page.locator(".nav__item--active")).to_have_text("Design & Engineering")
+				expect(page.locator(".nav__item--active")).to_have_text("Construction")
 				page.goto(BASE + "/real-estate")
 				for label in ("Units", "Reservations", "Contracts", "Collections"):
 					expect(page.locator(".nav__sub").get_by_role("link", name=label)).to_be_visible()
