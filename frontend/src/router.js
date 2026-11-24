@@ -43,14 +43,7 @@ const routes = [
   { path: '/search', name: 'global-search', component: () => import('./pages/GlobalSearch.vue') },
   { path: '/reports', name: 'reports', component: () => import('./pages/Reports.vue') },
   { path: '/my-work', name: 'my-work', component: () => import('./pages/WorkQueue.vue') },
-  {
-    path: '/',
-    name: 'home',
-    redirect: () => {
-      // The sample Executive overview is the landing screen for the client demonstration.
-      return { name: 'executive' }
-    },
-  },
+  { path: '/', name: 'delivery', component: () => import('./pages/DeliveryDashboard.vue') },
   // Sample screens for the client demonstration (14 Nov 2026): fictional, labelled data only.
   { path: '/executive', name: 'executive', component: Showcase, meta: { showcase: 'executive' } },
   { path: '/build/:tab?', name: 'construction-hub', component: Showcase, meta: { showcase: 'build' } },
@@ -88,7 +81,7 @@ const router = createRouter({
   routes,
 })
 
-const OPEN_TO_ALL = new Set(['investment', 'home', 'no-access', 'not-found', 'my-work', 'global-search', 'reports'])
+const OPEN_TO_ALL = new Set(['investment', 'delivery', 'no-access', 'not-found', 'my-work', 'global-search', 'reports'])
 
 // Convenience only: the server refuses the data whatever this guard does. A list page needs the
 // server's read permission for that list; any other page needs its section in the navigation.

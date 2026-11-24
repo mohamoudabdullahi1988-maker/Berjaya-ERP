@@ -5,6 +5,7 @@ Run with Vite on port 8080: python frontend/tests/record_operations_browser.py
 
 import copy
 import json
+import re
 import shutil
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -16,12 +17,98 @@ BASE = "http://127.0.0.1:8080/berjaya"
 FIELD = {"fieldname": "customer_name", "label": "Customer name", "fieldtype": "Data", "editable": True}
 
 
+
+def delivery_dashboard(page):
+	def delivery_api(route):
+		url = urlparse(route.request.url)
+		params = parse_qs(url.query)
+		method = url.path.rsplit(".", 1)[-1]
+		assert params["company"] == [BOOT["company"]], params
+		if method == "find_agreements":
+			assert params["text"] == ["Synthetic Buyer"]
+			message = {
+				"contracts": [
+					{"name": "SYN-C-1", "customer": "Synthetic Buyer"},
+					{"name": "SYN-C-2", "customer": "Synthetic Buyer"},
+				],
+				"jobs": [],
+				"can_open_payments": True,
+			}
+		elif method == "contract_statement":
+			contract = params["contract"][0]
+			amount = "310.00" if contract == "SYN-C-1" else "620.00"
+			message = {
+				"contract": contract, "customer": "Synthetic Buyer", "signed_on": "2026-10-15", "currency": "USD",
+				"agreed_price": amount, "schedule_total": amount,
+				"schedule": [{"due_date": "2026-11-15", "type": "Installment", "amount": amount}],
+			}
+		elif method == "overdue_installments":
+			message = {
+				"as_of": "2026-11-24", "currency": "USD", "has_more": False,
+				"rows": [{"invoice": "SYN-I-1", "customer": "Synthetic Buyer", "term": "First",
+					"due_date": "2026-11-15", "outstanding": "75.00"}],
+			}
+		else:
+			assert method == "supplier_payments", method
+			message = {"has_more": False, "rows": [
+				{"name": "SYN-PAY-1", "party": "Synthetic Supplier", "posting_date": "2026-11-22",
+					"paid_amount": 40, "paid_from_account_currency": "USD"},
+			]}
+		route.fulfill(json={"message": message})
+
+	def native_api(route):
+		url = urlparse(route.request.url)
+		if url.path.endswith(".catalogue"):
+			message = [{"name": "Accounts Payable", "filters": ["company", "report_date"]}]
+		else:
+			params = parse_qs(url.query)
+			assert params["name"] == ["Accounts Payable"]
+			assert json.loads(params["filters"][0])["company"] == BOOT["company"]
+			message = {"columns": [{"fieldname": "outstanding", "label": "Outstanding"}], "rows": [{"outstanding": 240}]}
+		route.fulfill(json={"message": message})
+
+	page.route("**/api/method/sidra_realestate.api.delivery_dashboard.*", delivery_api)
+	page.route("**/api/method/sidra_realestate.api.native_reports.*", native_api)
+	page.goto(BASE)
+	expect(page.get_by_role("heading", name="Berjaya Dashboard")).to_be_visible()
+	expect(page.get_by_role("link", name="Construction projects")).to_have_attribute("href", "/desk/project")
+	expect(page.get_by_role("link", name="Open ERPNext Desk")).to_have_attribute("href", "/desk")
+	expect(page.get_by_role("link", name="Cashbook & Reconciliation")).to_have_attribute("href", "/berjaya/finance/cashbook")
+	expect(page.get_by_role("link", name="Plot reservations")).to_have_attribute("href", "/berjaya/sales/reservations")
+
+	def lookup():
+		page.get_by_label("Customer name or phone, plot or agreement reference").fill("Synthetic Buyer")
+		page.get_by_role("button", name="Find agreements").click()
+
+	page.get_by_role("link", name="Customer statement by contract").click()
+	lookup()
+	page.get_by_role("link", name="View statement").first.click()
+	expect(page.get_by_role("cell", name="USD 310.00")).to_be_visible()
+	page.get_by_role("link", name="View statement").last.click()
+	expect(page.get_by_role("cell", name="USD 620.00")).to_be_visible()
+	expect(page.get_by_role("cell", name="USD 310.00")).to_have_count(0)
+	page.get_by_role("link", name="Find an agreement for payment").click()
+	lookup()
+	expect(page.get_by_role("link", name="Open payment entries").first).to_have_attribute(
+		"href", re.compile(r"^/desk/payment-entry\?.*party=Synthetic\+Buyer$")
+	)
+	page.get_by_role("link", name="Overdue installments").click()
+	expect(page.get_by_role("link", name="SYN-I-1")).to_have_attribute("href", "/desk/sales-invoice/SYN-I-1")
+	expect(page.get_by_role("cell", name="USD 75.00")).to_be_visible()
+	page.get_by_role("link", name="Supplier balances and payments").click()
+	page.get_by_role("button", name="Run report").click()
+	expect(page.get_by_role("cell", name="240")).to_be_visible()
+	expect(page.get_by_role("link", name="SYN-PAY-1")).to_have_attribute("href", "/desk/payment-entry/SYN-PAY-1")
+
+
 def main():
 	with sync_playwright() as p:
 		browser = p.chromium.launch(executable_path=shutil.which("chromium") or shutil.which("google-chrome"), headless=True, args=["--no-sandbox"])
 		for width in (1440, 390):
 			page = browser.new_page(viewport={"width": width, "height": 900})
 			boot = copy.deepcopy(BOOT)
+			boot["can_open_projects"] = True
+			boot["nav"].append({"key": "cashbook", "label": "Cashbook & Reconciliation"})
 			for key in ("customers", "contacts", "addresses"):
 				boot["lists"][key] = {"read": True, "create": True}
 			page.add_init_script("window.berjaya_boot = " + json.dumps(boot))
@@ -87,6 +174,7 @@ def main():
 				route.fulfill(json=body)
 
 			page.route("**/api/**", respond)
+			delivery_dashboard(page)
 			page.goto(BASE + "/customers")
 			page.get_by_role("checkbox", name="Select SYN-1", exact=True).check()
 			page.get_by_role("checkbox", name="Select SYN-2", exact=True).check()

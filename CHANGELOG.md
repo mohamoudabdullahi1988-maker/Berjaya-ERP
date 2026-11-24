@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.66 — 24 Nov 2026
+
+- Start Berjaya on a dashboard with three priority reports and shortcuts for agreement payments, Cashbook & Reconciliation, reservations and quotations.
+- Show agreed terms by contract, overdue ERPNext invoice payment terms, native Accounts Payable and submitted supplier payments. Contract receipts and remaining balances depend on the approved invoice mapping.
+
 ## 0.1.63 — 24 Nov 2026
 
 - Group Land Contracts and Brokerage under Real Estate and Design & Engineering under Construction. Add an Investment landing page and keep Finance separate with Cashbook & Reconciliation.

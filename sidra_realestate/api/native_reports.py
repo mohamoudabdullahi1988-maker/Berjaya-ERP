@@ -44,7 +44,7 @@ def catalogue():
 	return result
 
 
-def _run(name, filters):
+def _run(name, filters, *, payment_terms=False):
 	from frappe.desk.query_report import run
 
 	_report(name)
@@ -59,6 +59,8 @@ def _run(name, filters):
 		frappe.throw(_("From date must be on or before To date"))
 	if name != "General Ledger":
 		filters = {**filters, "ageing_based_on": "Due Date", "range": "30, 60, 90, 120"}
+	if payment_terms:
+		filters["based_on_payment_terms"] = 1
 	return run(name, filters=filters, ignore_prepared_report=True, are_default_filters=False)
 
 

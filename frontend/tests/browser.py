@@ -766,7 +766,7 @@ def dashboard(page):
 
 
 def executive(page):
-	# Landing screen: the sample Executive overview, labelled as sample data.
+	# The old sample Executive overview remains available from the Executive menu.
 	expect(page.get_by_role("heading", name="Executive overview")).to_be_visible()
 	expect(page.get_by_text("Sample data").first).to_be_visible()
 	expect(page.locator(".nav__item--active", has_text="Executive")).to_have_count(1)
@@ -885,7 +885,7 @@ def main():
 			check(page, width, "construction-job", "/construction/SCJ-2026-00007", job)
 			check(page, width, "finance", "/finance", finance)
 			check(page, width, "dashboard", "/dashboard", dashboard)
-			check(page, width, "executive", "/", executive)
+			check(page, width, "executive", "/executive", executive)
 			check(page, width, "construction-hub", "/build/variations", construction_hub)
 			check(page, width, "customers", "/customers", customers)
 			check(page, width, "kyc", "/customers/kyc/Synthetic%20Buyer%20One", kyc)
