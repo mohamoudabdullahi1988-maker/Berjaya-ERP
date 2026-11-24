@@ -76,5 +76,9 @@ scheduler_events = {
 # Scoped Desk presentation fixes, loaded without changing Frappe core.
 app_include_js = ["/assets/sidra_realestate/js/desk_forms.js"]
 
-# Decision G24: Sidra staff opening Desk are sent to Berjaya; administrators and finance keep Desk.
-before_request = ["sidra_realestate.cutover.before_request"]
+# Decision G36 (24 Nov 2026): staff use Desk with normal Frappe permissions, so the G24 redirect
+# from Desk to Berjaya is gone. Opening Desk must not open buyer identity records (G32): a share of
+# a KYC record is refused wherever it is made, Desk included.
+doc_events = {
+	"DocShare": {"validate": "sidra_realestate.identity_access.refuse_kyc_share"},
+}
