@@ -43,4 +43,4 @@ bench --site sidra.local export-fixtures --app sidra_realestate
 
 ## Next task
 
-From `develop`, use `feature/desk-native-data-audit` for the Claude Code package in the [current work split](docs/DECISIONS-AND-GATES_v0.5.md). Check for related open PRs and branches before starting.
+From `develop`, use `feature/construction-pilot-projects` for the Claude Code package in the [current work split](docs/DECISIONS-AND-GATES_v0.5.md). Check for related open PRs and branches before starting.

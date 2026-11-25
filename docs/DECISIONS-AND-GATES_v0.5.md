@@ -13,6 +13,6 @@ Berjaya provides an ERPNext Desk link in the shared header. Workflow opens in a 
 | Owner | Branch | Scope |
 | --- | --- | --- |
 | Codex | `feature/berjaya-live-workspaces` | Berjaya Vue workspaces, workflow window, shared Desk entry and the fictional Investment presentation. |
-| Claude Code | `feature/desk-native-data-audit` | Verify test-site Company and role visibility for native ERPNext Sales records, Assets, Projects and Tasks. Populate authorized fictional records through the existing test-site guards and adopt fictional Construction jobs through the existing ERPNext Project and Task mapping. [Native Desk handoff](https://github.com/mohamoudabdullahi1988-maker/Berjaya-ERP/issues/15) |
+| Claude Code | `feature/construction-pilot-projects` | Verify test-site Company and role visibility for native ERPNext Sales records, Assets, Projects and Tasks. Populate authorized fictional records through the existing test-site guards and adopt fictional Construction jobs through the existing ERPNext Project and Task mapping. [Native Desk handoff](https://github.com/mohamoudabdullahi1988-maker/Berjaya-ERP/issues/15) |
 
 The existing construction bridge creates native Projects and Tasks when a Project Manager links a job. Deployment and migration add the link fields and availability of that action. Existing jobs need to be adopted before those native records are visible in Desk. [Construction mapping](CONSTRUCTION-PROJECTS_v0.1.md)
