@@ -152,7 +152,7 @@ def create_project(job: str):
 
 	doc.project = project.name
 	if not doc.get("warehouse"):
-		doc.warehouse = make_store(doc)  # G41: the house store comes with its Project
+		doc.warehouse = make_store(doc)  # G42: the house store comes with its Project
 	doc.save()
 	doc.add_comment(
 		"Info",

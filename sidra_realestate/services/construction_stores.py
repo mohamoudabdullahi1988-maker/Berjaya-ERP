@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Decision G41: a store (ERPNext Warehouse) per house.
+"""Decision G42: a store (ERPNext Warehouse) per house.
 
 - Each construction job gets its own Warehouse under the Company's *Construction sites* group,
   made with its Project ("Create → Project") or on its own ("Create → Site store"), and linked
@@ -113,7 +113,7 @@ def create_site_store(job: str):
 def backfill_site_stores(company=None):
 	"""A store for every open job that has a Project but no store (System Manager, idempotent).
 
-	For adopting G41 where jobs already have Projects:
+	For adopting G42 where jobs already have Projects:
 		bench --site <site> execute sidra_realestate.services.construction_stores.backfill_site_stores
 	"""
 	frappe.only_for("System Manager")
@@ -154,7 +154,7 @@ def refuse_site_stock_move(doc, method=None):
 		frappe.throw(
 			_(
 				"Stock moves for house stores ({0}) wait until Finance approves the stock accounts "
-				"(decision G41). Raise a Material Request for now."
+				"(decision G42). Raise a Material Request for now."
 			).format(", ".join(sorted(site))),
 			title=_("House store not open for stock moves yet"),
 		)

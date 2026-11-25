@@ -56,7 +56,7 @@ frappe.ui.form.on("Sidra Construction Job", {
 			);
 		}
 
-		// G41: a store per house; normally made with the Project.
+		// G42: a store per house; normally made with the Project.
 		if (frm.doc.project && !frm.doc.warehouse && frappe.user.has_role("Sidra Project Manager")) {
 			frm.add_custom_button(
 				__("Site store"),

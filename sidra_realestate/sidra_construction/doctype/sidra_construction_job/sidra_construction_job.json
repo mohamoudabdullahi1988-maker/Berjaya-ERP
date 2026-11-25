@@ -92,7 +92,7 @@
    "options": "Warehouse",
    "read_only": 1,
    "no_copy": 1,
-   "description": "This house's ERPNext Warehouse (decision G41)"
+   "description": "This house's ERPNext Warehouse (decision G42)"
   },
   {
    "fieldname": "column_break_main",

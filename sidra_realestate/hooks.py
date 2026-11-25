@@ -86,7 +86,7 @@ doc_events = {
 		"before_submit": "sidra_realestate.services.agreement_invoices.validate_installment_allocation"
 	},
 	"DocShare": {"validate": "sidra_realestate.identity_access.refuse_kyc_share"},
-	# G41: no ledger-posting stock move for a house store until Finance approves the accounts.
+	# G42: no ledger-posting stock move for a house store until Finance approves the accounts.
 	"Stock Entry": {"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"},
 	"Purchase Receipt": {
 		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"

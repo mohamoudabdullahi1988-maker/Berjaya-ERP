@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Decision G41: a store (ERPNext Warehouse) per house; ledger-posting moves wait for Finance."""
+"""Decision G42: a store (ERPNext Warehouse) per house; ledger-posting moves wait for Finance."""
 
 import frappe
 from frappe.tests import IntegrationTestCase
@@ -139,7 +139,7 @@ class TestConstructionStores(IntegrationTestCase):
 				"items": [{"item_code": BRICK, "qty": 10, "basic_rate": 1, "t_warehouse": store}],
 			}
 		)
-		with self.assertRaisesRegex(frappe.ValidationError, "G41"):
+		with self.assertRaisesRegex(frappe.ValidationError, "G42"):
 			refuse_site_stock_move(receipt)
 
 		other = frappe.db.get_value(
