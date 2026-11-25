@@ -24,8 +24,6 @@ from sidra_realestate.tests.helpers import (
 	unique,
 )
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer", "Company", "User", "Sidra Unit", "Sidra Contract Profile"]
-
 QUOTATION = "Sidra Sale Quotation"
 SCHEME = "_T-SEL"
 
