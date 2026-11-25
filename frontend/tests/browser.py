@@ -1012,6 +1012,14 @@ def main():
 		print("PASS 1440px a role the server does not allow KYC gets no KYC screen")
 		page.close()
 
+		page = browser.new_page(viewport={"width": 320, "height": 700})
+		page.add_init_script("window.berjaya_boot = " + json.dumps(BOOT))
+		page.goto(BASE + "/investment")
+		expect(page.get_by_role("link", name="Open ERPNext Desk")).to_be_visible()
+		expect(page.get_by_role("heading", name="Investment", exact=True)).to_be_visible()
+		assert page.evaluate("document.documentElement.scrollWidth <= window.innerWidth")
+		page.close()
+		print("PASS 320px the Desk entry fits in the header")
 		browser.close()
 	print("All browser checks passed.")
 

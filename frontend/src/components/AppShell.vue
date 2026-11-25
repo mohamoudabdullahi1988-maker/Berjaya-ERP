@@ -476,4 +476,7 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 @media (max-width: 390px) {
   .bar__company { display: none; }
 }
+@media (max-width: 360px) {
+  .bar__desk span { display: none; }
+}
 </style>
