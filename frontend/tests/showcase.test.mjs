@@ -1,70 +1,20 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 
-// The sample screens are data (src/showcase/pages.js). These checks keep every drill-down link,
-// table column and chart series consistent, so no tile or chart opens an empty or broken list.
 globalThis.window = { berjaya_boot: { nav: [], lists: {} } }
-const { MODULES } = await import('../src/showcase/pages.js')
-const { DATASETS, filterRows } = await import('../src/showcase/datasets.js')
-const D = await import('../src/showcase/data.js')
+const { MODULES } = await import('../src/showcase/modules.js')
 const { niceScale, donutArcs, datePosition } = await import('../src/showcase/charts.js')
 const { money, pct, date } = await import('../src/showcase/format.js')
 
-function* links(page) {
-  for (const k of page.kpis) yield [k.label, k.to]
-  for (const w of page.widgets) {
-    yield [w.title, w.to]
-    for (const s of w.segments ?? []) yield [`${w.title} / ${s.label}`, s.to]
-    for (const r of w.rows ?? []) yield [`${w.title} / ${r.label}`, r.to]
-    for (const p of w.pins ?? []) yield [`${w.title} / ${p.label}`, p.to]
-    for (const i of w.items ?? []) yield [`${w.title} / ${i.text}`, i.to]
-  }
-}
-const pages = Object.entries(MODULES).flatMap(([m, mod]) => Object.entries(mod.tabs).map(([t, page]) => [`${m}/${t}`, page]))
-
-test('every module has a label, route and a label for each tab', () => {
+test('workspaces declare titles and navigation without figures or sample workflows', () => {
   for (const mod of Object.values(MODULES)) {
     assert.ok(mod.label && mod.route)
-    for (const key of Object.keys(mod.tabs)) assert.ok(mod.tabLabels[key], `${mod.label}: ${key}`)
-  }
-})
-
-test('every sample link opens a list with at least one row', () => {
-  for (const [name, page] of pages) {
-    for (const [label, to] of links(page)) {
-      if (!to?.set) continue
-      const set = DATASETS[to.set]
-      assert.ok(set, `${name} ${label}: no list ${to.set}`)
-      for (const key of Object.keys(to.filter ?? {})) assert.ok(key in set.rows[0], `${name} ${label}: ${to.set} has no field ${key}`)
-      assert.ok(filterRows(set, to.filter).length > 0, `${name} ${label}: ${JSON.stringify(to)} matches no row`)
+    for (const [key, page] of Object.entries(mod.tabs)) {
+      assert.ok(mod.tabLabels[key], `${mod.label}: ${key}`)
+      assert.ok(page.title)
+      assert.deepEqual(Object.keys(page), ['title'])
     }
   }
-})
-
-test('every table names columns its list has, and every page shows a workflow', () => {
-  for (const [name, page] of pages) {
-    assert.ok(page.workflow?.steps?.length, `${name}: no workflow`)
-    for (const w of page.widgets.filter((w) => w.type === 'table')) {
-      for (const key of w.columns) assert.ok(DATASETS[w.set].columns.some((c) => c.key === key), `${name}: ${w.set}.${key}`)
-    }
-    for (const w of page.widgets.filter((w) => w.type === 'bars')) {
-      for (const s of w.series) assert.equal(s.values.length, w.labels.length, `${name} ${w.title} ${s.name}`)
-    }
-  }
-})
-
-test('tile figures agree with the rows behind them', () => {
-  const units = DATASETS.units.rows
-  const total = D.COMMUNITIES.reduce((a, c) => a + c.total, 0)
-  assert.equal(units.length, total)
-  assert.equal(units.filter((u) => u.status === 'Available').length, D.COMMUNITIES.reduce((a, c) => a + c.available, 0))
-  for (const b of D.AGEING) {
-    const rows = filterRows(DATASETS.overdue, { bucket: b.bucket })
-    assert.equal(rows.length, b.contracts)
-    assert.ok(Math.abs(D.sum(rows, 'overdue') - b.amount) <= b.contracts, b.bucket)
-  }
-  assert.equal(DATASETS.leads.rows.length, D.FUNNEL[0][1])
-  for (const deal of D.DEALS) assert.equal(deal.commission, Math.round(deal.price * 0.025))
 })
 
 test('chart geometry', () => {
@@ -88,7 +38,7 @@ test('display formats', () => {
 
 // ---------------------------------------------------------------- live records (G25 step 1)
 const { livePage, LIVE_TABS } = await import('../src/showcase/live.js')
-const sample = MODULES.build.tabs.portfolio
+const pageMeta = MODULES.build.tabs.portfolio
 const LIVE = {
   company: 'Synthetic Homes',
   today: '2026-11-14',
@@ -104,7 +54,7 @@ const LIVE = {
 }
 
 test('live portfolio shows recorded figures only', () => {
-  const page = livePage('portfolio', LIVE, sample)
+  const page = livePage('portfolio', LIVE, pageMeta)
   const tile = (label) => page.kpis.find((k) => k.label === label).value
   assert.equal(tile('Jobs'), 2)
   assert.equal(tile('Active'), 1)
@@ -234,7 +184,7 @@ test('live Executive adds construction and sales, and a failed source says why w
   assert.ok(attention.some((text) => text.includes('SVO-1')))
   assert.ok(attention.some((text) => text.includes('unavailable')))
   assert.equal(page.widgets.at(-1).title, 'Reporting period')
-  assert.ok(page.workflow?.steps?.length) // the usual process; live screens show no state on it
+  assert.equal(page.workflow, undefined)
   const quiet = executiveExtras({ construction: { error: 'x' }, realestate: { error: 'y' } })
   assert.match(quiet.widgets.find((w) => w.title === 'Needs attention').items[0].text, /unavailable/)
   assert.equal(quiet.kpis.length, 0)
@@ -367,10 +317,8 @@ test('additional live sources accept denied groups and reject another Company', 
   assert.equal(validLiveSource({ ...operations, stock: {} }, 'Synthetic Homes', 'operations'), false)
 })
 
-test('CRM dashboard: sample channels, live leads by channel and opportunities, and why a group is missing', async () => {
+test('CRM dashboard: live leads by channel and opportunities, and why a group is missing', async () => {
   assert.equal(MODULES.crm.route, 'crm-hub')
-  const sampleKpi = (label) => MODULES.crm.tabs.overview.kpis.find((k) => k.label === label).value
-  assert.equal(sampleKpi('Leads'), Object.values((await import('../src/showcase/data.js')).LEAD_SOURCES).reduce((a, v) => a + v, 0))
   assert.match(liveMethod('crm', 'overview'), /crm_live.get_crm_live/)
   const data = {
     company: 'Synthetic Homes',

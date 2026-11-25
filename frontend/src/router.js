@@ -44,7 +44,7 @@ const routes = [
   { path: '/reports', name: 'reports', component: () => import('./pages/Reports.vue') },
   { path: '/my-work', name: 'my-work', component: () => import('./pages/WorkQueue.vue') },
   { path: '/', name: 'delivery', component: () => import('./pages/DeliveryDashboard.vue') },
-  // Sample screens for the client demonstration (14 Nov 2026): fictional, labelled data only.
+  // Live business workspaces and the isolated Investment demonstration.
   { path: '/executive', name: 'executive', component: Showcase, meta: { showcase: 'executive' } },
   { path: '/build/:tab?', name: 'construction-hub', component: Showcase, meta: { showcase: 'build' } },
   { path: '/design/:tab?', name: 'design', component: Showcase, meta: { showcase: 'design' } },
@@ -53,7 +53,7 @@ const routes = [
   { path: '/investment', name: 'investment', component: () => import('./pages/Investment.vue') },
   { path: '/brokerage', name: 'brokerage', component: Showcase, meta: { showcase: 'brokerage' } },
   { path: '/finance-overview', name: 'finance-hub', component: Showcase, meta: { showcase: 'finance' } },
-  { path: '/sample/:set', name: 'sample', component: () => import('./pages/SampleList.vue'), meta: { showcase: 'sample' } },
+  { path: '/sample/:set', redirect: { name: 'delivery' } },
   { path: '/dashboard', name: 'dashboard', component: () => import('./pages/Dashboard.vue') },
   { path: '/properties', name: 'properties', component: () => import('./pages/Properties.vue'), meta: { list: 'units', section: 'properties' } },
   { path: '/customers-section', name: 'customers', redirect: () => firstList('customers') },
@@ -87,7 +87,7 @@ const OPEN_TO_ALL = new Set(['investment', 'delivery', 'no-access', 'not-found',
 // server's read permission for that list; any other page needs its section in the navigation.
 router.beforeEach((to) => {
   if (OPEN_TO_ALL.has(to.name)) return true
-  // Sample screens hold no Sidra record, so every staff member who reached /berjaya may see them.
+  // Workspace APIs enforce record access for each report source.
   if (to.meta.showcase) return true
   if (to.meta.list && !canRead(to.meta.list)) return { name: 'no-access' }
   if (to.meta.create && !canCreate(to.meta.list)) return { name: 'no-access' }

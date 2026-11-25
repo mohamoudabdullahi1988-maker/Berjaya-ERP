@@ -1,7 +1,4 @@
-// Live records for the Construction screens (decision G25, step 1): the same tiles and charts as
-// the sample screens, built from `api.construction_live.get_construction_live`. This file only
-// arranges what the server returned; it decides no permission and invents no figure. A group the
-// server marks unavailable is shown with its reason, never as zero.
+// Arrange the live report data returned by the server. An unavailable source keeps its reason.
 import { detailRoute, listRoute } from '../records.js'
 
 export const LIVE_METHOD = '/api/method/sidra_realestate.api.construction_live.get_construction_live'
@@ -224,16 +221,16 @@ function cost(data) {
 const BUILDERS = { portfolio, schedule, cost, variations, quality }
 
 /** A live page for a Construction tab, in the shape pages.js uses (title etc. come from the sample page). */
-export function livePage(tab, data, samplePage) {
+export function livePage(tab, data, pageMeta) {
   const built = BUILDERS[tab](data)
-  return { ...samplePage, subtitle: `Live records for ${data.company}`, kpis: built.kpis, widgets: built.widgets }
+  return { ...pageMeta, subtitle: `Live records for ${data.company}`, kpis: built.kpis, widgets: built.widgets }
 }
 
 
 export const EXECUTIVE_METHOD = '/api/method/sidra_realestate.api.staff_dashboard.get_dashboard'
 
 /** Present the server's counts without substituting sample figures or calculating business totals. */
-export function executivePage(data, samplePage) {
+export function executivePage(data, pageMeta) {
   const summary = data.summary
   const contractPeriod = ({ this_month: 'this month', last_30_days: 'last 30 days', last_90_days: 'last 90 days' })[data.period] || 'reporting period'
   const tiles = [
@@ -262,10 +259,8 @@ export function executivePage(data, samplePage) {
     if (widgets[0].type === 'donut') widgets[0] = { ...widgets[0], span: 4 }
     widgets.splice(widgets.length - 1, 0, ...extra.widgets)
     arrangeExecutiveWidgets(widgets)
-    // The usual process, shown with numbered steps and no state on live records (FlowSteps).
-    return { title: samplePage.title, subtitle: `Live records for ${data.scope.company_name}`, kpis, widgets, workflow: samplePage.workflow }
   }
-  return { title: samplePage.title, subtitle: `Live records for ${data.scope.company_name}`, kpis, widgets }
+  return { title: pageMeta.title, subtitle: `Live records for ${data.scope.company_name}`, kpis, widgets }
 }
 
 /** Pack complete rows before the detailed records; large live cohorts stay inside their cards. */
@@ -298,7 +293,7 @@ export function executiveExtras({ construction, realestate }) {
     else {
       const jobs = c.jobs.rows
       kpis.push({ label: 'Active construction jobs', value: c.jobs.summary?.active_jobs ?? null, kind: 'count', tone: 'sky', to: { name: 'construction' } })
-      kpis.push({ label: 'Overdue construction stages', value: c.jobs.summary?.overdue_stages ?? null, kind: 'count', tone: 'rose', to: { name: 'construction-hub', params: { tab: 'schedule' }, query: { source: 'live' } } })
+      kpis.push({ label: 'Overdue construction stages', value: c.jobs.summary?.overdue_stages ?? null, kind: 'count', tone: 'rose', to: { name: 'construction-hub', params: { tab: 'schedule' } } })
       widgets.push({ type: 'map', title: 'Job sites', span: 6, empty: 'No job has a recorded location yet.',
         pins: jobs.filter((r) => r.point).map((r) => ({ label: jobLabel(r), point: r.point, tone: JOB_TONE[r.status], sub: r.status, to: jobLink(r.name) })) })
       widgets.push({ type: 'table', title: 'Construction jobs', span: 12,
@@ -317,7 +312,7 @@ export function executiveExtras({ construction, realestate }) {
       const open = c.risks.rows.filter((row) => row.status !== 'Closed')
       const high = open.filter((row) => row.rating === 'High').length
       const late = open.filter((row) => row.review_date && row.review_date < c.today).length
-      const risks = { name: 'construction-hub', params: { tab: 'risk' }, query: { source: 'live' } }
+      const risks = { name: 'construction-hub', params: { tab: 'risk' } }
       if (high) attention.push({ tone: 'rose', text: `${high} high ${high === 1 ? 'risk is' : 'risks are'} open`, to: risks })
       if (late) attention.push({ tone: 'amber', text: `${late} ${late === 1 ? 'risk is' : 'risks are'} past ${late === 1 ? 'its' : 'their'} review date`, to: risks })
     }
@@ -453,9 +448,9 @@ function contracts(data) {
 }
 
 const REALESTATE_BUILDERS = { inventory, pipeline, contracts }
-export function realestatePage(tab, data, samplePage) {
+export function realestatePage(tab, data, pageMeta) {
   const built = REALESTATE_BUILDERS[tab](data)
-  return { ...samplePage, subtitle: `Live records for ${data.company}`, kpis: built.kpis, widgets: built.widgets }
+  return { ...pageMeta, subtitle: `Live records for ${data.company}`, kpis: built.kpis, widgets: built.widgets }
 }
 
 // ---------------------------------------------------------------- Finance, Design & Engineering, Subcontractors, Stock (15 Nov 2026)
@@ -670,10 +665,10 @@ function crmOverview(data) {
 const MORE_BUILDERS = { finance: { overview: finance }, crm: { overview: crmOverview }, design: { overview: designOverview, inspection: designInspection }, build: { stock, subcontractors, risk } }
 
 /** The live page for any module and tab other than Executive. */
-export function livePageFor(module, tab, data, samplePage) {
-  if (module === 'realestate') return realestatePage(tab, data, samplePage)
+export function livePageFor(module, tab, data, pageMeta) {
+  if (module === 'realestate') return realestatePage(tab, data, pageMeta)
   const builder = MORE_BUILDERS[module]?.[tab]
-  if (!builder) return livePage(tab, data, samplePage)
+  if (!builder) return livePage(tab, data, pageMeta)
   const built = builder(data)
-  return { ...samplePage, subtitle: `Live records for ${data.company}`, kpis: built.kpis, widgets: built.widgets }
+  return { ...pageMeta, subtitle: `Live records for ${data.company}`, kpis: built.kpis, widgets: built.widgets }
 }

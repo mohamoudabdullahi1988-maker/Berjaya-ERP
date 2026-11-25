@@ -10,9 +10,9 @@ import { LoadingIndicator } from 'frappe-ui'
 import { ApiError, apiGet } from '../api'
 import RecordActions from '../components/RecordActions.vue'
 import StatePanel from '../components/StatePanel.vue'
-import { canRead } from '../boot'
+import { boot, canRead } from '../boot'
 import { JOB_DOCTYPE, jobTone, stageTone } from '../construction'
-import { dateText, dateTimeText, isAmount, money, percentText, textValue } from '../format'
+import { dateText, dateTimeText, deskLink, isAmount, money, percentText, textValue } from '../format'
 
 const route = useRoute()
 const doc = ref(null)
@@ -47,7 +47,6 @@ onBeforeUnmount(() => ++request)
 </script>
 
 <template>
-  <RecordWorkflow :doctype="JOB_DOCTYPE" :name="route.params.name" :reload-key="doc?.modified" />
   <section class="page">
     <nav class="bj-crumb" aria-label="Breadcrumb">
       <RouterLink class="bj-link" :to="{ name: 'construction' }">Construction</RouterLink>
@@ -77,6 +76,8 @@ onBeforeUnmount(() => ++request)
           <p class="bj-sub">{{ textValue(doc.customer) }}</p>
         </div>
         <div class="bj-toolbar">
+          <a v-if="doc.project && boot?.can_open_projects" class="bj-btn" :href="deskLink('Project', doc.project)">Open ERPNext Project</a>
+          <RecordWorkflow :key="doc.name" :doctype="JOB_DOCTYPE" :name="doc.name" :reload-key="doc.modified" />
           <span v-if="doc.service_type" class="bj-pill">{{ doc.service_type }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + jobTone(doc.status)">{{ doc.status || 'Status not recorded' }}</span>
         </div>

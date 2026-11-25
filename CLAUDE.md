@@ -1,6 +1,6 @@
 # CLAUDE.md — Berjaya-ERP
 
-Start with [the 24 Nov 2026 delivery decision and work split](docs/DECISIONS-AND-GATES_v0.3.md). Read [v0.2](docs/DECISIONS-AND-GATES_v0.2.md) for existing decisions and financial gates, plus `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/CLAUDE-CODE-HANDOFF_v2.0.md` and `docs/HANDOVER_v1.0.md` for the underlying requirements and controls.
+Start with [the current workspace decision and work split](docs/DECISIONS-AND-GATES_v0.5.md) and read the [delivery handover](docs/DECISIONS-AND-GATES_v0.3.md). Read [v0.2](docs/DECISIONS-AND-GATES_v0.2.md) for existing decisions and financial gates, plus `docs/SREMS-SRS_v2.0-DRAFT.md`, `docs/CLAUDE-CODE-HANDOFF_v2.0.md` and `docs/HANDOVER_v1.0.md` for the underlying requirements and controls.
 
 ## Project
 - Custom Frappe app `sidra_realestate` on **ERPNext v16 / Frappe v16**, Python 3.14, Node 24, MariaDB 11.8. Pinned patch versions: see `docs/ENVIRONMENT_v0.1.md`.
@@ -43,4 +43,4 @@ bench --site sidra.local export-fixtures --app sidra_realestate
 
 ## Next task
 
-From `develop`, use `feature/construction-erpnext-projects` for the Claude Code package in the [delivery handover](docs/DECISIONS-AND-GATES_v0.3.md). Check for related open PRs and branches before starting.
+From `develop`, use `feature/construction-pilot-projects` for the Claude Code package in the [current work split](docs/DECISIONS-AND-GATES_v0.5.md). Check for related open PRs and branches before starting.

@@ -1,12 +1,12 @@
 # Desk data audit v0.1
 
-25 Nov 2026 · Recorded by Claude Code for Mohamoud. Why some ERPNext Desk modules show no data on the test site (Company **Sidra Homes**, fictional pilot data), and what fills each one.
+25 Nov 2026 · Recorded by Claude Code for Mohamoud. What the fictional pilot loaders populate for Company **Sidra Homes**, and which ERPNext Desk modules have no source records in that dataset. Confirm the deployed version, Company and user permissions on the test site with the read-only audit.
 
 Counts on a site, read only: `bench --site sidra.local execute sidra_realestate.desk_audit.count_records --kwargs "{'company': 'Sidra Homes'}"`.
 
 ## Module by module
 
-| Desk module | What staff see on the test site | Why | Where the data is | Action |
+| Desk module | Expected from the pilot loaders | Why | Where the data is | Action |
 | --- | --- | --- | --- | --- |
 | **Projects** (Project, Task) | Empty | Construction jobs got an ERPNext Project only when someone pressed **Create → Project** (v0.1.65). The pilot loader created 25 jobs but no Projects. | Sidra Construction Job | **Fixed here:** `pilot_projects.create_pilot_projects` gives every pilot job its Project and one Task per stage. Live jobs: Create → Project per job (`docs/CONSTRUCTION-PROJECTS_v0.1.md`). |
 | **Selling** (Quotation, Sales Order, Delivery Note) | Empty | Real-estate sales are Sidra records, by design since the SRS: they carry units, contract profiles, schedules and title rules ERPNext's Selling records do not. Nothing creates an ERPNext Quotation or Sales Order. | Sidra Sale Quotation, Sidra Reservation, Sidra Sale Contract, Sidra Title Transfer (module *Sidra Sales*) | **Decision for Mohamoud** (below). |
