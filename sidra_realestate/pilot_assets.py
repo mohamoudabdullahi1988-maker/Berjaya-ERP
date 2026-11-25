@@ -1,11 +1,11 @@
-"""Fictional company assets for the test site's Assets module (decision G40, 25 Nov 2026).
+"""Fictional company assets for the test site's Assets module (decision G41, 25 Nov 2026).
 
 On top of the pilot dataset (`pilot_demo.py`, G16), this loader once adds clearly marked demo
 accounts for fixed assets and depreciation under the pilot's own demo account groups, sets up the
 asset categories with them (`services/assets.setup_asset_categories`) and records eight fictional
 existing assets (two per category) at two locations. Assets are submitted as existing assets with a
 straight-line schedule; that posts nothing, and no depreciation entry can be posted until Finance
-approves (G40). The guards are the pilot's: Administrator only, the three staging flags, the pilot's
+approves (G41). The guards are the pilot's: Administrator only, the three staging flags, the pilot's
 manifest must exist, one transaction with full rollback, a private manifest of its own, and a rerun
 that changes nothing.
 

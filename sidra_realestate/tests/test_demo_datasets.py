@@ -60,4 +60,4 @@ class TestDemo6Projects(PilotProjectsChecks, IntegrationTestCase):
 
 
 class TestDemo7Assets(PilotAssetsChecks, IntegrationTestCase):
-	"""Fictional company assets (G40) need the pilot's demo account groups."""
+	"""Fictional company assets (G41) need the pilot's demo account groups."""

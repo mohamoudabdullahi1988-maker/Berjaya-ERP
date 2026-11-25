@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""G40: asset categories take Finance's accounts; no depreciation entry before Finance approves."""
+"""G41: asset categories take Finance's accounts; no depreciation entry before Finance approves."""
 
 from unittest.mock import patch
 
@@ -23,7 +23,7 @@ class TestAssets(IntegrationTestCase):
 
 	def test_depreciation_entries_wait_for_finance(self):
 		entry = frappe._dict(voucher_type="Depreciation Entry")
-		with patch.dict(frappe.conf, {APPROVED: 0}), self.assertRaisesRegex(frappe.ValidationError, "G40"):
+		with patch.dict(frappe.conf, {APPROVED: 0}), self.assertRaisesRegex(frappe.ValidationError, "G41"):
 			refuse_depreciation_entry(entry)
 		with patch.dict(frappe.conf, {APPROVED: 1}):
 			refuse_depreciation_entry(entry)

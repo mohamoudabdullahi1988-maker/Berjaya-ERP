@@ -1,6 +1,6 @@
 # Company assets in ERPNext Assets v0.1
 
-25 Nov 2026 · Implements decision G40 (`docs/DECISIONS-AND-GATES_v0.3.md`). Recorded by Claude Code.
+25 Nov 2026 · Implements decision G41 (`docs/DECISIONS-AND-GATES_v0.3.md`). Recorded by Claude Code.
 
 ## Proposed for Finance's approval
 

@@ -1,4 +1,4 @@
-"""Fictional company assets (G40) on the disposable CI site.
+"""Fictional company assets (G41) on the disposable CI site.
 
 Run by `test_demo_datasets.TestDemo7Assets`, after the pilot dataset is loaded.
 """

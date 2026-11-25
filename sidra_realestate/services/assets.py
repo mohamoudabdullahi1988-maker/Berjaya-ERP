@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Decision G40: Sidra's own assets in ERPNext Assets, straight-line, nothing posted yet.
+"""Decision G41: Sidra's own assets in ERPNext Assets, straight-line, nothing posted yet.
 
 - Four asset categories with **straight-line** depreciation at the proposed useful lives (yearly):
   Vehicles 5 years, Plant and equipment 8, Office equipment 5, IT equipment 3. Each has a
@@ -46,7 +46,7 @@ def refuse_depreciation_entry(doc, method=None):
 		frappe.throw(
 			_(
 				"Depreciation is not posted until Finance approves the method, useful lives and "
-				"accounts (decision G40)"
+				"accounts (decision G41)"
 			),
 			title=_("Depreciation not approved yet"),
 		)
