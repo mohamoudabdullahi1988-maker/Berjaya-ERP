@@ -36,8 +36,9 @@ from sidra_realestate.tests.helpers import (
 
 IGNORE_TEST_RECORD_DEPENDENCIES = ["Sidra Unit", "Customer", "Company", "Sidra Contract Profile", "User"]
 
+# Confirmation posts nothing. A Sales Order is not a ledger record: since G40 (25 Nov 2026) a confirmed
+# contract gets exactly one as its ERPNext Selling copy, checked where a contract is registered.
 LEDGER_DOCTYPES = (
-	"Sales Order",
 	"Sales Invoice",
 	"Payment Entry",
 	"Journal Entry",
@@ -151,6 +152,10 @@ class TestContractCapture(IntegrationTestCase):
 				("Under Contract", doc.name),
 			)
 		self.assertEqual({dt: frappe.db.count(dt) for dt in LEDGER_DOCTYPES}, before)
+		copies = frappe.get_all(
+			"Sales Order", filters={"sidra_sale_contract": doc.name, "docstatus": 1}, fields=["grand_total"]
+		)
+		self.assertEqual([row.grand_total for row in copies], [confirmed.agreed_price])  # G40
 
 	# ------------------------------------------------------------ propose_schedule (CC-06)
 	def test_propose_schedule_only_when_asked(self):
