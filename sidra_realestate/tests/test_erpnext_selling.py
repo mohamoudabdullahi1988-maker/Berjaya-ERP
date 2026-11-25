@@ -46,14 +46,17 @@ class TestERPNextSelling(IntegrationTestCase):
 					"units": [{"unit": u, "installment_price": price} for u, price in units],
 				}
 			).insert()
-		with as_user(SALES_MANAGER):
+		with as_user(SALES_USER):  # as the quotation tests issue it
 			doc = frappe.get_doc(QUOTATION, doc.name)
 			doc.submit()
 		return doc
 
 	def copy(self, doctype, link, name):
 		names = frappe.get_all(doctype, filters={link: name, "docstatus": 1}, pluck="name")
-		self.assertEqual(len(names), 1, f"{doctype} copies of {name}")
+		notes = frappe.get_all(
+			"Comment", filters={"reference_name": name, "comment_type": "Info"}, pluck="content"
+		)
+		self.assertEqual(len(names), 1, f"{doctype} copies of {name}; notes: {notes}")
 		return frappe.get_doc(doctype, names[0])
 
 	def test_setup_items(self):
