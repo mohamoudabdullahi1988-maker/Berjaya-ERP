@@ -14,6 +14,10 @@
 
 Task fields copied from the stage: subject (`<n>. <stage name>`, as recorded; no labels are invented), expected start and end (planned dates), actual start and end, progress (completion %), and status (Planned → Open, In Progress → Working, Completed → Completed, removed stage → Cancelled). The Project's % complete uses **Task Progress**, the simple average of stage completion (G30). The Project's expected dates span the contract and stage dates and widen when a stage moves outside them, because ERPNext refuses Task dates outside its Project.
 
+## Site store per house (G41, 25 Nov 2026)
+
+Each job also gets its own ERPNext **Warehouse** (job field *Site store*; Warehouse field `sidra_construction_job`) under the Company's *Construction sites* group, made with its Project. Material Requests to it work now. Ledger-posting stock moves into or out of it are refused until Finance approves the stock accounts. Jobs that already have a Project: Create → Site store, or `bench --site <site> execute sidra_realestate.services.construction_stores.backfill_site_stores`.
+
 ## Rules
 
 - **The job stays the record.** Contract terms, Billing % milestones, certification and their controls (G11) live on the job. Tasks mirror the job one way, on every save of the job. An edit made on a Task in Desk is overwritten at the job's next save.

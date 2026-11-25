@@ -20,6 +20,7 @@ from frappe.utils import flt, getdate, today
 
 from sidra_realestate.services.construction import CLOSED_STATUSES
 from sidra_realestate.services.construction_jobs import lock_job
+from sidra_realestate.services.construction_stores import make_store
 
 JOB = "Sidra Construction Job"
 
@@ -150,9 +151,16 @@ def create_project(job: str):
 		frappe.get_doc({"doctype": "Task", **task_values(doc, row, project.name)}).insert()
 
 	doc.project = project.name
+	if not doc.get("warehouse"):
+		doc.warehouse = make_store(doc)  # G41: the house store comes with its Project
 	doc.save()
-	doc.add_comment("Info", _("ERPNext Project {0} created with one Task per stage").format(project.name))
-	return {"project": project.name}
+	doc.add_comment(
+		"Info",
+		_("ERPNext Project {0} created with one Task per stage; site store {1}").format(
+			project.name, doc.warehouse
+		),
+	)
+	return {"project": project.name, "warehouse": doc.warehouse}
 
 
 def sync_tasks(doc):

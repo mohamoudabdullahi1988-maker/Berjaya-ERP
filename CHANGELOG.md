@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.72 — 25 Nov 2026
+
+- A store per house (decision G41): "Create → Project" on a construction job now also creates the house's ERPNext Warehouse under the Company's *Construction sites* group, linked both ways; "Create → Site store" does it for a job that already has a Project, and `backfill_site_stores` for all such jobs. Material Requests to a house store work now. Stock moves that post to the ledger (Stock Entry, Purchase Receipt, Delivery Note, Stock Reconciliation, invoices that update stock) into or out of a house store are refused until Finance approves the stock accounts.
+
 ## 0.1.70 — 25 Nov 2026
 
 - Use live report sources in the shared Berjaya workspaces and isolate fictional funding data in Investment.
