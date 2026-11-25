@@ -1,12 +1,10 @@
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, toRef, watch } from 'vue'
+import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 
 import { boot, canOpen, canRead, navItems } from '../boot'
 import { PRODUCT_NAME } from '../brand'
-import { panel } from '../panel'
 import { RECORDS, listRoute } from '../records'
-import { DATASETS } from '../showcase/datasets'
 
 const ICONS = {
   customers: 'lucide-users',
@@ -25,7 +23,6 @@ const SHARED = ['customers', 'finance', 'setup']
 // CRM and Finance open their dashboards, for the users the server already shows Finance to; the
 // live ledger screen is one click away from it.
 const SHARED_ROUTE = { customers: { key: 'crm-hub', also: ['customers'] }, finance: { key: 'finance-hub', also: ['finance', 'cashbook'] } }
-const SET_LINE = { build: 'construction-hub', design: 'construction-hub', realestate: 'realestate', crm: 'crm-hub', brokerage: 'realestate', finance: 'finance-hub' }
 
 // Each business line's sub-menu (Mohamoud, 15 Nov 2026): its dashboard, then the record screens
 // of its transactions. A record list shows only when the server lets this user read it; a page of
@@ -54,7 +51,6 @@ const items = [
 const route = useRoute()
 // The menu item of the page on screen; its list and record pages keep it highlighted.
 const activeSection = computed(() => {
-  if (route.name === 'sample') return SET_LINE[DATASETS[route.params.set]?.section] ?? null
   const line = RECORDS[route.meta.list]?.navLine // a list shown under another line (design jobs)
   const section = line ?? route.meta.section ?? route.name
   return items.find((item) => item.key === section || item.also.includes(section))?.key ?? section
@@ -62,14 +58,12 @@ const activeSection = computed(() => {
 
 const navCollapsed = ref(false) // desktop: icon-only rail
 const navDrawer = ref(false) // phone: slide-over
-const panelOpen = toRef(panel, 'open') // desktop: column; phone: slide-over. Pages open it (panel.js).
 
-function closeDrawers() {
+function closeNavigation() {
   navDrawer.value = false
-  if (window.matchMedia('(max-width: 1099px)').matches) panelOpen.value = false
 }
 function onKey(event) {
-  if (event.key === 'Escape') closeDrawers()
+  if (event.key === 'Escape') closeNavigation()
 }
 
 watch(() => route.fullPath, () => (navDrawer.value = false))
@@ -78,8 +72,8 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
 </script>
 
 <template>
-  <div class="shell" :class="{ 'shell--rail': navCollapsed, 'shell--panel': panelOpen }">
-    <div v-if="navDrawer || panelOpen" class="scrim" @click="closeDrawers" />
+  <div class="shell" :class="{ 'shell--rail': navCollapsed }">
+    <div v-if="navDrawer" class="scrim" @click="closeNavigation" />
 
     <aside class="nav" :class="{ 'nav--open': navDrawer }" aria-label="Main navigation">
       <div class="nav__brand">
@@ -143,39 +137,19 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
         </button>
         <span class="bar__wordmark">{{ PRODUCT_NAME }}</span>
         <span class="bar__spacer" />
+        <a class="bar__desk" href="/desk" aria-label="Open ERPNext Desk"><span class="lucide-external-link" aria-hidden="true" />ERPNext Desk</a>
         <RouterLink class="bar__btn" :to="{name: 'global-search'}" aria-label="Search all modules" title="Search all modules"><span class="lucide-search" aria-hidden="true" /></RouterLink>
         <RouterLink class="bar__btn" :to="{ name: 'my-work' }" title="Tasks and notifications" aria-label="My work"><span class="lucide-bell" aria-hidden="true" /></RouterLink>
         <a class="bar__btn" href="/api/method/logout" title="Sign out" aria-label="Sign out"><span class="lucide-log-out" aria-hidden="true" /></a>
         <!-- The company using Berjaya (decision G19): its own logo, supplied by the server. -->
         <img v-if="boot.company_logo" :src="boot.company_logo" :alt="boot.company || 'Company'" :title="boot.company || undefined" class="bar__company" />
         <span class="bar__user" :title="boot.user.name">{{ boot.user.full_name }}</span>
-        <button
-          v-if="panel.inUse"
-          type="button"
-          class="bar__btn"
-          :aria-label="panelOpen ? 'Close workflow' : 'Open workflow'"
-          :aria-expanded="panelOpen"
-          @click="panelOpen = !panelOpen"
-        >
-          <span class="workflow-label">Workflow</span>
-          <span :class="panelOpen ? 'lucide-panel-right-close' : 'lucide-panel-right-open'" aria-hidden="true" />
-        </button>
       </header>
       <main class="work__main">
         <slot />
       </main>
     </div>
 
-    <aside class="panel" :class="{ 'panel--open': panelOpen }" aria-label="Side panel" :aria-hidden="!panelOpen">
-      <div class="panel__head">
-        <span class="bj-heading">Workflow</span>
-        <button type="button" class="bar__btn" aria-label="Close side panel" @click="panelOpen = false">
-          <span class="lucide-x" aria-hidden="true" />
-        </button>
-      </div>
-      <!-- A page teleports its workflow panel here (ContractDetail.vue). -->
-      <div id="berjaya-panel" class="panel__body" />
-    </aside>
   </div>
 </template>
 
@@ -428,72 +402,10 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
   overflow: auto;
 }
 
-/* ---- right panel ---- */
-.panel {
-  flex: none;
-  width: 0;
-  overflow: hidden;
-  background: var(--bj-card);
-  border-left: 0 solid var(--bj-line);
-  display: flex;
-  flex-direction: column;
-  transition: width 0.16s ease;
-  visibility: hidden;
-}
-.panel--open {
-  width: var(--bj-panel-width);
-  border-left-width: 1px;
-  visibility: visible;
-}
-.panel__head {
-  flex: none;
-  height: 56px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px 0 16px;
-  border-bottom: 1px solid var(--bj-line);
-  font-size: 15px;
-  font-weight: 600;
-  min-width: var(--bj-panel-width);
-}
-.panel__body {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
-  min-width: var(--bj-panel-width);
-}
+/* ---- phone navigation drawer ---- */
+.scrim { display: none; }
 
-.panel__body:empty::before {
-  content: 'Nothing to show for this page yet.';
-  display: block;
-  padding: 16px;
-  font-size: 13px;
-  color: var(--bj-muted);
-}
-
-.scrim {
-  display: none;
-}
-
-/* ---- below 1100px the right panel is a drawer ---- */
-@media (max-width: 1099px) {
-  .panel {
-    position: fixed;
-    inset: 0 0 0 auto;
-    z-index: 40;
-    width: min(var(--bj-panel-width), 88vw);
-    border-left-width: 1px;
-    transform: translateX(100%);
-    transition: transform 0.18s ease, visibility 0.18s;
-  }
-  .panel--open {
-    transform: none;
-  }
-  .panel__head,
-  .panel__body {
-    min-width: 0;
-  }
+@media (max-width: 799px) {
   .scrim {
     display: block;
     position: fixed;
@@ -501,10 +413,6 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     z-index: 30;
     background: rgb(31 35 38 / 0.45);
   }
-}
-
-/* ---- phone: navigation is a drawer too ---- */
-@media (max-width: 799px) {
   .nav,
   .shell--rail .nav {
     position: fixed;
@@ -544,21 +452,28 @@ onBeforeUnmount(() => window.removeEventListener('keydown', onKey))
     display: inline;
   }
 }
-@media (min-width: 1100px) {
-  .scrim {
-    display: none;
-  }
+.bar__desk {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 36px;
+  flex: none;
+  padding: 0 8px;
+  border: 1px solid var(--bj-line);
+  border-radius: 8px;
+  color: var(--bj-ink);
+  font-size: 13px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
 }
-</style>
-
-<style scoped>
-.bar__btn:has(.workflow-label) { display: flex; gap: 8px; padding: 8px; }
-.bar__btn > .workflow-label { width: auto; height: auto; }
-</style>
-
-<style scoped>
+.bar__desk:hover { border-color: var(--bj-terracotta); color: var(--bj-terracotta); }
+.bar__desk span { width: 15px; height: 15px; }
 @media (max-width: 600px) {
-  .bar__user, .bar__wordmark, .bar__btn > .workflow-label { display: none; }
+  .bar__user, .bar__wordmark { display: none; }
   .bar { gap: 4px; padding: 0 8px; }
+}
+@media (max-width: 390px) {
+  .bar__company { display: none; }
 }
 </style>

@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.1.69 — 25 Nov 2026
+
+- Use live report sources in the shared Berjaya workspaces and isolate fictional funding data in Investment.
+- Open workflow in a window on saved transactions and provide an ERPNext Desk link in the shared header.
+- Link mapped construction jobs directly to their native ERPNext Project for users with Projects access.
+
 ## Deploy scripts — 25 Nov 2026
 
 - `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).

@@ -1,7 +1,7 @@
 <script setup>
 import { formatValue } from '../format'
 
-// Draws sample rows; `kind` only chooses the look of a value.
+// Draws the report rows; `kind` only chooses the look of a value.
 defineProps({ columns: { type: Array, required: true }, rows: { type: Array, required: true } })
 
 const CHIP = {
@@ -19,7 +19,7 @@ const RAG = { G: 'Good', A: 'Watch', R: 'Problem' }
 
 <template>
   <div class="table-wrap">
-    <table class="sample-table">
+    <table class="report-table">
       <thead>
         <tr><th v-for="c in columns" :key="c.key" :class="'k-' + c.kind">{{ c.label }}</th></tr>
       </thead>
@@ -40,7 +40,7 @@ const RAG = { G: 'Good', A: 'Watch', R: 'Problem' }
 
 <style scoped>
 .table-wrap { position: relative; overflow-x: auto; } /* contains the hidden .sr labels, so they scroll with the table and never widen the page */
-.sample-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.report-table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th { position: sticky; top: 0; background: var(--bj-card); padding: 8px 10px; text-align: left; font-size: 11.5px; font-weight: 600; text-transform: uppercase; letter-spacing: 0.03em; color: var(--bj-muted); border-bottom: 1px solid var(--bj-line); white-space: nowrap; }
 td { padding: 8px 10px; border-bottom: 1px solid var(--bj-line); white-space: nowrap; color: var(--bj-ink); }
 tbody tr:nth-child(even) td { background: rgb(244 246 243 / 0.55); }

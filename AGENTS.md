@@ -1,6 +1,6 @@
 # AGENTS.md — Berjaya-ERP
 
-Instructions for Codex and other coding agents in this repository. Start with [the 24 Nov 2026 delivery decision and work split](docs/DECISIONS-AND-GATES_v0.3.md). Codex owns the Berjaya dashboard, reports and transaction shortcuts. Claude Code owns Desk access and ERPNext Projects for Construction.
+Instructions for Codex and other coding agents in this repository. Start with [the current workspace decision and work split](docs/DECISIONS-AND-GATES_v0.5.md) and read the [delivery handover](docs/DECISIONS-AND-GATES_v0.3.md). Codex owns the Berjaya dashboard, reports and transaction shortcuts. Claude Code owns Desk access and ERPNext Projects for Construction.
 
 Follow [CLAUDE.md](CLAUDE.md) for the shared rules and commands. Read [v0.2](docs/DECISIONS-AND-GATES_v0.2.md) for existing decisions and financial gates.
 

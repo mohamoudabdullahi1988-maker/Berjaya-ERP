@@ -21,6 +21,7 @@ OUT = Path(__file__).resolve().parent.parent / ".verify"
 COMPANY = "Synthetic Homes"
 BOOT = {
 	"product_name": "Berjaya",
+	"can_open_projects": True,
 	"user": {"name": "synthetic@example.test", "full_name": "Synthetic Reviewer"},
 	"company": COMPANY,
 	"nav": [
@@ -199,6 +200,7 @@ JOB = {
 	"status": "In Progress",
 	"site_location": "Synthetic Road, Block 4",
 	"plot_number": "SYN-88",
+	"project": "SYN-PROJ-001",
 	"engineer": "engineer@example.test",
 	"contract_quotation": "SCQ-2026-00003",
 	"contract_value": 180000,
@@ -695,6 +697,8 @@ def answer(url):
 		return 200, {"message": {**CALENDAR, "month": query["month"][0]}}
 	if path.endswith("get_dashboard"):
 		return 200, {"message": DASHBOARD}
+	if method in ("construction_live.get_construction_live", "realestate_live.get_realestate_live"):
+		return 403, {"exception": "frappe.exceptions.PermissionError: Not permitted"}
 	if path == "/api/resource/Sidra Sale Contract":
 		rows = list(CONTRACTS.values())
 		term = json.loads(query["or_filters"][0])[0][2].strip("%").lower() if "or_filters" in query else ""
@@ -746,22 +750,24 @@ def contracts(page):
 	expect(page.locator(".bj-table td[data-label=Source]", has_text="Generated from profile")).to_be_visible()
 
 
-def confirmed(page, width):
+def confirmed(page):
 	expect(page.get_by_role("heading", name="SYN-2026-00055")).to_be_visible()
-	if width < 1100:  # the panel is a drawer on a phone, opened from the Workflow button
-		expect(page.get_by_text("stages complete")).not_to_be_visible()
-		page.get_by_role("button", name="Open workflow").click()
+	expect(page.get_by_role("dialog", name="Workflow")).to_have_count(0)
+	page.get_by_role("button", name="Open workflow").click()
+	expect(page.get_by_role("dialog", name="Workflow")).to_be_visible()
 	expect(page.get_by_text("6 of 6 stages complete")).to_be_visible()
 	expect(page.locator(".stage--completed")).to_have_count(6)
 	expect(page.get_by_text("USD 9,200.00").first).to_be_visible()
 	page.get_by_role("button", name="Refresh", exact=True).click()
 	expect(page.get_by_text("6 of 6 stages complete")).to_be_visible()
+	page.keyboard.press("Escape")
+	expect(page.get_by_role("dialog", name="Workflow")).to_have_count(0)
+	expect(page.get_by_role("button", name="Open workflow")).to_be_focused()
 
 
-def blocked(page, width):
+def blocked(page):
 	expect(page.get_by_role("heading", name="SYN-2026-00061")).to_be_visible()
-	if width < 1100:
-		page.get_by_role("button", name="Open workflow").click()
+	page.get_by_role("button", name="Open workflow").click()
 	expect(page.get_by_text("2 of 6 stages complete")).to_be_visible()  # the skipped stage is not counted
 	expect(page.get_by_text("Not verified - informational")).to_be_visible()
 	expect(page.locator(".stage--skipped .lucide-circle-minus")).to_have_count(1)
@@ -769,10 +775,9 @@ def blocked(page, width):
 	expect(page.locator(".flow__spin")).to_have_count(0)  # waiting on a person is not a spinner
 
 
-def generated_contract(page, width):
+def generated_contract(page):
 	expect(page.get_by_role("heading", name="SYN-2026-00070")).to_be_visible()
-	if width < 1100:
-		page.get_by_role("button", name="Open workflow").click()
+	page.get_by_role("button", name="Open workflow").click()
 	expect(page.get_by_text("2 of 2 stages complete")).to_be_visible()
 	expect(page.locator(".stage", has_text="Record created")).to_be_visible()
 	expect(page.locator(".stage", has_text="Submitted")).to_be_visible()
@@ -796,12 +801,12 @@ def construction(page):
 	expect(page.get_by_text("USD 186,500.00")).to_be_visible()
 
 
-def job(page, width):
+def job(page):
 	expect(page.get_by_role("heading", name="SCJ-2026-00007")).to_be_visible()
 	expect(page.get_by_text("1 of 3 stages recorded as completed.")).to_be_visible()
 	expect(page.get_by_text("62.5%")).to_be_visible()
-	if width < 1100:
-		page.get_by_role("button", name="Open workflow").click()
+	expect(page.get_by_role("link", name="Open ERPNext Project")).to_have_attribute("href", "/desk/project/SYN-PROJ-001")
+	page.get_by_role("button", name="Open workflow").click()
 	expect(page.locator(".stage", has_text="Record created")).to_be_visible()
 
 
@@ -826,22 +831,31 @@ def dashboard(page):
 
 
 def executive(page):
-	# The old sample Executive overview remains available from the Executive menu.
 	expect(page.get_by_role("heading", name="Executive overview")).to_be_visible()
-	expect(page.get_by_text("Sample data").first).to_be_visible()
+	expect(page.get_by_role("button", name="Open workflow")).to_have_count(0)
+	expect(page.get_by_text("Sample data", exact=True)).to_have_count(0)
+	expect(page.get_by_role("link", name="Open ERPNext Desk")).to_have_attribute("href", "/desk")
 	expect(page.locator(".nav__item--active", has_text="Executive")).to_have_count(1)
 	for name in ("Construction", "Real Estate", "Investment"):
 		expect(page.locator(".nav__item", has_text=name)).to_have_count(1)
-	page.locator(".kpi", has_text="Active projects").click()
-	expect(page.get_by_role("heading", name="Construction projects")).to_be_visible()
-	expect(page.get_by_text("7 rows")).to_be_visible()
 
 
 def construction_hub(page):
 	expect(page.get_by_role("heading", name="Variation orders")).to_be_visible()
 	expect(page.locator(".nav__item--active", has_text="Construction")).to_have_count(1)
-	page.get_by_role("link", name="Awaiting approval").first.click()  # a donut legend entry
-	expect(page.get_by_text("3 rows")).to_be_visible()
+	expect(page.get_by_role("heading", name="Live records could not be loaded")).to_be_visible()
+	expect(page.get_by_role("button", name="Open workflow")).to_have_count(0)
+	expect(page.get_by_role("link", name="Open ERPNext Desk")).to_be_visible()
+
+
+def investment(page):
+	expect(page.get_by_role("heading", name="Investment", exact=True)).to_be_visible()
+	expect(page.get_by_text("Fictional demonstration data", exact=True)).to_be_visible()
+	expect(page.get_by_role("heading", name="Remaining commitments")).to_be_visible()
+	expect(page.get_by_text("USD 60,000.00", exact=True).first).to_be_visible()
+	expect(page.get_by_role("cell", name="Cedar Demo Partners", exact=False)).to_be_visible()
+	expect(page.get_by_role("button", name="Open workflow")).to_have_count(0)
+	expect(page.get_by_role("link", name="Open ERPNext Desk")).to_be_visible()
 
 
 def customers(page):
@@ -929,21 +943,21 @@ def main():
 				width,
 				"contract-confirmed",
 				"/contracts/SYN-2026-00055",
-				lambda pg, w=width: confirmed(pg, w),
+				confirmed,
 			)
 			check(
 				page,
 				width,
 				"contract-blocked",
 				"/contracts/SYN-2026-00061",
-				lambda pg, w=width: blocked(pg, w),
+				blocked,
 			)
 			check(
 				page,
 				width,
 				"contract-generated",
 				"/contracts/SYN-2026-00070",
-				lambda pg, w=width: generated_contract(pg, w),
+				generated_contract,
 			)
 			check(page, width, "contract-denied", "/contracts/SYN-DENIED", denied)
 			check(page, width, "collections", "/collections", collections)
@@ -953,12 +967,13 @@ def main():
 				width,
 				"construction-job",
 				"/construction/SCJ-2026-00007",
-				lambda pg, w=width: job(pg, w),
+				job,
 			)
 			check(page, width, "finance", "/finance", finance)
 			check(page, width, "dashboard", "/dashboard", dashboard)
 			check(page, width, "executive", "/executive", executive)
 			check(page, width, "construction-hub", "/build/variations", construction_hub)
+			check(page, width, "investment", "/investment", investment)
 			check(page, width, "customers", "/customers", customers)
 			check(page, width, "kyc", "/customers/kyc/Synthetic%20Buyer%20One", kyc)
 			check(page, width, "sales", "/sales", sales)
