@@ -15,6 +15,10 @@ Use native ERPNext **Project** and **Task** as the foundation for managing const
 
 Siham reported that stage certification leads Finance to update project cost reporting and check whether a customer or contractor payment is due. Finance looks at the site supervisor's report and the signed agreement's dates or milestones before processing a stage-dependent payment. Keep that review distinct from stage certification and preserve G11 and current posting gates. Siham described general bookkeeping, separate stores per house, irregular reporting of material usage, and no standard process for tracking investor funds. Standard stage labels and investor-fund treatment remain open.
 
+## G38 · General Manager approval for identity access (25 Nov 2026)
+
+Mohamoud, implementing G32. A **Sidra KYC Access Request** records the approval for one staff member and one buyer's identity record. A Sidra Sales Manager or the General Manager raises it with a reason; only the General Manager approves, refuses (with a reason) or revokes it. On approval the GM sets the last day of access (30 days by default); the person can then read that one record and download its identity documents, which G32 counts as the same approval. They cannot edit or re-share it. Access ends when revoked or, automatically, after its last day. Every other share of a KYC record stays refused, in Desk and in Berjaya. Role permissions on the KYC record are unchanged. The request screens are in Desk; Berjaya can call the same server methods (`approve`, `refuse`, `revoke` in `sidra_kyc_access_request.py`).
+
 ## Sidra feedback and first dashboard scope
 
 Siham selected these three reports in her Finance, Site Inventory and Project Reporting response (21 Nov 2026, Q13):
