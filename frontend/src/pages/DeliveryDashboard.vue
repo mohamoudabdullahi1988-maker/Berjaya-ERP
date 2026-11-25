@@ -4,6 +4,7 @@ import { useRoute } from 'vue-router'
 
 import { apiGet } from '../api'
 import { boot, canOpen, canRead } from '../boot'
+import AgreementAccounting from '../components/AgreementAccounting.vue'
 import CompanyPicker from '../components/CompanyPicker.vue'
 import NativeReports from '../components/NativeReports.vue'
 import { company } from '../company'
@@ -69,7 +70,10 @@ function loadReport(append = false) {
     return request('supplier_payments', { from_date: fromDate.value, to_date: toDate.value }, append)
   }
   if (view.value === 'statement' && typeof route.query.contract === 'string') {
-    return request('contract_statement', { contract: route.query.contract })
+    return request('contract_statement', {
+      contract: route.query.contract,
+      agreement_type: route.query.agreement_type,
+    })
   }
 }
 
@@ -84,7 +88,7 @@ watch([company, view], () => {
   if (company.value) loadReport()
 }, { immediate: true })
 
-watch(() => route.query.contract, () => {
+watch(() => [route.query.contract, route.query.agreement_type], () => {
   if (company.value && view.value === 'statement') loadReport()
 })
 </script>
@@ -131,41 +135,48 @@ watch(() => route.query.contract, () => {
             <input id="agreement-search" v-model.trim="lookup" class="bj-input" type="search" minlength="2" maxlength="100" required @input="reset" />
             <button class="bj-btn" :disabled="busy">Find agreements</button>
           </form>
-          <p v-if="matches && !matches.contracts.length && (view === 'statement' || !matches.jobs.length)" role="status">No matching agreements you can access.</p>
+          <p v-if="matches && !matches.contracts.length && !matches.jobs.length" role="status">No matching agreements you can access.</p>
           <ul v-if="matches" class="matches">
             <li v-for="row in matches.contracts" :key="row.name">
               <div>
                 <RouterLink class="bj-link" :to="{ name: 'contract-detail', params: { name: row.name } }">{{ row.external_reference || row.name }}</RouterLink>
                 <span class="bj-small">{{ row.customer }}</span>
               </div>
-              <RouterLink v-if="view === 'statement'" class="bj-btn" :to="{ name: 'delivery', query: { view: 'statement', contract: row.name } }">View statement</RouterLink>
-              <a v-else-if="matches.can_open_payments && row.customer" class="bj-btn" :href="paymentLink(row.customer)">Open payment entries</a>
+              <div class="bj-toolbar">
+                <RouterLink class="bj-btn" :to="{ name: 'delivery', query: { view: 'statement', contract: row.name } }">View statement</RouterLink>
+                <a v-if="view === 'payment' && matches.can_open_payments && row.customer" class="bj-btn" :href="paymentLink(row.customer)">Open payment entries</a>
+              </div>
             </li>
-            <template v-if="view === 'payment'">
-              <li v-for="row in matches.jobs" :key="row.name">
+            <li v-for="row in matches.jobs" :key="row.name">
                 <div>
                   <RouterLink class="bj-link" :to="{ name: 'construction-detail', params: { name: row.name } }">{{ row.name }}</RouterLink>
                   <span class="bj-small">{{ row.customer }}</span>
                 </div>
-                <a v-if="matches.can_open_payments && row.customer" class="bj-btn" :href="paymentLink(row.customer)">Open payment entries</a>
-              </li>
-            </template>
+                <div class="bj-toolbar">
+                  <RouterLink class="bj-btn" :to="{ name: 'delivery', query: { view: 'statement', contract: row.name, agreement_type: 'construction' } }">View statement</RouterLink>
+                  <a v-if="view === 'payment' && matches.can_open_payments && row.customer" class="bj-btn" :href="paymentLink(row.customer)">Open payment entries</a>
+                </div>
+            </li>
           </ul>
           <p v-if="view === 'payment'" class="bj-muted">In ERPNext, verify the invoice against the selected agreement before recording or allocating a payment.</p>
         </template>
 
         <template v-if="view === 'statement' && result">
           <h3>{{ result.contract }}</h3>
-          <p>{{ result.customer }} · Signed {{ dateText(result.signed_on) }}</p>
-          <p>Agreed price <strong>{{ money(result.agreed_price, result.currency) }}</strong> · Scheduled total <strong>{{ money(result.schedule_total, result.currency) }}</strong></p>
-          <p class="bj-note">Contract receipts and remaining balance are unavailable until an approved ERPNext invoice link exists.</p>
+          <p>{{ result.customer }}<span v-if="result.signed_on"> · Signed {{ dateText(result.signed_on) }}</span></p>
+          <p>
+            {{ result.agreement_type === 'construction' ? 'Current contract value' : 'Agreed price' }}
+            <strong>{{ money(result.agreed_price, result.currency) }}</strong>
+            <span v-if="result.schedule_total != null"> · Scheduled total <strong>{{ money(result.schedule_total, result.currency) }}</strong></span>
+          </p>
           <div v-if="result.schedule.length" class="bj-table-wrap">
             <table class="bj-table">
               <thead><tr><th scope="col">Due date</th><th scope="col">Type</th><th scope="col" class="bj-right">Scheduled amount</th></tr></thead>
               <tbody><tr v-for="(row, index) in result.schedule" :key="index"><td>{{ dateText(row.due_date) }}</td><td>{{ row.type }}</td><td class="bj-right">{{ money(row.amount, result.currency) }}</td></tr></tbody>
             </table>
           </div>
-          <p v-else>No installment schedule is recorded for this contract.</p>
+          <p v-else-if="result.agreement_type !== 'construction'">No installment schedule is recorded for this contract.</p>
+          <AgreementAccounting v-if="result.accounting" :company="company" :statement="result" @verified="loadReport()" />
         </template>
 
         <template v-if="view === 'overdue'">
@@ -173,9 +184,13 @@ watch(() => route.query.contract, () => {
           <p v-if="result" class="bj-muted">As of {{ dateText(result.as_of) }}</p>
           <div v-if="result?.rows.length" class="bj-table-wrap">
             <table class="bj-table">
-              <thead><tr><th scope="col">Invoice</th><th scope="col">Customer</th><th scope="col">Term</th><th scope="col">Due date</th><th scope="col" class="bj-right">Outstanding</th></tr></thead>
+              <thead><tr><th scope="col">Invoice</th><th scope="col">Agreement</th><th scope="col">Customer</th><th scope="col">Term</th><th scope="col">Due date</th><th scope="col" class="bj-right">Outstanding</th></tr></thead>
               <tbody><tr v-for="(row, index) in result.rows" :key="index">
                 <td><a class="bj-link" :href="deskLink('Sales Invoice', row.invoice)">{{ row.invoice }}</a></td>
+                <td>
+                  <RouterLink v-if="row.agreement" class="bj-link" :to="{ name: 'delivery', query: { view: 'statement', contract: row.agreement.name, agreement_type: row.agreement.type } }">{{ row.agreement.name }}</RouterLink>
+                  <span v-else>—</span>
+                </td>
                 <td>{{ row.customer }}</td><td>{{ row.term || '—' }}</td><td>{{ dateText(row.due_date) }}</td><td class="bj-right">{{ money(row.outstanding, result.currency) }}</td>
               </tr></tbody>
             </table>

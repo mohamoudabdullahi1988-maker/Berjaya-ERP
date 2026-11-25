@@ -80,5 +80,8 @@ app_include_js = ["/assets/sidra_realestate/js/desk_forms.js"]
 # from Desk to Berjaya is gone. Opening Desk must not open buyer identity records (G32): a share of
 # a KYC record is refused wherever it is made, Desk included.
 doc_events = {
+	"Payment Entry": {
+		"before_submit": "sidra_realestate.services.agreement_invoices.validate_installment_allocation"
+	},
 	"DocShare": {"validate": "sidra_realestate.identity_access.refuse_kyc_share"},
 }
