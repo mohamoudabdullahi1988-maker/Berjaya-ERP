@@ -10,6 +10,7 @@ in-memory data. Screenshots are written to frontend/.verify/ (not committed).
 
 import json
 import re
+import shutil
 from pathlib import Path
 from urllib.parse import parse_qs, unquote, urlparse
 
@@ -163,9 +164,16 @@ def timeline(name):
 		"name": name,
 		"status": "Confirmed" if doc["docstatus"] else "Draft",
 	}
-	if name == "SYN-2026-00070":
-		reason = "No workflow is defined yet for this kind of contract."
-		return {"transaction": transaction, "supported": False, "reason": reason, "stages": []}
+	if doc["source"] == "Generated from profile":
+		return {
+			"record": {"doctype": "Sidra Sale Contract", "name": name},
+			"supported": True,
+			"stages": [
+				stage("saved", "Record created", "completed"),
+				stage("submission", "Submitted", "completed"),
+			],
+			"actions": [],
+		}
 	if name == "SYN-2026-00055":
 		stages = [
 			stage(k, label, "completed", responsible="Synthetic Manager", timestamp="2026-01-15 10:30:00")
@@ -630,8 +638,59 @@ def answer(url):
 	path, query = unquote(parsed.path), parse_qs(parsed.query)
 	if path.endswith("frappe.auth.get_logged_user"):
 		return 200, {"message": BOOT["user"]["name"]}
-	if path.endswith("get_contract_timeline"):
-		return 200, {"message": timeline(query["contract"][0])}
+	method = path.removeprefix("/api/method/sidra_realestate.api.")
+	if method == "record_workflow.get_timeline":
+		doctype, name = query["doctype"][0], query["name"][0]
+		if doctype == "Sidra Sale Contract":
+			return 200, {"message": timeline(name)}
+		return 200, {
+			"message": {
+				"supported": True,
+				"record": {"doctype": doctype, "name": name},
+				"stages": [stage("saved", "Record created", "completed")],
+				"actions": [],
+			}
+		}
+	if method == "forms.get_form":
+		doctype, name = query["doctype"][0], query["name"][0]
+		row = next((r for r in RECORDS[doctype] if r["name"] == name), None)
+		if row is None:
+			return 404, {"exception": "frappe.exceptions.DoesNotExistError: not found"}
+		return 200, {
+			"message": {
+				"doctype": doctype,
+				"name": name,
+				"modified": "2026-11-24 09:00:00",
+				"values": row,
+				"actions": [],
+				"permissions": {},
+				"layout": [],
+				"notes": [],
+			}
+		}
+	if path.endswith("frappe.client.get_doc_permissions"):
+		return 200, {"message": {"read": True, "write": False}}
+	read_only_responses = {
+		"record_extras.get_extras": {
+			"attachments": [],
+			"comments": [],
+			"can_attach": False,
+			"can_comment": False,
+		},
+		"record_tools.get_tools": {"tags": [], "shares": [], "assignments": [], "versions": []},
+		"conversations.messages": {"rows": [], "has_more": False, "can_send": False},
+		"activity.timeline": {"rows": [], "has_more": False, "versions_visible": False},
+		"customer_connections.get_connections": {"rows": [], "can_write": False},
+		"locations.get_location": {
+			"latitude": None,
+			"longitude": None,
+			"configured": True,
+			"can_write": False,
+			"links": None,
+		},
+	}
+	if method in read_only_responses:
+		return 200, {"message": read_only_responses[method]}
 	if path.endswith("get_installment_calendar"):
 		return 200, {"message": {**CALENDAR, "month": query["month"][0]}}
 	if path.endswith("get_dashboard"):
@@ -684,7 +743,7 @@ def check(page, width, name, path, assertions):
 def contracts(page):
 	expect(page.get_by_role("link", name="SYN-2026-00055")).to_be_visible()
 	expect(page.get_by_text("SYN-A-014")).to_be_visible()
-	expect(page.get_by_text("Generated from profile")).to_be_visible()
+	expect(page.locator(".bj-table td[data-label=Source]", has_text="Generated from profile")).to_be_visible()
 
 
 def confirmed(page, width):
@@ -695,7 +754,7 @@ def confirmed(page, width):
 	expect(page.get_by_text("6 of 6 stages complete")).to_be_visible()
 	expect(page.locator(".stage--completed")).to_have_count(6)
 	expect(page.get_by_text("USD 9,200.00").first).to_be_visible()
-	page.get_by_role("button", name="Refresh").click()
+	page.get_by_role("button", name="Refresh", exact=True).click()
 	expect(page.get_by_text("6 of 6 stages complete")).to_be_visible()
 
 
@@ -710,12 +769,13 @@ def blocked(page, width):
 	expect(page.locator(".flow__spin")).to_have_count(0)  # waiting on a person is not a spinner
 
 
-def unsupported(page, width):
+def generated_contract(page, width):
 	expect(page.get_by_role("heading", name="SYN-2026-00070")).to_be_visible()
 	if width < 1100:
 		page.get_by_role("button", name="Open workflow").click()
-	expect(page.get_by_text("No workflow is defined yet for this kind of contract.")).to_be_visible()
-	expect(page.locator(".stage")).to_have_count(0)
+	expect(page.get_by_text("2 of 2 stages complete")).to_be_visible()
+	expect(page.locator(".stage", has_text="Record created")).to_be_visible()
+	expect(page.locator(".stage", has_text="Submitted")).to_be_visible()
 
 
 def denied(page):
@@ -727,7 +787,7 @@ def collections(page):
 	expect(page.get_by_role("heading", name="Collections")).to_be_visible()
 	expect(page.get_by_text("USD 6,900.00")).to_be_visible()
 	expect(page.get_by_text("Past due dates are not verified unpaid balances.")).to_be_visible()
-	expect(page.locator("tbody tr")).to_have_count(3)
+	expect(page.locator(".bj-table--stack tbody tr")).to_have_count(3)
 	expect(page.get_by_text("Overdue")).to_have_count(0)
 
 
@@ -736,13 +796,13 @@ def construction(page):
 	expect(page.get_by_text("USD 186,500.00")).to_be_visible()
 
 
-def job(page):
+def job(page, width):
 	expect(page.get_by_role("heading", name="SCJ-2026-00007")).to_be_visible()
 	expect(page.get_by_text("1 of 3 stages recorded as completed.")).to_be_visible()
 	expect(page.get_by_text("62.5%")).to_be_visible()
-	expect(page.get_by_role("button", name=re.compile("workflow"))).to_have_count(
-		0
-	)  # no panel, no dead button
+	if width < 1100:
+		page.get_by_role("button", name="Open workflow").click()
+	expect(page.locator(".stage", has_text="Record created")).to_be_visible()
 
 
 def finance(page):
@@ -786,12 +846,14 @@ def construction_hub(page):
 
 def customers(page):
 	expect(page.get_by_role("heading", name="Customers")).to_be_visible()
-	expect(page.get_by_role("link", name="KYC", exact=True)).to_be_visible()  # section tabs
+	expect(
+		page.get_by_role("navigation", name="Lists in this section").get_by_role(
+			"link", name="KYC", exact=True
+		)
+	).to_be_visible()
 	page.get_by_role("link", name="Synthetic Buyer One").first.click()
 	expect(page.get_by_role("heading", name="Synthetic Buyer One")).to_be_visible()
-	expect(page.get_by_role("link", name="Open in Desk")).to_have_attribute(
-		"href", "/desk/customer/Synthetic%20Buyer%20One"
-	)
+	expect(page.get_by_role("link", name="Edit", exact=True)).to_have_count(0)
 	expect(page.get_by_role("link", name="SYN-2026-00055").first).to_be_visible()  # related contract
 	expect(page.get_by_role("link", name="SRES-2026-00004")).to_be_visible()  # related reservation
 	expect(page.locator(".nav__item--active", has_text="Customers")).to_have_count(1)
@@ -805,8 +867,8 @@ def kyc(page):
 
 def sales(page):
 	expect(page.get_by_role("heading", name="Reservations")).to_be_visible()  # /sales opens its first list
-	expect(page.get_by_role("link", name="New in Desk")).to_have_attribute(
-		"href", "/desk/sidra-reservation/new"
+	expect(page.get_by_role("link", name="New", exact=True)).to_have_attribute(
+		"href", "/berjaya/sales/reservations/new"
 	)
 	page.get_by_role("link", name="SRES-2026-00009").click()
 	expect(page.get_by_role("heading", name="SRES-2026-00009")).to_be_visible()
@@ -816,16 +878,16 @@ def sales(page):
 def quotation(page):
 	expect(page.get_by_role("heading", name="SSQ-2026-00002")).to_be_visible()
 	expect(page.get_by_text("USD 10,000.00").first).to_be_visible()
-	expect(page.locator("tbody tr")).to_have_count(5)  # 1 unit row + 4 schedule rows
-	expect(page.get_by_role("link", name="New in Desk")).to_have_count(
-		0
-	)  # detail pages offer Open in Desk only
+	expect(page.locator(".bj-table--stack tbody tr")).to_have_count(5)  # 1 unit row + 4 schedule rows
+	expect(page.get_by_role("link", name="New", exact=True)).to_have_count(0)
 
 
 def titles(page):
 	expect(page.get_by_role("heading", name="Title transfers")).to_be_visible()
-	expect(page.get_by_text("Awaiting Final Payment")).to_be_visible()
-	expect(page.get_by_role("link", name="New in Desk")).to_have_count(0)  # no create permission in the boot
+	expect(page.locator(".bj-table--stack").get_by_text("Awaiting Final Payment", exact=True)).to_be_visible()
+	expect(page.get_by_role("link", name="New", exact=True)).to_have_count(
+		0
+	)  # no create permission in the boot
 
 
 def inspection(page):
@@ -836,16 +898,20 @@ def inspection(page):
 
 
 def construction_tabs(page):
+	tabs = page.get_by_role("navigation", name="Lists in this section")
 	for name in ("Jobs", "Quotations", "BOQ revisions", "Variations", "Inspections"):
-		expect(page.get_by_role("link", name=name, exact=True)).to_be_visible()
-	page.get_by_role("link", name="BOQ revisions", exact=True).click()
+		expect(tabs.get_by_role("link", name=name, exact=True)).to_be_visible()
+	tabs.get_by_role("link", name="BOQ revisions", exact=True).click()
 	expect(page.get_by_text("USD 6,500.00")).to_be_visible()
 
 
 def main():
 	OUT.mkdir(exist_ok=True)
 	with sync_playwright() as p:
-		browser = p.chromium.launch(headless=True)
+		browser = p.chromium.launch(
+			executable_path=shutil.which("chromium") or shutil.which("google-chrome"),
+			headless=True,
+		)
 		for width in (1440, 390):
 			page = browser.new_page(viewport={"width": width, "height": 900})
 			errors = []
@@ -875,14 +941,20 @@ def main():
 			check(
 				page,
 				width,
-				"contract-no-workflow",
+				"contract-generated",
 				"/contracts/SYN-2026-00070",
-				lambda pg, w=width: unsupported(pg, w),
+				lambda pg, w=width: generated_contract(pg, w),
 			)
 			check(page, width, "contract-denied", "/contracts/SYN-DENIED", denied)
 			check(page, width, "collections", "/collections", collections)
 			check(page, width, "construction", "/construction", construction)
-			check(page, width, "construction-job", "/construction/SCJ-2026-00007", job)
+			check(
+				page,
+				width,
+				"construction-job",
+				"/construction/SCJ-2026-00007",
+				lambda pg, w=width: job(pg, w),
+			)
 			check(page, width, "finance", "/finance", finance)
 			check(page, width, "dashboard", "/dashboard", dashboard)
 			check(page, width, "executive", "/executive", executive)

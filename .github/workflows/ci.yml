@@ -38,6 +38,7 @@ jobs:
             curl -sf http://127.0.0.1:8080/berjaya >/dev/null && break
             sleep 1
           done
+          python frontend/tests/browser.py
           python frontend/tests/record_operations_browser.py
   lint:
     name: Lint and pure tests
