@@ -1,0 +1,339 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 20:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "index_web_pages_for_search": 0,
+ "links": [],
+ "modified": "2026-11-12 20:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Sales",
+ "owner": "Administrator",
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": [],
+ "autoname": "naming_series:",
+ "naming_rule": "By \"Naming Series\" field",
+ "field_order": [
+  "naming_series",
+  "customer",
+  "company",
+  "currency",
+  "column_break_head",
+  "status",
+  "quotation_date",
+  "valid_until",
+  "section_units",
+  "units",
+  "section_cash",
+  "listed_total",
+  "cash_total",
+  "column_break_cash",
+  "discount_amount",
+  "discount_approval",
+  "discount_approved_by",
+  "discount_approved_on",
+  "section_installment",
+  "contract_profile",
+  "installments",
+  "installment_total",
+  "column_break_installment",
+  "down_payment",
+  "balance",
+  "due_day",
+  "grace_months",
+  "section_schedule",
+  "schedule",
+  "section_notes",
+  "notes",
+  "amended_from"
+ ],
+ "fields": [
+  {
+   "fieldname": "naming_series",
+   "fieldtype": "Select",
+   "label": "Series",
+   "options": "SSQ-.YYYY.-",
+   "default": "SSQ-.YYYY.-",
+   "reqd": 1,
+   "hidden": 1
+  },
+  {
+   "fieldname": "customer",
+   "fieldtype": "Link",
+   "label": "Customer",
+   "options": "Customer",
+   "reqd": 1,
+   "in_list_view": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "company",
+   "fieldtype": "Link",
+   "label": "Company",
+   "options": "Company",
+   "read_only": 1,
+   "in_standard_filter": 1
+  },
+  {
+   "fieldname": "currency",
+   "fieldtype": "Link",
+   "label": "Currency",
+   "options": "Currency",
+   "read_only": 1,
+   "print_hide": 1
+  },
+  {
+   "fieldname": "column_break_head",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "status",
+   "fieldtype": "Select",
+   "label": "Status",
+   "options": "Draft\nIssued\nExpired\nCancelled",
+   "default": "Draft",
+   "in_list_view": 1,
+   "in_standard_filter": 1,
+   "allow_on_submit": 1,
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "quotation_date",
+   "fieldtype": "Date",
+   "label": "Quotation Date",
+   "reqd": 1,
+   "default": "Today",
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "valid_until",
+   "fieldtype": "Date",
+   "label": "Valid Until",
+   "description": "7 days from the quotation date unless changed. A quotation does not reserve the plot."
+  },
+  {
+   "fieldname": "section_units",
+   "fieldtype": "Section Break",
+   "label": "Units and Prices"
+  },
+  {
+   "fieldname": "units",
+   "fieldtype": "Table",
+   "label": "Units",
+   "options": "Sidra Quotation Unit",
+   "reqd": 1
+  },
+  {
+   "fieldname": "section_cash",
+   "fieldtype": "Section Break",
+   "label": "Cash Option"
+  },
+  {
+   "fieldname": "listed_total",
+   "fieldtype": "Currency",
+   "label": "Listed Price Total",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "cash_total",
+   "fieldtype": "Currency",
+   "label": "Cash Price Total",
+   "options": "currency",
+   "in_list_view": 1,
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_cash",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "discount_amount",
+   "fieldtype": "Currency",
+   "label": "Discount",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "discount_approval",
+   "fieldtype": "Select",
+   "label": "Discount Approval",
+   "options": "Not Needed\nSidra Sales Manager\nSidra General Manager",
+   "default": "Not Needed",
+   "description": "Up to 5 % of a unit's listed price: Sales Manager. Above 5 %: General Manager.",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "discount_approved_by",
+   "fieldtype": "Link",
+   "label": "Discount Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "discount_approved_on",
+   "fieldtype": "Datetime",
+   "label": "Discount Approved On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_installment",
+   "fieldtype": "Section Break",
+   "label": "Installment Option"
+  },
+  {
+   "fieldname": "contract_profile",
+   "fieldtype": "Link",
+   "label": "Contract Profile",
+   "options": "Sidra Contract Profile",
+   "reqd": 1
+  },
+  {
+   "fieldname": "installments",
+   "fieldtype": "Int",
+   "label": "Number of Installments",
+   "description": "From the profile; can be set from 12 to 36"
+  },
+  {
+   "fieldname": "installment_total",
+   "fieldtype": "Currency",
+   "label": "Installment Price Total",
+   "options": "currency",
+   "in_list_view": 1,
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_installment",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "down_payment",
+   "fieldtype": "Currency",
+   "label": "Down Payment",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "balance",
+   "fieldtype": "Currency",
+   "label": "Balance in Installments",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "due_day",
+   "fieldtype": "Int",
+   "label": "Due Day of Month",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "grace_months",
+   "fieldtype": "Int",
+   "label": "Grace Months",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_schedule",
+   "fieldtype": "Section Break",
+   "label": "Indicative Schedule",
+   "description": "Assumes the contract is signed on the quotation date. The contract's own schedule applies."
+  },
+  {
+   "fieldname": "schedule",
+   "fieldtype": "Table",
+   "label": "Schedule",
+   "options": "Sidra Installment Line",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "section_notes",
+   "fieldtype": "Section Break",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "notes",
+   "fieldtype": "Small Text",
+   "label": "Notes"
+  },
+  {
+   "fieldname": "amended_from",
+   "fieldtype": "Link",
+   "label": "Amended From",
+   "options": "Sidra Sale Quotation",
+   "read_only": 1,
+   "no_copy": 1,
+   "print_hide": 1
+  }
+ ],
+ "is_submittable": 1,
+ "name": "Sidra Sale Quotation",
+ "search_fields": "customer",
+ "track_changes": 1,
+ "permissions": [
+  {
+   "role": "System Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Sidra Sales User",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "share": 1
+  },
+  {
+   "role": "Sidra Sales Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1,
+   "write": 1,
+   "create": 1,
+   "submit": 1,
+   "cancel": 1,
+   "delete": 1,
+   "share": 1
+  },
+  {
+   "role": "Sidra General Manager",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1
+  },
+  {
+   "role": "Sidra Finance Reviewer",
+   "read": 1,
+   "report": 1,
+   "export": 1,
+   "print": 1,
+   "email": 1
+  }
+ ]
+}

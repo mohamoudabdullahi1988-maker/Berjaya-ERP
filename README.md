@@ -1,6 +1,6 @@
-<p align="center"><img src="sidra_realestate/public/images/sidra-logo.png" alt="Sidra Homes" width="320"></p>
+<p align="center"><img src="sidra_realestate/public/images/berjaya-wordmark.png" alt="Berjaya" width="320"></p>
 
-# Sidra Real Estate — ERPNext app (`sidra_realestate`)
+# Berjaya — ERPNext app (`sidra_realestate`)
 
 Custom Frappe app that runs Sidra Homes' business on **ERPNext v16**: land and house sales, Murabaha / installment contracts with configurable contract profiles, title transfer tracking, construction projects (full build, design, inspection) and land brokerage.
 
@@ -10,6 +10,7 @@ Current version: **v0.1.1** (Phase 0 skeleton and handover — no DocTypes yet).
 
 | File | What it is |
 | --- | --- |
+| [Current delivery decision and handover](docs/DECISIONS-AND-GATES_v0.3.md) | Berjaya dashboard, ERPNext Projects and the Claude Code / Codex work split |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for Claude Code |
 | [docs/HANDOVER_v1.0.md](docs/HANDOVER_v1.0.md) | Handover to Claude Code: roles, rules, decisions, plan, acceptance cases, first tasks |
 | [docs/SREMS-SRS_v1.6.md](docs/SREMS-SRS_v1.6.md) | Requirements specification v1.6 (business rules, contract profiles, decisions) |

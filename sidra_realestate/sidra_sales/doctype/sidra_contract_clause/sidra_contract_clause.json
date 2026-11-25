@@ -29,7 +29,8 @@
    "fieldtype": "Data",
    "label": "Title",
    "reqd": 1,
-   "in_list_view": 1
+   "in_list_view": 1,
+   "width": "300px"
   },
   {
    "fieldname": "column_break_status",
@@ -60,7 +61,7 @@
   {
    "fieldname": "section_text",
    "fieldtype": "Section Break",
-   "label": "Wording (SAL-20)"
+   "label": "Wording"
   },
   {
    "fieldname": "text_so",

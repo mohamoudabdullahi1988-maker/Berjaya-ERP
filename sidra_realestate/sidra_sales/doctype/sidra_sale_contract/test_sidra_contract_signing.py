@@ -95,7 +95,13 @@ class TestContractSigning(IntegrationTestCase):
 	def test_bare_draft_can_be_saved_but_not_submitted(self):
 		doc = self.contract(attach=False, notary_name=None, notary_reference=None, parties=[])
 		self.assert_submit_refused(
-			doc, "signed copy", "notary", "notary reference", "one Seller", "Seller Guarantor", "two Witnesses"
+			doc,
+			"signed copy",
+			"notary",
+			"notary reference",
+			"one Seller",
+			"Seller Guarantor",
+			"two Witnesses",
 		)
 
 	def test_signed_copy_must_be_private(self):
@@ -117,7 +123,9 @@ class TestContractSigning(IntegrationTestCase):
 		for parties, fragment in cases:
 			with self.subTest(fragment=fragment, rows=len(parties)):
 				self.assert_submit_refused(self.contract(parties=parties), fragment)
-		self.contract(parties=[seller, guarantor, w1, w2, {**w2, "full_name": "_Test Witness Three"}]).submit()
+		self.contract(
+			parties=[seller, guarantor, w1, w2, {**w2, "full_name": "_Test Witness Three"}]
+		).submit()
 
 	def test_only_guarantor_pledges_property(self):
 		seller, guarantor, w1, w2 = signing_values()["parties"]
@@ -208,7 +216,9 @@ class TestContractSigning(IntegrationTestCase):
 
 	def test_seeded_clauses_have_no_wording_and_are_not_on_profiles(self):
 		for code in ("RESTRICTIONS", "INSOLVENCY", "TITLE-COSTS", "BEACON", "FIRST-RIGHT"):
-			row = frappe.db.get_value("Sidra Contract Clause", code, ["approved", "text_so", "text_en"], as_dict=True)
+			row = frappe.db.get_value(
+				"Sidra Contract Clause", code, ["approved", "text_so", "text_en"], as_dict=True
+			)
 			self.assertEqual((row.approved, row.text_so, row.text_en), (0, None, None))
 		for profile in ("Profile A", "Profile B"):
 			self.assertEqual(frappe.get_doc("Sidra Contract Profile", profile).clauses, [])
@@ -221,8 +231,18 @@ class TestContractSigning(IntegrationTestCase):
 		doc.submit()
 
 		html = frappe.get_print("Sidra Sale Contract", doc.name, print_format="Sidra Sale Contract", doc=doc)
-		for expected in ("Qodobka la doortay.", "The chosen clause.", "_Test Witness Two", "_Test pledged plot 1"):
+		for expected in (
+			"Qodobka la doortay.",
+			"The chosen clause.",
+			"_Test Witness Two",
+			"_Test pledged plot 1",
+			# G19: the letterhead is the company's, not the product's.
+			"sidra-logo.png",
+			'alt="Sidra Homes"',
+		):
 			self.assertIn(expected, html)
+		self.assertNotIn("Berjaya", html)
+		self.assertNotIn("berjaya", html)
 		self.assertNotIn("Qodob kale.", html)
 		self.assertNotIn(other.text_en, html)
 		self.assertNotIn("Draft for signing", html)
@@ -247,7 +267,9 @@ class TestContractSigning(IntegrationTestCase):
 
 		doc = self.contract(profile=self.profile([self.clause(text_en="PDF clause text.")]).name)
 		doc.submit()
-		pdf = frappe.get_print("Sidra Sale Contract", doc.name, print_format="Sidra Sale Contract", as_pdf=True)
+		pdf = frappe.get_print(
+			"Sidra Sale Contract", doc.name, print_format="Sidra Sale Contract", as_pdf=True
+		)
 		self.assertTrue(pdf.startswith(b"%PDF"))
 		text = " ".join(page.extract_text() for page in PdfReader(BytesIO(pdf)).pages)
 		self.assertIn("PDF clause text.", text)
@@ -339,7 +361,9 @@ class TestContractSigning(IntegrationTestCase):
 		b = self.contract(notary_reference="IPN/HL/079/2031")
 		from unittest.mock import patch
 
-		path = "sidra_realestate.sidra_sales.doctype.sidra_sale_contract.sidra_sale_contract.frappe.db.get_value"
+		path = (
+			"sidra_realestate.sidra_sales.doctype.sidra_sale_contract.sidra_sale_contract.frappe.db.get_value"
+		)
 		real = frappe.db.get_value
 
 		def no_duplicate_lookup(doctype, filters=None, *args, **kwargs):

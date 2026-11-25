@@ -13,3 +13,7 @@ site_config.json
 sidra_realestate/public/dist/
 sidra_realestate/docs/current
 dump.rdb
+
+# Berjaya frontend (frontend/): built by `bench build`, never committed.
+sidra_realestate/public/berjaya/
+sidra_realestate/www/berjaya.html

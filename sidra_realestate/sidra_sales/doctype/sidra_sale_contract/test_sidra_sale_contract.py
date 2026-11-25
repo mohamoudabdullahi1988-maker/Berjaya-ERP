@@ -97,7 +97,9 @@ class TestSidraSaleContract(IntegrationTestCase):
 		unit = self.unit()
 		doc = self.contract([(unit, 9000)], profile="Profile B", signed_on="2026-01-15")
 		doc.submit()
-		self.assertEqual((doc.down_payment, doc.balance, doc.installments, doc.grace_months), (3000, 6000, 24, 3))
+		self.assertEqual(
+			(doc.down_payment, doc.balance, doc.installments, doc.grace_months), (3000, 6000, 24, 3)
+		)
 		self.assertEqual(json.loads(doc.terms_snapshot)["title_deadline_days"], 20)
 		self.assertEqual([row.amount for row in doc.schedule], [250] * 24)
 		self.assertEqual(getdate(doc.schedule[0].due_date), date(2026, 4, 10))
@@ -107,7 +109,9 @@ class TestSidraSaleContract(IntegrationTestCase):
 	def test_held_profile_draft_allowed_but_submit_blocked(self):
 		unit = self.unit()
 		doc = self.contract([(unit, 9000)], profile=make_held_profile().name, signed_on="2026-01-15")
-		self.assertEqual((doc.down_payment, doc.balance, doc.installments, doc.grace_months), (3000, 6000, 24, 3))
+		self.assertEqual(
+			(doc.down_payment, doc.balance, doc.installments, doc.grace_months), (3000, 6000, 24, 3)
+		)
 
 		with self.assertRaises(frappe.ValidationError) as caught:
 			doc.submit()
@@ -198,7 +202,10 @@ class TestSidraSaleContract(IntegrationTestCase):
 				"signed_on": "2026-11-05",
 				"contract_profile": "Profile A",
 				"agreed_price": 11000,
-				"units": [{"unit": self.unit(), "allocated_price": 5500}, {"unit": self.unit(), "allocated_price": 5000}],
+				"units": [
+					{"unit": self.unit(), "allocated_price": 5500},
+					{"unit": self.unit(), "allocated_price": 5000},
+				],
 			}
 		)
 		with self.assertRaises(frappe.ValidationError):

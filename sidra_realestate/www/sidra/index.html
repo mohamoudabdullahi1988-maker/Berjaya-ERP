@@ -1,0 +1,106 @@
+<!-- no-cache -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{ brand_name }}</title>
+<link rel="icon" href="{{ favicon }}">
+<link rel="stylesheet" href="/assets/sidra_realestate/shell/shell.css?v={{ asset_version }}">
+</head>
+<body>
+<header class="top">
+	<a class="brand" href="/sidra">
+		<img src="{{ brand_icon }}" alt="" width="36" height="36">
+		<span>{{ brand_name }}</span>
+	</a>
+	<nav class="top-links">
+		<span class="who">{{ full_name }}</span>
+		<a href="{{ all_records }}">{{ _("All records") }}</a>
+		<a href="/?cmd=web_logout">{{ _("Sign out") }}</a>
+	</nav>
+</header>
+
+<main>
+	<h1>{{ _("Where would you like to go?") }}</h1>
+
+	<section class="doors" aria-label="{{ _('Main areas') }}">
+		{% for door in doors %}
+		<a class="door door-{{ door.key }}" href="{{ door.href }}">
+			<span class="door-title">{{ door.title }}</span>
+			<span class="door-summary">{{ door.summary }}</span>
+			{% if door.waiting %}
+			<span class="badge">{{ door.waiting }} {{ _("waiting") }}</span>
+			{% endif %}
+		</a>
+		{% endfor %}
+	</section>
+
+	{% for service in services %}
+	<section class="panel" id="{{ service.key }}">
+		<div class="panel-head">
+			<div>
+				<h2>{{ service.title }}</h2>
+				<p>{{ service.summary }}</p>
+			</div>
+			{% if service.new %}
+			<div class="actions">
+				{% for link in service.new %}
+				<a class="button" href="{{ link.href }}">{{ link.label }}</a>
+				{% endfor %}
+			</div>
+			{% endif %}
+		</div>
+
+		<ol class="flow">
+			{% for step in service.steps %}
+			<li>
+				<a href="{{ step.href }}">
+					<span class="count">{{ step.count }}</span>
+					<span class="label">{{ step.label }}</span>
+					<span class="hint">{{ step.hint }}</span>
+				</a>
+			</li>
+			{% endfor %}
+		</ol>
+
+		{% if service.attention %}
+		<div class="attention">
+			<h3>{{ _("Waiting for action") }}</h3>
+			<ul>
+				{% for row in service.attention %}
+				<li><a href="{{ row.href }}"><strong>{{ row.count }}</strong> {{ row.label }}</a></li>
+				{% endfor %}
+			</ul>
+		</div>
+		{% endif %}
+
+		{% if service.browse %}
+		<p class="browse">
+			{{ _("Browse") }}:
+			{% for link in service.browse %}
+			<a href="{{ link.href }}">{{ link.label }}</a>{% if not loop.last %} · {% endif %}
+			{% endfor %}
+		</p>
+		{% endif %}
+	</section>
+	{% endfor %}
+
+	{% if reports %}
+	<section class="panel" id="financials">
+		<div class="panel-head">
+			<div>
+				<h2>{{ _("Financials") }}</h2>
+				<p>{{ _("Accounting reports. Choose the Company and dates inside each report.") }}</p>
+			</div>
+		</div>
+		<ul class="reports">
+			{% for report in reports %}
+			<li><a href="{{ report.href }}">{{ report.label }}</a></li>
+			{% endfor %}
+		</ul>
+	</section>
+	{% endif %}
+</main>
+</body>
+</html>

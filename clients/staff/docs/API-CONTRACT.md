@@ -23,13 +23,14 @@ The exact example is `web/demo.js` (fictional). Required payload:
 - `schema_version: 1`, `as_of` ISO timestamp with offset, `scope: {company_id, company_name, role_label}`, `companies: [{id,name}]`, `currency` ISO code.
 - `summary: {new_leads, units_available, active_reservations, confirmed_contracts, agreed_contract_value}`.
 - `property: {total, counts:[{status,count}]}`. Statuses come from the server.
-- `schedule: {buckets:[{label,amount}], upcoming:[{contract_id,external_reference,customer_display,due_date,amount,currency,row_type}]}`.
+- `schedule: {buckets:[{label,amount}], upcoming:[{contract_id,external_reference,customer_display,due_date,amount,currency,row_type}]}` Optional `available`/`reason` (false when the role cannot read sale contracts). Buckets are `Due today`, `Next 30 days` (tomorrow through day 30, the same window as the executive `due_next_30_days`), `31-60 days`, `61-90 days`; a bucket amount is null when a row in it has no valid amount.
+- Record types the user's role cannot read give null summary counts/values, `property.total: null`, empty lists and `schedule.available: false`, never a page error, so construction-only roles still get their jobs view.
 - `contracts:[{id,reference,customer_display,unit_label,status,value,currency,signed_on}]`.
 - `locations:[{doctype,name,label,area,status,latitude,longitude,modified,can_write}]`. Allowed types: Sidra Unit, Sidra Construction Job. Coordinates may both be null. Include only permission-filtered results. `modified` is the parent record timestamp; `can_write` is a server permission result. The UI refreshes an individual location with `get_location` before editing.
 - `sales: {available, reason?, qualified_opportunities, conversion_rate, pipeline:[{label,value}]}`.
 - `payments: {available, reason?, received, overdue, collection_rate, overdue_contracts, aging:[{label,amount}]}`.
-  - Opt-in persisted financial demo only (`docs/FINANCE-DEMO_v0.1.md`): `basis: "native_invoice_demo"`, `overdue_invoices`, `overdue_contracts: null`, and a fictional-data notice. Receipts and invoice balances come from permitted native submitted vouchers in the fixed separate demo Company. Collection rate is settled invoice value / due-through-today invoice value; overdue means due before today. Production-company payments remain unavailable. Do not label these invoice balances as contract arrears.
-- `jobs: {available, reason?, active, overdue_milestones, awaiting_inspection, completed, items:[{id,label,status,progress,next_milestone,due_date}]}`.
+  - Opt-in persisted financial demo only (`docs/FINANCE-DEMO_v0.2.md`): `basis: "native_invoice_demo"`, `overdue_invoices`, `overdue_contracts: null`, and a fictional-data notice. Receipts and invoice balances come from permitted native submitted vouchers in the finance demo Company (Sidra Homes on the test site, decision G14). Collection rate is settled invoice value / due-through-today invoice value; overdue means due before today. Production-company payments remain unavailable. Do not label these invoice balances as contract arrears.
+- `jobs: {available, reason?, active, overdue_milestones, awaiting_inspection, completed, items:[{id,label,status,progress,next_milestone,due_date}]}`. `overdue_milestones` counts stages of Contracted/In Progress/On Hold jobs that are past their planned end with no actual end and completion below 100 (shared rule `stage_overdue`, also used by the executive stage exceptions).
 
 Unavailable groups must use `available:false` and a clear `reason`. Missing accounting integration is not zero receipts or zero arrears. Monetary JSON values should be decimal strings. Do not sum different currencies without Finance-approved conversion; return one company/currency scope.
 
@@ -63,3 +64,7 @@ Google Maps URL API and Earth search links require no paid API key. This impleme
 ## Backend integration tests still required
 
 Run with actual Sidra roles and Company restrictions: denied read/write, cross-company denial, stale edits, concurrent edits, submitted parent refusal, GPS preservation, unsupported polygon preservation, saved/reopened coordinate order, KML private access, CSRF/expired session, no changes to unit status/prices/BOQ/contracts/financial documents. Current adapter tests isolate the Python boundary with a stub; they are not Frappe integration results.
+
+### Recorded sales activity (12 Nov 2026)
+
+Sales now returns `basis: "recorded_lead_status"` with counts of readable Lead records created in the selected Company and period, grouped by their actual status. Qualification and conversion remain null; a status named Converted does not establish a contract-to-lead link. No readable leads is an available empty cohort; denied Lead access is unavailable. No role changes or posting rules are introduced.

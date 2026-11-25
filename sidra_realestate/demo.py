@@ -11,10 +11,13 @@ contract stays a draft. Nothing is posted to the ledger.
 """
 
 import os
+import shlex
 from io import BytesIO
 
 import frappe
-from frappe.utils import add_days, today
+from frappe.utils import add_days, now_datetime, today
+
+from sidra_realestate.site_setup import REGIONAL, ensure_country
 
 COMPANY = "Sidra Demo Homes"
 SCHEME = "DEMO-HAGBAD"
@@ -35,11 +38,31 @@ def _guard():
 		frappe.throw("Demo data is disabled on this site. Set sidra_allow_demo_data only on staging.")
 
 
+def ensure_demo_users() -> dict:
+	"""Create the existing staging accounts without loading data or setting passwords (#79)."""
+	from frappe.utils import cint
+
+	if frappe.session.user != "Administrator":
+		frappe.throw("Only Administrator may ensure demo users.", frappe.PermissionError)
+	if cint(frappe.conf.get("sidra_allow_demo_data")) != 1:
+		frappe.throw("Demo data is disabled on this site. Set sidra_allow_demo_data only on staging.")
+	_ensure_users()
+	commands = [
+		f"bench --site {shlex.quote(frappe.local.site)} set-password {shlex.quote(email)}"
+		for email, profile in USERS.items()
+		if profile
+	]
+	print("Set passwords interactively on staging (no password has been set by this command):")
+	print("\n".join(commands))
+	return {"users": {email: profile for email, profile in USERS.items() if profile}}
+
+
 def create_demo_data(company: str | None = None) -> dict:
 	"""Create (once) the demo company, people, plots, reservation, contracts and a construction job."""
 	_guard()
 	company = company or _ensure_company()
 	_ensure_customers()
+	_ensure_kyc()
 	_ensure_users()
 	units = _ensure_units(company)
 	summary = {"company": company, "units": units}
@@ -299,7 +322,7 @@ def _ensure_company() -> str:
 			"company_name": COMPANY,
 			"abbr": "SDH",
 			"default_currency": "USD",
-			"country": "Somalia",
+			"country": REGIONAL["country"],
 		}
 	).insert(ignore_permissions=True)
 	return COMPANY
@@ -307,6 +330,7 @@ def _ensure_company() -> str:
 
 def _ensure_presets():
 	"""Native setup prerequisites shared by the two opt-in demo loaders."""
+	ensure_country()
 	if not frappe.db.exists("Warehouse Type", "Transit"):
 		from erpnext.setup.setup_wizard.operations.install_fixtures import add_uom_data, get_preset_records
 
@@ -327,7 +351,7 @@ def _ensure_presets():
 			"Market Segment": "market_segment",
 			"Workstation Operating Component": "component_name",
 		}
-		for record in get_preset_records("Somalia"):
+		for record in get_preset_records(REGIONAL["country"]):
 			doctype = record.get("doctype")
 			if not frappe.db.exists(doctype, record.get("name") or record.get(keys.get(doctype))):
 				frappe.get_doc(record).insert(ignore_permissions=True)
@@ -347,6 +371,47 @@ def _ensure_customers():
 					"territory": "All Territories",
 				}
 			).insert(ignore_permissions=True)
+
+
+def _ensure_kyc():
+	"""Fictional verified KYC for the demo buyers, so generated demo contracts can be confirmed (SAL-07)."""
+	for index, name in enumerate(BUYERS, start=1):
+		if frappe.db.exists("Sidra Customer KYC", {"customer": name, "status": "Verified"}):
+			continue
+		if frappe.db.exists("Sidra Customer KYC", name):
+			doc = frappe.get_doc("Sidra Customer KYC", name)
+		else:
+			doc = frappe.get_doc(
+				{
+					"doctype": "Sidra Customer KYC",
+					"customer": name,
+					"id_type": "National ID",
+					"id_number": f"DEMO-ID-{2000 + index}",
+					"phone": f"+252 63 000 20{index:02d}",
+					"address": "Demo address, Hargeisa",
+				}
+			).insert(ignore_permissions=True)
+		if not doc.id_document:
+			doc.id_document = (
+				frappe.get_doc(
+					{
+						"doctype": "File",
+						"file_name": f"demo-id-scan-{index}.pdf",
+						"content": _placeholder_scan(f"demo-kyc-{index}"),
+						"is_private": 1,
+						"attached_to_doctype": doc.doctype,
+						"attached_to_name": doc.name,
+						"attached_to_field": "id_document",
+					}
+				)
+				.insert(ignore_permissions=True)
+				.file_url
+			)
+		doc.status = "Verified"
+		doc.verified_by = frappe.session.user
+		doc.verified_on = now_datetime()
+		doc.flags.verifying = True
+		doc.save(ignore_permissions=True)
 
 
 def _ensure_users():

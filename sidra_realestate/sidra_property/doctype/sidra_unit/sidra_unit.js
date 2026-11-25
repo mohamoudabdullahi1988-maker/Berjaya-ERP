@@ -20,7 +20,11 @@ frappe.ui.form.on("Sidra Unit", {
 	},
 });
 
-function sidra_reserve_unit(frm) {
+function sidra_reserve_unit(frm, acknowledged = false) {
+	if (!(Number(frm.doc.cash_price) > 0) && !acknowledged) {
+		frappe.confirm(__("This unit has no positive asking price. Check its approved Price History before reserving. Continue?"), () => sidra_reserve_unit(frm, true));
+		return;
+	}
 	const dialog = new frappe.ui.Dialog({
 		title: __("Reserve {0}", [frm.doc.name]),
 		fields: [
@@ -76,3 +80,4 @@ function sidra_cancel_reservation(reservation, after) {
 }
 
 window.sidra_cancel_reservation = sidra_cancel_reservation;
+

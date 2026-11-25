@@ -112,7 +112,7 @@
    "set_only_once": 1,
    "depends_on": "eval:doc.contract_type=='Installment'",
    "mandatory_depends_on": "eval:doc.contract_type=='Installment'",
-   "description": "External: a contract prepared outside the system; the attached original governs (CC-01)."
+   "description": "External: a contract prepared outside the system; the attached original governs."
   },
   {
    "fieldname": "external_reference",
@@ -154,7 +154,7 @@
    "fetch_from": "company.default_currency",
    "read_only": 1,
    "print_hide": 1,
-   "description": "The company's default currency (NFR-10: USD)."
+   "description": "The company's default currency."
   },
   {
    "fieldname": "column_break_main",
@@ -189,14 +189,14 @@
   {
    "fieldname": "section_units",
    "fieldtype": "Section Break",
-   "label": "Units (SAL-13)"
+   "label": "Units"
   },
   {
    "fieldname": "units",
    "fieldtype": "Table",
    "label": "Units",
    "options": "Sidra Contract Unit",
-   "reqd": 1
+   "reqd": 0
   },
   {
    "fieldname": "section_price",
@@ -267,7 +267,7 @@
    "options": "None\nIncluded in schedule\nRecorded separately",
    "default": "None",
    "depends_on": "eval:doc.contract_type=='Installment' && doc.source=='External (registered)'",
-   "description": "Included: Down payment rows in the schedule. Recorded separately: an amount outside the schedule (D1)."
+   "description": "Included: Down payment rows in the schedule. Recorded separately: an amount outside the schedule."
   },
   {
    "fieldname": "terms_summary",
@@ -326,7 +326,7 @@
    "fieldtype": "Int",
    "label": "Days After Due Date Before Per-Day Penalty Starts",
    "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
-   "description": "Waiting period (G2). 0 = from the day after the due date",
+   "description": "Waiting period. 0 = from the day after the due date",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -335,7 +335,7 @@
    "label": "Cap Applies",
    "options": "\nPer Installment\nPer Installment, Each 30 Days Late\nPer Calendar Month",
    "depends_on": "eval:doc.penalty_type=='Per Day Capped'",
-   "description": "Issue #3 item 1",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -344,7 +344,7 @@
    "label": "Payment on the Last Notice Day",
    "options": "\nCounts as Late\nCounts as On Time",
    "depends_on": "eval:doc.penalty_type=='Fixed After Notice'",
-   "description": "Issue #3 item 2",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -352,7 +352,7 @@
    "fieldtype": "Select",
    "label": "Receipt Pays First",
    "options": "\nInstallments\nPenalties",
-   "description": "Issue #3 item 4",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -360,7 +360,7 @@
    "fieldtype": "Select",
    "label": "Payment Beyond What Is Due",
    "options": "\nCashier Chooses\nOldest First\nReduce Last Installments",
-   "description": "Issue #3 item 3: Oldest First = advance payment (AT-10); Reduce Last Installments = early payment (AT-13)",
+   "description": ": Oldest First = advance payment (AT-10); Reduce Last Installments = early payment (AT-13)",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -392,7 +392,7 @@
    "fieldname": "missed_after_days",
    "fieldtype": "Int",
    "label": "Days After Due Date Before an Installment Counts as Missed",
-   "description": "Issue #3 item 5. 0 = missed from the day after the due date",
+   "description": "0 = missed from the day after the due date",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -401,7 +401,7 @@
    "label": "One Installment Means",
    "options": "\nRegular Installment\nFinal Installment",
    "depends_on": "eval:doc.refund_retention_type=='One Installment'",
-   "description": "Issue #3 item 6",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -409,7 +409,7 @@
    "fieldtype": "Select",
    "label": "Penalties Paid in Refund Base",
    "options": "\nExcluded\nIncluded",
-   "description": "Issue #3 item 6",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -440,7 +440,7 @@
    "label": "Part Month of Title Delay",
    "options": "\nPending Decision\nNot Charged\nCharged as Full Month\nPro Rata by Day",
    "depends_on": "eval:doc.title_penalty_type=='Per Month'",
-   "description": "Issue #3 item 7",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -463,7 +463,7 @@
    "label": "Refund Right Days Counted From",
    "options": "\nPending Decision\nFinal Payment\nTitle Deadline",
    "depends_on": "title_refund_after_days",
-   "description": "Issue #3 item 8",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
@@ -472,13 +472,13 @@
    "label": "Compensation % Applies To",
    "options": "\nPending Decision\nAmount Paid\nAgreed Price",
    "depends_on": "title_refund_after_days",
-   "description": "Issue #3 item 8",
+   "description": "",
    "read_only_depends_on": "eval:doc.source!='External (registered)'"
   },
   {
    "fieldname": "section_parties",
    "fieldtype": "Section Break",
-   "label": "Agent and Notary (SAL-13, SAL-19)",
+   "label": "Agent and Notary",
    "collapsible": 1
   },
   {
@@ -527,7 +527,7 @@
   {
    "fieldname": "section_party_rows",
    "fieldtype": "Section Break",
-   "label": "Seller, Guarantor and Witnesses (SAL-19)"
+   "label": "Seller, Guarantor and Witnesses"
   },
   {
    "fieldname": "parties",
@@ -538,7 +538,7 @@
   {
    "fieldname": "section_terms",
    "fieldtype": "Section Break",
-   "label": "Frozen Terms (INS-20)",
+   "label": "Frozen Terms",
    "collapsible": 1
   },
   {
@@ -551,7 +551,7 @@
   {
    "fieldname": "section_clauses",
    "fieldtype": "Section Break",
-   "label": "Clauses (SAL-20, INS-21)",
+   "label": "Clauses",
    "collapsible": 1
   },
   {
@@ -564,7 +564,7 @@
   {
    "fieldname": "section_schedule",
    "fieldtype": "Section Break",
-   "label": "Installment Schedule (INS-02, INS-14; CC-05)"
+   "label": "Installment Schedule"
   },
   {
    "fieldname": "schedule",
@@ -605,7 +605,7 @@
   {
    "fieldname": "section_approval",
    "fieldtype": "Section Break",
-   "label": "Approval (INS-19, D7)"
+   "label": "Approval"
   },
   {
    "fieldname": "terms_approved_by",
@@ -625,8 +625,14 @@
  ],
  "index_web_pages_for_search": 0,
  "is_submittable": 1,
- "links": [],
- "modified": "2026-11-09 18:03:51.000000",
+ "links": [
+  {
+   "group": "Title",
+   "link_doctype": "Sidra Title Transfer",
+   "link_fieldname": "contract"
+  }
+ ],
+ "modified": "2026-11-12 19:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Sales",
  "name": "Sidra Sale Contract",

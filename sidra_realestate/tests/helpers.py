@@ -10,6 +10,8 @@ from contextlib import contextmanager
 
 import frappe
 
+from sidra_realestate.site_setup import REGIONAL, ensure_country
+
 COMPANY = "_Test Sidra Homes"
 OTHER_COMPANY = "_Test Sidra Other"
 BUYER = "_Test Buyer Amina"
@@ -19,6 +21,11 @@ SALES_MANAGER = "sidra.manager@example.com"
 GENERAL_MANAGER = "sidra.gm@example.com"
 SYSTEM_ONLY = "sidra.sysadmin@example.com"
 OUTSIDER = "sidra.outsider@example.com"
+PROJECT_MANAGER = "sidra.pm@example.com"
+OTHER_PROJECT_MANAGER = "sidra.pm2@example.com"
+INSPECTOR = "sidra.inspector@example.com"
+OTHER_SALES_MANAGER = "sidra.manager2@example.com"
+NO_KYC_BUYER = "_Test Buyer Without KYC"
 
 
 def ensure_base_records():
@@ -27,11 +34,18 @@ def ensure_base_records():
 	ensure_company(OTHER_COMPANY, "_TSO")
 	ensure_customer(BUYER)
 	ensure_customer(OTHER_BUYER)
-	ensure_user(SALES_USER, ["Sidra Sales User"])
+	ensure_user(SALES_USER, ["Sidra Sales User", "Sales User"])
 	ensure_user(SALES_MANAGER, ["Sidra Sales Manager"])
 	ensure_user(GENERAL_MANAGER, ["Sidra General Manager"])
 	ensure_user(SYSTEM_ONLY, ["System Manager"])
 	ensure_user(OUTSIDER, [])
+	ensure_user(PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
+	ensure_user(OTHER_PROJECT_MANAGER, ["Sidra Project Manager", "Projects User"])
+	ensure_user(INSPECTOR, ["Sidra Inspector", "Projects User"])
+	ensure_user(OTHER_SALES_MANAGER, ["Sidra Sales Manager", "Sales User"])
+	ensure_customer(NO_KYC_BUYER)
+	ensure_verified_kyc(BUYER)
+	ensure_verified_kyc(OTHER_BUYER)
 	frappe.db.commit()
 
 
@@ -40,6 +54,7 @@ def ensure_erpnext_presets():
 
 	Mirrors erpnext.tests.utils.BootStrapTestData.make_presets without its India master data.
 	"""
+	ensure_country()
 	if frappe.db.exists("Warehouse Type", "Transit"):
 		return
 	from erpnext.setup.setup_wizard.operations.install_fixtures import add_uom_data, get_preset_records
@@ -61,7 +76,7 @@ def ensure_erpnext_presets():
 		"Market Segment": "market_segment",
 		"Workstation Operating Component": "component_name",
 	}
-	for record in get_preset_records("Somalia"):
+	for record in get_preset_records(REGIONAL["country"]):
 		doctype = record.get("doctype")
 		name = record.get("name") or record.get(keys.get(doctype))
 		if not frappe.db.exists(doctype, name):
@@ -78,7 +93,7 @@ def ensure_company(name, abbr):
 				"company_name": name,
 				"abbr": abbr,
 				"default_currency": "USD",
-				"country": "Somalia",
+				"country": REGIONAL["country"],
 			}
 		).insert(ignore_permissions=True)
 	return name
@@ -118,7 +133,12 @@ def ensure_user(email, roles):
 def make_scheme(code, company=COMPANY):
 	if not frappe.db.exists("Sidra Scheme", code):
 		frappe.get_doc(
-			{"doctype": "Sidra Scheme", "scheme_code": code, "scheme_name": f"{code} scheme", "company": company}
+			{
+				"doctype": "Sidra Scheme",
+				"scheme_code": code,
+				"scheme_name": f"{code} scheme",
+				"company": company,
+			}
 		).insert(ignore_permissions=True)
 	return code
 
@@ -172,21 +192,34 @@ def _blank_pdf() -> bytes:
 	return buffer.getvalue()
 
 
-def private_file(name="signed-contract.pdf", attached_to=None, is_private=1):
-	"""A File as uploaded through a form; attached to `attached_to`'s Signed Copy field if given."""
+def private_file(
+	name="signed-contract.pdf", attached_to=None, is_private=1, field="signed_copy", content=None
+):
+	"""A File as uploaded through a form; attached to `attached_to`'s `field` (Signed Copy) if given."""
 	values = {
 		"doctype": "File",
 		"file_name": f"{frappe.generate_hash(length=8)}-{name}",
-		"content": _blank_pdf(),
+		"content": content or _blank_pdf(),
 		"is_private": is_private,
 	}
 	if attached_to is not None:
 		values.update(
 			attached_to_doctype=attached_to.doctype,
 			attached_to_name=attached_to.name,
-			attached_to_field="signed_copy",
+			attached_to_field=field,
 		)
 	return frappe.get_doc(values).insert(ignore_permissions=True).file_url
+
+
+_PNG_1PX = "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg=="
+
+
+def site_photo(is_private=1):
+	"""A 1-pixel PNG with unique trailing bytes (Frappe de-duplicates identical files)."""
+	import base64
+
+	content = base64.b64decode(_PNG_1PX) + frappe.generate_hash(length=16).encode()
+	return private_file(name="site-photo.png", is_private=is_private, content=content)
 
 
 def attach_signed_copy(contract, **file_values):
@@ -234,3 +267,126 @@ def make_held_profile():
 	doc.legal_hold = 1
 	doc.legal_hold_reason = "_Test legal hold"
 	return doc.insert(ignore_permissions=True)
+
+
+def make_job(**values):
+	"""A construction job for the test Company and buyer (Full Construction, template stages)."""
+	return frappe.get_doc(
+		{
+			"doctype": "Sidra Construction Job",
+			"customer": BUYER,
+			"company": COMPANY,
+			"service_type": "Full Construction",
+			**values,
+		}
+	).insert(ignore_permissions=True)
+
+
+def issue_quotation(job, amount=20000, **values):
+	"""An issued fixed-fee quotation for `job` (CON-02), as the Project Manager would issue it."""
+	from frappe.utils import add_days, today
+
+	doc = frappe.get_doc(
+		{
+			"doctype": "Sidra Construction Quotation",
+			"job": job.name,
+			"pricing_basis": "Fixed Fee",
+			"fixed_fee": amount,
+			"scope": "Build a two-room house on the client's plot",
+			"valid_until": add_days(today(), 30),
+			"start_date": add_days(today(), 7),
+			"duration_days": 120,
+			"retention_pct": 5,
+			"retention_period_months": 12,
+			**values,
+		}
+	).insert(ignore_permissions=True)
+	doc.submit()
+	return doc
+
+
+def record_acceptance(quotation, **file_values):
+	"""The client's signed acceptance recorded on the issued quotation (private, on its own field)."""
+	from frappe.utils import today
+
+	quotation.client_accepted_by = BUYER
+	quotation.client_accepted_on = today()
+	quotation.client_acceptance_document = private_file(
+		name="signed-quotation.pdf", attached_to=quotation, field="client_acceptance_document", **file_values
+	)
+	quotation.save(ignore_permissions=True)
+	return quotation
+
+
+def make_contracted_job(contract_value=20000, **job_values):
+	"""A job whose quotation the client accepted and the General Manager approved (CON-03, G11).
+
+	Stages: Foundation 40 % and Structure 60 % billing (payment milestones)."""
+	from sidra_realestate.sidra_construction.doctype.sidra_construction_quotation.sidra_construction_quotation import (
+		approve_contract,
+	)
+
+	job_values.setdefault(
+		"stages",
+		[{"stage_name": "Foundation", "billing_pct": 40}, {"stage_name": "Structure", "billing_pct": 60}],
+	)
+	job = make_job(**job_values)
+	quotation = record_acceptance(issue_quotation(job, contract_value))
+	with as_user(GENERAL_MANAGER):
+		approve_contract(quotation.name)
+	job.reload()
+	return job
+
+
+def ensure_verified_kyc(customer):
+	"""A verified KYC record for a test buyer (SAL-07), so generated contracts can be submitted.
+
+	Set up directly; the verification path itself is tested in test_sidra_customer_kyc.py."""
+	from frappe.utils import now_datetime
+
+	if frappe.db.exists("Sidra Customer KYC", {"customer": customer, "status": "Verified"}):
+		return
+	if frappe.db.exists("Sidra Customer KYC", customer):
+		doc = frappe.get_doc("Sidra Customer KYC", customer)
+	else:
+		doc = frappe.get_doc(
+			{
+				"doctype": "Sidra Customer KYC",
+				"customer": customer,
+				"id_type": "National ID",
+				"id_number": f"TEST-{frappe.generate_hash(length=8).upper()}",
+				"phone": "+252 63 000 0100",
+				"address": "_Test address, Hargeisa",
+			}
+		).insert(ignore_permissions=True)
+	if not doc.id_document:
+		doc.id_document = private_file(name="id-scan.pdf", attached_to=doc, field="id_document")
+	doc.status = "Verified"
+	doc.verified_by = "Administrator"
+	doc.verified_on = now_datetime()
+	doc.flags.verifying = True
+	doc.save(ignore_permissions=True)
+
+
+def make_confirmed_contract(scheme, customer=BUYER, **values):
+	"""A submitted Profile A contract for one new unit (signed 5 Nov 2026), as the signing tests build it."""
+	from sidra_realestate.install import ensure_contract_profiles
+
+	ensure_contract_profiles()
+	unit = make_unit(unique("_T-TTL"), make_scheme(scheme)).name
+	doc = frappe.get_doc(
+		{
+			"doctype": "Sidra Sale Contract",
+			"contract_type": "Installment",
+			"customer": customer,
+			"company": COMPANY,
+			"signed_on": "2026-11-05",
+			"contract_profile": "Profile A",
+			"agreed_price": 10000,
+			"units": [{"unit": unit, "allocated_price": 10000}],
+			**signing_values(),
+			**values,
+		}
+	).insert(ignore_permissions=True)
+	attach_signed_copy(doc).submit()
+	return doc

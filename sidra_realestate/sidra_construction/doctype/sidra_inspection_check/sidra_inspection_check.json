@@ -1,0 +1,49 @@
+{
+ "actions": [],
+ "creation": "2026-11-12 12:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "editable_grid": 1,
+ "field_order": [
+  "item",
+  "result",
+  "remarks"
+ ],
+ "fields": [
+  {
+   "fieldname": "item",
+   "fieldtype": "Data",
+   "label": "Check",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "result",
+   "fieldtype": "Select",
+   "label": "Result",
+   "options": "\nPass\nFail\nNot Applicable",
+   "reqd": 1,
+   "in_list_view": 1
+  },
+  {
+   "fieldname": "remarks",
+   "fieldtype": "Small Text",
+   "label": "Remarks",
+   "in_list_view": 1,
+   "description": "Required when the check fails"
+  }
+ ],
+ "index_web_pages_for_search": 0,
+ "istable": 1,
+ "links": [],
+ "modified": "2026-11-12 12:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Sidra Construction",
+ "name": "Sidra Inspection Check",
+ "owner": "Administrator",
+ "permissions": [],
+ "row_format": "Dynamic",
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

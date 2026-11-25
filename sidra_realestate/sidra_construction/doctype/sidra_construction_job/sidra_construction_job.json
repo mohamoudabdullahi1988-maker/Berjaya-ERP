@@ -21,11 +21,26 @@
   "gps",
   "sidra_location",
   "title_reference",
+  "section_contract",
+  "contract_quotation",
+  "contract_value",
+  "approved_variations",
+  "current_contract_value",
+  "column_break_contract",
+  "contract_start_date",
+  "contract_duration_days",
+  "contract_end_date",
+  "retention_pct",
+  "retention_period_months",
+  "contract_approved_by",
+  "contract_approved_on",
   "section_stages",
   "stages",
   "section_boq",
   "boq",
-  "boq_total"
+  "boq_total",
+  "boq_revision",
+  "boq_revision_no"
  ],
  "fields": [
   {
@@ -61,7 +76,7 @@
    "fetch_from": "company.default_currency",
    "read_only": 1,
    "print_hide": 1,
-   "description": "The company's default currency (NFR-10: USD)."
+   "description": "The company's default currency."
   },
   {
    "fieldname": "project",
@@ -100,7 +115,7 @@
   {
    "fieldname": "section_site",
    "fieldtype": "Section Break",
-   "label": "Site (CON-01)"
+   "label": "Site"
   },
   {
    "fieldname": "site_location",
@@ -133,9 +148,101 @@
    "label": "Title Deed Reference"
   },
   {
+   "fieldname": "section_contract",
+   "fieldtype": "Section Break",
+   "label": "Contract"
+  },
+  {
+   "fieldname": "contract_quotation",
+   "fieldtype": "Link",
+   "label": "Contract Quotation",
+   "options": "Sidra Construction Quotation",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_value",
+   "fieldtype": "Currency",
+   "label": "Original Contract Value",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "From the quotation the client accepted, set when the General Manager approves the contract"
+  },
+  {
+   "fieldname": "approved_variations",
+   "fieldtype": "Currency",
+   "label": "Approved Variations",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "current_contract_value",
+   "fieldtype": "Currency",
+   "label": "Current Contract Value",
+   "options": "currency",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "column_break_contract",
+   "fieldtype": "Column Break"
+  },
+  {
+   "fieldname": "contract_start_date",
+   "fieldtype": "Date",
+   "label": "Contract Start",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_duration_days",
+   "fieldtype": "Int",
+   "label": "Duration (days)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_end_date",
+   "fieldtype": "Date",
+   "label": "Contract End",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "retention_pct",
+   "fieldtype": "Percent",
+   "label": "Retention %",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "retention_period_months",
+   "fieldtype": "Int",
+   "label": "Retention Period (months)",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_approved_by",
+   "fieldtype": "Link",
+   "label": "Contract Approved By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "contract_approved_on",
+   "fieldtype": "Datetime",
+   "label": "Contract Approved On",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
    "fieldname": "section_stages",
    "fieldtype": "Section Break",
-   "label": "Stages (CON-04)"
+   "label": "Stages"
   },
   {
    "fieldname": "stages",
@@ -146,7 +253,7 @@
   {
    "fieldname": "section_boq",
    "fieldtype": "Section Break",
-   "label": "Bill of Quantities (CON-02)"
+   "label": "Bill of Quantities"
   },
   {
    "fieldname": "boq",
@@ -160,11 +267,48 @@
    "label": "BOQ Total",
    "options": "currency",
    "read_only": 1
+  },
+  {
+   "fieldname": "boq_revision",
+   "fieldtype": "Link",
+   "label": "Approved BOQ Revision",
+   "options": "Sidra BOQ Revision",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "Once a revision is approved, the BOQ changes only through a new BOQ revision"
+  },
+  {
+   "fieldname": "boq_revision_no",
+   "fieldtype": "Int",
+   "label": "BOQ Revision No.",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "index_web_pages_for_search": 0,
- "links": [],
- "modified": "2026-11-07 15:30:00.000000",
+ "links": [
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra Construction Quotation",
+   "link_fieldname": "job"
+  },
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra BOQ Revision",
+   "link_fieldname": "job"
+  },
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra Variation Order",
+   "link_fieldname": "job"
+  },
+  {
+   "group": "Construction controls",
+   "link_doctype": "Sidra Inspection Report",
+   "link_fieldname": "job"
+  }
+ ],
+ "modified": "2026-11-12 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Construction Job",

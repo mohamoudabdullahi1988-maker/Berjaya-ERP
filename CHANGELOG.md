@@ -1,8 +1,530 @@
 # Changelog
 
+## Deploy scripts — 25 Nov 2026
+
+- `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).
+- `deploy/berjaya-switch-repo_v0.1.sh`: one-time move of the test server from the sidra-erp checkout to Berjaya-ERP `develop`. It stops if the server runs sidra-erp commits that Berjaya-ERP did not copy, takes a backup, keeps the old commit as a branch, then runs the v0.3 deploy.
+
+## 0.1.68 — 25 Nov 2026
+
+- Add the General Manager's approval for access to a buyer's identity (KYC) record (decisions G32, G38). A Sales Manager or the GM raises a Sidra KYC Access Request for one staff member and one buyer; only the GM approves, refuses or revokes it. Approval gives read and download access to that one record until the last day the GM sets (30 days by default); a daily job ends it after that day. Every other share of a KYC record is still refused.
+
+## 0.1.67 — 25 Nov 2026
+
+- Let Finance verify a posted ERPNext sales invoice against a sale or construction agreement. Show linked outstanding balances and submitted receipt allocations in Berjaya and link overdue invoice terms back to visible agreements.
+- Require the customer-selected ERPNext term for new partial receipts on linked multi-term invoices.
+
+## 0.1.66 — 24 Nov 2026
+
+- Start Berjaya on a dashboard with three priority reports and shortcuts for agreement payments, Cashbook & Reconciliation, reservations and quotations.
+- Show agreed terms by contract, overdue ERPNext invoice payment terms, native Accounts Payable and submitted supplier payments. Contract receipts and remaining balances depend on the approved invoice mapping.
+
+## 0.1.65 — 25 Nov 2026
+
+- Plan construction jobs in ERPNext Projects (decision G37): "Create → Project" on a job builds one Project and one Task per stage, linked both ways. The Tasks follow the job's stages on every save (dates, progress, status, payment milestone and certification); the job stays the record of the contract, milestones and certification. No live job is converted automatically and no money moves. Mapping and adoption path: `docs/CONSTRUCTION-PROJECTS_v0.1.md`.
+
+## 0.1.64 — 25 Nov 2026
+
+- Staff can use ERPNext Desk again with their normal Frappe permissions (decision G36): the G24 redirect from Desk to Berjaya is removed. Berjaya stays the landing page after sign-in, and its "Open in Desk" links now open Desk.
+- Buyer identity (KYC) records cannot be shared from Desk either (decision G32): any share that grants access to a KYC record is refused, including Desk's Share button, "everyone" shares and the automatic share when a record is assigned to someone who cannot read it.
+
+## 0.1.63 — 24 Nov 2026
+
+- Group Land Contracts and Brokerage under Real Estate and Design & Engineering under Construction. Add an Investment landing page and keep Finance separate with Cashbook & Reconciliation.
+
+## 0.1.61 — 16 Nov 2026
+
+- Add record email conversations, compose/reply and private attachments through native Frappe email delivery.
+- Add permission-filtered cross-module search and an operational report catalogue with filters, drill-down and full matching CSV exports.
+- Add native General Ledger, Accounts Receivable and Accounts Payable reports inside Berjaya.
+- Add paginated activity including child-table additions, removals and changes with field-level redaction.
+
+
 All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; each release is tagged in Git.
 
 ## [Unreleased]
+
+### Added (v0.1.62)
+- Add Cashbook & Reconciliation to Finance with account-currency balances, native voucher matching, CSV and Excel statement entry, private PDF evidence and physical cash comparisons.
+
+### Added (v0.1.61 — record workflows and operations, 16 Nov 2026)
+- Saved-record workflow panels show native status, approval evidence, submission/cancellation and construction stage certification. Registered contracts keep their detailed validation timeline.
+- Link and unlink native Contacts and Addresses from either side of a customer connection, choose primary records, and create a linked record from a customer. Primary pickers reject unrelated records.
+- Select up to 50 loaded records on generic, property, contract and construction lists for assignment, validated field updates or a combined print preview. Permission/version checks apply to every selected record; failed writes roll back the request.
+- Review unsaved duplicate and amendment forms, preserving amendment lineage; rename with native linked-record updates when permitted. Contracts keep their existing controlled revision path. Approval evidence and attachments are not copied.
+- Native staff sharing and tags on record tools. No automatic share/assignment notifications and no public-share control.
+- Integration coverage for permissions, stale batches, connections, copy retries, amendment lineage, rename, tags and sharing; pure workflow evidence tests and desktop/phone browser scenarios.
+
+### Decisions (v0.1.60 — Design and Brokerage approvals, 16 Nov 2026)
+- Record G27: approved Design discipline proposal #100.
+- Record G29–G35: all confirmed sales, existing average progress, configurable signing/collections settings, GM-approved identity access separately for each buyer, current first-due-date rule, and a Finance-verified ERPNext down-payment receipt required before plot holds. Outstanding verification/access details remain explicit.
+- Record G28: commission includes fees; Sidra receives journey A first payment; commission rate freezes at contract confirmation (#95). Record/snapshot work is unblocked; financial posting remains gated.
+
+
+### Fixed (v0.1.59 — Executive live layout, 16 Nov 2026)
+- Arrange live inventory/project charts, sites/attention and schedule/leads in complete rows; keep details below. Four KPI columns on wide screens and two on phones.
+- Keep all live attention/site records accessible in bounded, keyboard-scrollable cards; show the attention count and explain the job-table preview. Correct rose warning colours and singular stage labels.
+
+
+### Added (v0.1.58 — staff record tools, 15 Nov 2026)
+- My work: personal native tasks and notification inbox, task completion and mark-read with user ownership checks. Sign-out control. Generic transaction lists support server filters/sorts and browser-saved view preferences.
+- Workflow guides throughout transaction pages. Contact and Address forms in Berjaya; Lead Company, phone, WhatsApp and contact preferences; Customer primary Contact/Address fields.
+- Record tools on saved forms: permission-checked Print/PDF, native assignments with due date, and latest tracked field changes for users who can write the record.
+- Hide retired demo companies from the picker; contact app links and unapproved construction-value explanations from rehearsal feedback.
+- Dashboard date selection and module submenus remain Claude's active work. No new financial operations.
+
+### Added (v0.1.57 — date selection on dashboards, sub-menus per business line, 15 Nov 2026)
+- **Date selection on every dashboard.** This month, Last 3 months, This year, Last 12 months (default), or a custom From–To range.
+  - The choice is kept in the address, so a link opens the same period.
+  - Live records read their **dated activity** for the period: variation orders raised, inspections, reservations made, contracts signed, leads, opportunities, income and expenses, and supplier invoices.
+  - **Snapshots stay as of today**, and the screen says so: units by status, jobs, the risk register, stock, the coming installment schedule, and amounts still owed.
+  - Cash and bank balances are shown at the period's end.
+  - Every live method takes `from_date` and `to_date` (`api/live_period.py`). Without them it reads the last 12 months, as before; a reversed or over-five-year range is refused.
+  - **Executive limits:** the Executive dashboard's own figures follow the server's periods (this month or the last 90 days), and the screen says so; its construction and sales sections follow the chosen period.
+  - **Sample figures are fixed**, and the picker says so.
+- **Sub-menu under each business line** in the left menu, open while that line is: its dashboard, then the record screens of its transactions. Each shows only when the server lets the user read it.
+  - Construction: Jobs, Quotations, BOQ revisions, Variations, Inspections, Risk register.
+  - Design & Engineering: **Design and inspection jobs** (new list: jobs whose service is Design Only or Inspection Only), Inspections.
+  - Real Estate Sales: Units, Reservations, Quotations, Contracts, Title transfers, Collections.
+  - CRM: Leads, Opportunities, Customers, Contacts, KYC.
+  - Finance: Ledger and invoices.
+  - Executive: Live dashboard.
+  - Brokerage keeps its dashboard only until the commission questions (#95) are answered.
+
+### Fixed
+- A list whose records open another page no longer adds a route of the same name; it had replaced the job page's route.
+
+### Added (v0.1.56 — CRM dashboard, lead channels, approved test data, 15 Nov 2026)
+- **CRM dashboard.** The CRM menu item now opens a dashboard (`/berjaya/crm`) instead of the leads list, with Sample data and Live records.
+  - Shows leads by channel, new leads per month, opportunities by stage, open opportunity value, customers and verified KYC.
+  - Buttons open Leads, Opportunities, Customers, Contacts and KYC.
+  - Live data comes from `api.crm_live.get_crm_live`: read only, from ERPNext's Lead, Opportunity, Customer and Sidra Customer KYC, filtered by permission. A group the role can't read says why. KYC counts stay hidden from roles that may not read KYC (G12).
+- **Lead channels.** WhatsApp, Email, Phone Call, Facebook, Instagram, Website, Walk In and Reference. ERPNext v16 stores a lead's channel in `utm_source`, a link to UTM Source; versions before v15 used Lead Source. `services/crm_channels.py` picks whichever field the site has. The Leads and Opportunities screens show it as **Channel**, and Real Estate → Pipeline now counts it too, where it previously read the old field. The sample screens use the same channels.
+- **`pilot_approvals.approve_pilot_documents`** (test site only, same guards as the pilot) approves the pilot's draft documents through their own rules, keeping two of each as drafts for the live approval steps:
+  - construction quotations are issued, the client's acceptance is recorded, and the General Manager approves them as contracts;
+  - the General Manager approves variation orders;
+  - inspection reports are issued;
+  - sale quotations that are still valid are issued, with any discount approved first.
+  
+  It also spreads the top-up's leads across the channels. Approvals are recorded as `demo.gm` and `demo.manager`, never as the preparer. A document a rule refuses stays a draft and is reported. Nothing is posted.
+- Readiness check: warnings when no job has an approved contract or no lead has a channel.
+
+### Added (v0.1.55 — screen check before the demonstration, risks on the job page, 15 Nov 2026)
+- `frontend/tests/showcase_browser.py`: opens every business-line screen (sample data, and live records where a tab has them) at laptop (1440px) and phone (390px) width with synthetic server answers. On each screen it checks for script errors, sideways page scroll, broken text ("NaN", "undefined") and the sample / live label, and saves screenshots to `frontend/.verify/showcase/`. It fails if a module or live tab is added without being checked. 66 screens pass.
+- A construction job page lists the job's **risks**, for roles that may read the register. The job gets a **New risk** button that opens the risk form with the job and its Company filled in.
+- Live Executive **Needs attention** lists open High risks and open risks past their review date. A server without the risk register adds nothing.
+- Construction screens link to the **Risk register** beside the other construction records.
+
+### Fixed
+- On a phone, every screen with a wide sample table (Executive, Construction Portfolio and others) could be scrolled sideways about 650px past the screen edge. Hidden screen-reader labels in the table were positioned against the page instead of the table. The table now contains them.
+
+### Fixed (v0.1.54 — demo readiness: live overview verification, 15 Nov 2026; issue #96)
+- Executive sources start in parallel and fail independently; wrong-Company responses are refused. Restricted attention sources show reasons instead of an all-clear.
+- Added reservation expiry links, lead-status chart and confirmed-contract counts; Executive business totals now come from server responses.
+- Construction Schedule includes every dated stage. Cost charts compare BOQ, original and current values without substituting zero for missing data; individual billing milestones remain explicitly separate from invoices.
+- Added permission-scoped child queries, server summary/expiry tests and mixed-source frontend checks.
+- Updated the rehearsal script for deploy v0.2 and live-screen checks; published handover v0.2 with server verification and decision blockers.
+
+### Docs (v0.1.53 — Codex handover, 15 Nov 2026)
+- `docs/CODEX-HANDOVER_v0.1.md`: the state at v0.1.52 (the demonstration, the test server, the loaders, which screens are live) and Codex's tasks: demo-readiness support (#96), live Design → Architecture and Civil (#97), and Brokerage records, blocked on #95 (#98).
+
+### Added (v0.1.52 — project risk register, decision G26, 15 Nov 2026)
+- Mohamoud: build the Risk register. New record **Sidra Project Risk** (Construction → Risk register, `/berjaya/construction/risks`): Company, job and/or project, category, description, owner, rating, status, mitigation action, next review. Closing a risk records the date. Project Managers and the General Manager record risks; Inspectors read them. Record only: no money, nothing else changes.
+- **Construction → Risk** gets the Sample data / Live records switch (`get_construction_live` now returns `risks`): open risks by rating, status, open risks by project, and the register.
+- `pilot_risks.create_pilot_risks`: twelve fictional risks for Sidra Homes on the test site, with the pilot's guards (Administrator, the three staging flags, the top-up loaded first, a private manifest, rerun changes nothing). Posts nothing.
+- Readiness check: a warning when the risk register is empty, with the loader command.
+- Desk's risk form redirects to Berjaya (cutover, G24).
+
+### Added (v0.1.51 — live Finance, Design & Engineering, Subcontractors and Stock, 15 Nov 2026)
+- Mohamoud: link the sample screens. Four more screens get the Sample data / Live records switch. Sample data stays the default.
+  - **Finance overview** (`api.finance_live.get_finance_live`), from ERPNext's ledger:
+    - income and expenses per month for 12 months, from posted GL entries on Income and Expense accounts;
+    - expenses by account;
+    - bank and cash balances;
+    - receivables and payables by age, from submitted invoices with an amount outstanding.
+  - **Construction → Subcontractors** (`get_operations_live`): suppliers this Company has purchase invoices from, with the amount invoiced and still owed.
+  - **Construction → Stock & materials** (`get_operations_live`): stock on hand from ERPNext Stock (Bin and Warehouse). Until goods are received it says that nothing is recorded. No test stock is created, because that would post to the ledger.
+  - **Design & Engineering** (`get_construction_live`): Overview and Inspection services show construction jobs with service type Design Only or Inspection Only, and the inspection reports. Architecture and Civil engineering stay sample-only, because the records don't tell them apart yet.
+- Read only, permission-filtered through `frappe.get_list`. A group the role can't read says why and is never shown as zero. ERPNext stays the only ledger (G4).
+
+### Fixed (v0.1.50 — deploy check reads the app name as bench prints it, 15 Nov 2026)
+- `deploy/berjaya-deploy_v0.2.sh`: the effective sign-in app name check failed on the test server although both settings held "Berjaya". Bench there prints a string return value bare (`Berjaya`), not as JSON (`"Berjaya"`), and the check only parsed JSON. It now accepts either form, treats an empty value or `null` as not set, and still fails when the name isn't Berjaya.
+- `demo_readiness`: each printed fix runs bench as the frappe user through its login shell (`sudo -u frappe -H bash -lc '…'`). On the test server `bench` is on that user's PATH only, so `sudo -u frappe bench` failed. The `set-password` fixes prompt for the password instead of taking it on the command line.
+
+### Added (v0.1.49 — live Executive overview: the whole business from records, 15 Nov 2026; issue #83)
+- The Executive overview's **Live records** mode now loads construction (`api.construction_live`) and real estate (`api.realestate_live`) alongside the dashboard counts (Codex, v0.1.39), in parallel. It adds:
+  - tiles for active construction jobs, installments due over 12 months and leads;
+  - a job-site map and a construction jobs table, sorted by overdue stages;
+  - units by project, and installments scheduled per month (amounts due, not receipts);
+  - **Needs attention**, from recorded facts only: overdue stages, variation orders awaiting approval, failed inspections and sale contracts still in draft. Each item links to its records.
+- A source that fails, can't be read, or answers for another Company shows its reason in its place. It never hides the others, and is never shown as zero.
+- The unit status donut uses the unit colours, and the cards fill full rows.
+- The workflow panel shows the usual process with numbered steps and no state.
+
+### Added (v0.1.48 — live Construction Schedule and Cost & budget, 15 Nov 2026; issue #82)
+- Construction's **Schedule** and **Cost & budget** tabs get the Sample data / Live records switch. Sample data stays the default.
+  - **Schedule:**
+    - stages by status, where overdue means not completed and past its planned end;
+    - a Gantt of overdue and in-progress stages;
+    - a table of overdue stages with the days late and the recorded completion, each linking to its job.
+  - **Cost & budget:**
+    - BOQ total, contract value, approved variations, current contract value and certified milestones;
+    - BOQ against current value by job, and approved variations by job;
+    - a cost table, labelled "milestones, not invoices" (CON-07).
+- `api.construction_live` now returns each job's recorded stages (status, planned and actual dates, completion, certified, overdue, billing % and amount) and its BOQ total. A value that isn't recorded is left out, never counted as zero. Progress is recorded completion only (#32 is still open).
+
+### Added (v0.1.47 — CRM conversion in Berjaya, 15 Nov 2026; issue #81)
+- Create opportunities with permission-checked Lead, Customer or Prospect party links. The picker follows its dependent type and clears stale suggestions when that type changes.
+- Lead actions open a prefilled Opportunity form or save ERPNext's native mapped Customer. Repeated customer conversion opens the existing linked record.
+- Integration tests cover conversion, disallowed party types and outsiders; frontend tests cover dynamic picker targets.
+- The CRM tests create ERPNext's default Sales Stage "Prospecting" when the site has none. A new Opportunity defaults to it, and it's normally made by ERPNext's setup wizard.
+- The readiness check (v0.1.43) reports whether that stage exists.
+- Walkthrough v0.2 sells a plot from a lead: **Create opportunity**, then **Make customer**.
+
+### Added (v0.1.46 — demo rehearsal checks, 15 Nov 2026; issue #79)
+- Integration journeys for External contract capture, plot sale and construction through Berjaya endpoints, including approval refusals and no ledger side effects.
+- Administrator-only staging command `demo.ensure_demo_users`, reusing existing role profiles, printing interactive password commands and setting no passwords.
+- Rehearsal notes document inspection submission permissions, the second Project Manager account, and generated-profile installment terms.
+- `docs/DEMO-SCRIPT_v0.2.md` follows these notes:
+  - the demo-user command;
+  - Customer created separately from the Lead;
+  - discount approval levels;
+  - generated contracts use the profile's terms (Profile A: 14 installments);
+  - the inspection report is a draft;
+  - the General Manager approves the variation;
+  - only registered contracts have the six-stage panel.
+- The readiness check's fix for a missing demo user names `demo.ensure_demo_users`.
+
+### Fixed (v0.1.44 — deployment login-name verification)
+- Deployment helper v0.2 verifies the effective login app name from Website/System Settings. Frappe v16 renders a generic sign-in heading and logo without printing `app_name`, so searching the HTML for "Berjaya" incorrectly reported a failure even when settings were correct. The previous version is retained.
+
+### Added (v0.1.43 — demo readiness check, 15 Nov 2026)
+- `sidra_realestate/demo_readiness.py` (`check_demo_readiness`): a read-only, Administrator-only check of everything walkthrough v0.2 needs on the test site. Each item reports PASS, WARN or FAIL, and each gap comes with its fix. It never creates, changes or posts anything, and prints no password or personal value. It checks:
+  - the built interface;
+  - the pilot dataset and its top-up;
+  - Sidra's project names;
+  - an available Masalaha Hagbad plot;
+  - an active contract profile;
+  - a buyer with verified KYC;
+  - jobs on the map, inspections and variations;
+  - leads and opportunities;
+  - each demo user's roles, enabled state and whether a password is set.
+- `docs/DEMO-SCRIPT_v0.2.md`: running the check is a preparation step.
+
+### Added (v0.1.42 — demo-ready live data: real project names and the missing records, 15 Nov 2026; decision G16)
+- **Live records on Real Estate Sales**: Inventory, Pipeline and Contracts & collections get the Sample data / Live records switch. They read the new read-only `api.realestate_live.get_realestate_live`:
+  - units by project and status, and the value available;
+  - reservations;
+  - sale contracts;
+  - installments scheduled per month on confirmed contracts, labelled as amounts due, not receipts (D8);
+  - leads by status and source.
+  Everything is permission-filtered. Unreadable groups say why, and a missing amount is never zero.
+- `docs/DEMO-SCRIPT_v0.2.md`: the walkthrough for Tuesday 17 Nov in three parts: sample dashboards, the same screens on live records, then the system working. The working part captures a contract, sells a plot and starts a construction project, each with the role that does it.
+- `sidra_realestate/pilot_extras.py` (`create_pilot_extras`): a one-time top-up of the pilot dataset for the client demonstration (Mohamoud: live screens show existing records, missing ones are created, real project names are used).
+  - The four pilot schemes are named after Sidra's projects: Masalaha Hagbad, Rayan Gardens, Safa Housing, Berbera Townhouses. Scheme codes stay `SHP-…`.
+  - Each pilot construction job's site names its project and gets a map location.
+  - Inspection reports the pilot plan marked but never created are added as drafts.
+  - Fictional CRM records: 30 leads (prefixed "SHP", no phone or email invented) and 10 opportunities from them.
+  - Same guards as the pilot: Administrator only, the three staging flags, the pilot's manifest must exist, one transaction with full rollback, its own private manifest, and a rerun that changes nothing. Nothing is posted, invoiced, submitted or approved.
+
+### Changed (v0.1.41 — CRM on ERPNext's own records, 15 Nov 2026)
+- **Customers becomes CRM** (Mohamoud): the menu item now holds ERPNext's own CRM records, **Leads**, **Opportunities** and **Contacts**, beside Customers and KYC. Each list and record page reads the ERPNext DocType through its standard permissions; a Lead's page lists its Opportunities.
+- Leads are created and edited in Berjaya (name, organisation, phone, email, source, status, qualification, territory, owner). Opportunities are progressed here (status, stage, amount, probability, expected closing) and created from their lead or customer in ERPNext, because their party is a dynamic link. Contacts are read only, kept by ERPNext from their parties.
+- Desk links to Lead, Opportunity and Contact open the matching Berjaya CRM page for staff (G24). The Real Estate Sales pipeline links to Leads and Opportunities.
+
+### Fixed (v0.1.40 — sign-in card centred; Sidra Homes logo shown, 15 Nov 2026; decision G19)
+- **Sign-in card centred.** The page wrapper laid its children out side by side at full width, so a second child Frappe adds (header or breadcrumbs) took half the row and pushed the card to the right. The wrapper now stacks its children and the card centres itself.
+- **Sidra Homes logo** (the company using Berjaya, G19): under the sign-in form, and at the right of the Berjaya top bar on every screen. It comes from `branding.COMPANY_LOGO` through the page's boot data (`company_logo`); nothing is renamed.
+### Added (v0.1.39 — Executive overview backend connection)
+- Executive overview can now display live Company-scoped inventory, reservation and confirmed-contract counts through the existing staff dashboard API, with property status chart and record links. Sample mode remains explicit.
+- Live screens offer Company selection and refresh. Switching Company, module, tab or data source clears prior results and invalidates pending requests; request failures never show sample widgets.
+- Frontend coverage for server counts, unavailable inventory and incompatible or wrong-Company responses. No server business rules or financial posting behavior changed.
+
+### Added (v0.1.38 — live Construction records and a Finance overview, after the demonstration; decision G25)
+- **Live records on Construction** (step 1 after the demonstration): Portfolio, Variations and Quality & inspections get a **Sample data / Live records** switch. Sample data stays the default. Live records come from the new read-only method `api.construction_live.get_construction_live`:
+  - construction jobs with their recorded stages (progress is the average of recorded stage completion; overdue stages; location; contract value and approved variations);
+  - variation orders;
+  - inspection reports.
+  Everything is permission-filtered through `frappe.get_list`. A group the role cannot read says why, never shows zero; a missing amount shows a dash, never $0. Each row links to its record.
+- **Finance overview** (sample data, same style): income and expenses with net profit, where the money goes, cash and bank at month end, owed to Sidra and owed by Sidra by age, bank and cash accounts. The Finance menu item opens it for the users who could already see Finance; the live ledger screen is one click away.
+- Tests: `api/test_construction_live.py` (project manager view, unreadable groups unavailable, outsiders and unknown Companies refused); frontend live-builder and missing-value tests.
+
+### Changed (v0.1.37 — Sidra's own projects in the sample screens, 14 Nov 2026; decision G25)
+- Sample screens now use Sidra Homes' public project names: **Masalaha Hagbad** (land offer), **Rayan Gardens**, **Safa Housing** and **Berbera Townhouses** (off-plan, stone walls, raised foundations, insulation). They replace the invented Hargeisa North Ridge, Hagbad East, Berbera Coastal, Burao Central Plaza and Masalaha Gardens.
+- Masalaha Hagbad uses 9 m × 24 m plots at the standard price, 30% above the friends-and-family offer ($11,000 / $5,500): $14,300 full and $7,150 half, interest-free from $325 a month over 22 months; a "22 months, interest-free" payment plan appears in Contracts and collections.
+- Real Estate Sales pipeline adds **Diaspora buyer support**: remote buying steps and buyers by country. Brokerage covers verified off-market plots and title deed transfer once paid; Design & Engineering describes end-to-end design and construction for the local climate.
+- All other figures, client projects and people stay fictional and labelled "Sample data".
+
+### Added (v0.1.36 — broad sample screens for the client demonstration, 14 Nov 2026; decision G25)
+- **Decision G25** recorded: more surface, less depth before the client's go-ahead; menu by business line (option A); fictional, labelled sample data.
+- **Menu by business line**: Executive, Construction, Design & Engineering, Real Estate Sales, Brokerage, then Customers, Finance and Setup (as the server allows). Properties, Sales, Contracts and Collections are reached from Real Estate Sales; the live dashboard from Executive. Staff now land on the sample Executive overview.
+- **Sample screens** (`frontend/src/showcase/`), every one badged "Sample data": Executive overview; Construction portfolio, schedule, cost and budget, variations, quality and inspections, risk, stock and materials, subcontractors; Design & Engineering overview, architecture, civil engineering, inspection services; Real Estate Sales inventory, pipeline, contracts and collections; Brokerage. Coloured figure tiles, donut, bar-and-cumulative-line, horizontal bar, Gantt, schematic map and table charts, drawn without new libraries.
+- **One level down**: every tile, chart segment, bar, map pin and attention item opens a read-only, searchable sample list (`/berjaya/sample/<list>`), filtered to what was clicked.
+- **Right-hand workflow panel** on each sample screen: the process as steps, with buttons to the real records screens the user's session may open.
+- Nothing is read from or written to the server by the sample screens; real record screens, permissions and posting rules are unchanged. Tests: `frontend/tests/showcase.test.mjs` (every drill-down link opens rows, columns and series consistent, figures agree with rows, chart geometry, formats); browser checks extended.
+
+### Added (v0.1.35 — module list tools and visual summaries)
+- Expandable visual summaries, local search/sort previews, and CSV exports for loaded records in Properties, Contracts, Construction, Collections, Finance and generic Sales, Customer/KYC and Setup lists.
+- Charts explicitly describe loaded-record coverage, retain unavailable values, and never imply company-wide totals or calculate financial balances.
+- CSV exports include only configured columns and neutralize spreadsheet formulas. Existing workflows and server permissions are unchanged.
+- Tests cover distributions, unavailable values, CSV escaping and browser interactions at desktop and phone widths.
+
+### Changed (v0.1.34 — cutover: Sidra staff use Berjaya, Desk for administrators and finance, 14 Nov 2026; decision G24)
+- **Decision G24** recorded. `sidra_realestate/cutover.py`, registered as a `before_request` hook: a signed-in Sidra staff member who opens a Desk page (`/desk`, `/app`) is sent to the matching Berjaya page with a temporary redirect (302): a bookmarked record lands on the same record (`/desk/sidra-unit/U-1` → `/berjaya/properties/U-1`), anything else on the Berjaya front page.
+- Users with System Manager, Accounts Manager, Accounts User, Auditor or Sidra Finance Reviewer keep Desk, for system administration and the ERPNext ledger and its reports. Administrator, guests and non-staff users are not affected.
+- Only Desk page requests (GET) are redirected. API calls, private files, print views, sign-in and Berjaya are untouched; Desk itself is not changed or removed.
+- The registration screen's "Open in Desk" button is removed.
+- Tests: `tests/test_cutover.py` (5 integration tests: staff sent to Berjaya, records landing on the same record, administrators and finance keeping Desk, only Desk pages redirected, non-staff and guests left alone). Checked over HTTP against a running local site: a sales user's `/desk`, `/desk/sidra-unit` and `/app/sidra-sale-contract/<name>` answer 302 to the Berjaya pages; a finance user's answer 200 from Desk; API calls answer 200 for both.
+
+### Added (v0.1.33 — attachments, comments and map locations in Berjaya, 14 Nov 2026; decision G23, step 5a)
+- **Attachments and comments** on every record page Berjaya serves (Desk's sidebar and timeline): the record's files, with those belonging to a form field marked; **Attach a file** (private) and **Remove** for users who may write the record (a field's file changes only through the form); comments, newest first, shown as plain text, which anyone who may read the record can add, as in Desk. Server: `sidra_realestate/api/record_extras.py` (`get_extras`, `add_comment`, `remove_attachment`); uploads use Frappe's `upload_file`, which checks write permission on the record.
+- **Map location** on unit and construction job pages, through the existing `api/locations.py`: the recorded point, **Google Maps** and **Google Earth** links, **KML** download, and **Set location** by latitude and longitude or **Use my current position** (the device's GPS), for users who may write the record; the version check and the "point, not surveyed boundaries" note as before. Desk's tile map is not rebuilt.
+- Tests: `api/test_record_extras.py` (4 integration tests: comments open to readers and stored escaped, attachments listed and removed only with write permission, field files kept to their form, only records the interface serves). Full app suite on a fresh Frappe v16 / ERPNext v16 site: 392 integration tests and 105 engine tests pass. Browser walk-through against a real local site at 1440px and 390px, 3 steps, all PASS: a manager sets a unit's location (map links and KML appear), comments, attaches a file and removes it; a sales user sees and adds comments but cannot attach or move the pin.
+
+### Added (v0.1.32 — Berjaya setup: contract profiles, clauses, contract settings, contract import, 14 Nov 2026; decision G23, step 4)
+- New **Setup** section in Berjaya (for users who may read it): **contract profiles** and **contract clauses** (lists, record pages, create and edit; the General Manager writes them as before), **contract settings** (the single record's form; read-only for everyone else), and **contract imports** (create, Validate, then Import).
+- Desk's form notes appear on the record and its form: a profile's installments and the reminder that penalty, refund and title terms are recorded only; a clause's warning until both the Somali and English wording are supplied; the import's date formats with **Download template**.
+- **Validate** is offered once a file is attached and **Import** only after a successful Validate, as in Desk; the result and the import's log are shown on the page. Rules audit R2 (the server does not itself require a prior Validate) is unchanged and still open.
+- **Files can be attached on a new record's form.** The upload is a private, unattached file of the user's own; Frappe attaches it to the record when the record is saved with it (`attach_files_to_document`). The "save first, then attach" step is gone for KYC scans, signed copies, evidence files and the import spreadsheet (which is required to create an import).
+- The form engine handles single records (no row to lock; the version check still applies; never deleted).
+- Tests: `api/test_forms_setup.py` (4 integration tests: a profile by the General Manager with its note and refused for a Sales Manager; a clause warning until both languages are supplied; Contract Settings saved, stale edits refused, read-only for a Sales User; an import created with a file uploaded on the new form, attached by Frappe, validated and imported). Full app suite on a fresh Frappe v16 / ERPNext v16 site: 388 integration tests and 105 engine tests pass. Browser walk-through against a real local site: the setup run (4 steps) at 1440px and 390px, and the earlier runs again with files attached before creating (forms 8, sales 6, construction 4 steps), all PASS.
+
+### Added (v0.1.31 — Berjaya forms for construction, 14 Nov 2026; decision G23, step 3)
+- The form engine now serves **construction jobs** (create and edit, with their stages and BOQ), **construction quotations** (create, edit, issue; the client's acceptance recorded after issue), **BOQ revisions**, **variation orders** and **inspection reports** (create, edit, submit and cancel as each DocType allows; the controllers keep G11's second-person rules).
+- Desk's job buttons in Berjaya: **New quotation / BOQ revision / variation order / inspection report** open that form with the job filled in, under the same conditions as Desk (a variation only once the job has a contract; nothing on a closed job); **Certify stage** asks which completed stage, for the Project Manager. On a quotation, **Approve contract** for the General Manager once the client's acceptance is recorded.
+- Fields that a DocType lets change after submission (a construction quotation's client acceptance) can be edited on a submitted record; nothing else can. A job's BOQ is read-only once an approved revision controls it, as in Desk.
+- A new record opened from another one is filled from the link (e.g. `?job=SCJ-…`), for fields the form lets the user set. Select fields can show labels for their values (the stage to certify).
+- Construction list: **New job** in Berjaya; job pages show Saved after a save and drop the "Open in Desk" link. A "Saved." note is cleared when a later action runs.
+- Tests: `api/test_forms_construction.py` (4 integration tests: a job with stages offering its records and refusing to "run" a link, Certify stage with its choices and roles, quotation acceptance after issue with the price kept and Approve contract by the General Manager, the BOQ locked by an approved revision). Full app suite on a fresh Frappe v16 / ERPNext v16 site: 384 integration tests and 105 engine tests pass. Browser walk-through against a real local site at 1440px and 390px, 4 steps, all PASS: a job with two billing stages; a quotation opened from the job, issued, then the client acceptance with its signed file; the General Manager approves the contract and the job then offers a variation order; stage 1 completed and certified.
+
+### Added (v0.1.30 — Berjaya forms for sales: price changes, quotations, contracts, title transfers, 14 Nov 2026; decision G23, step 2)
+- The form engine now also serves **price changes** (Sidra Unit Price History: create and submit; the unit's price follows), **sale quotations** (create, edit, issue), **sale contracts** (cash and generated: create, edit, sign; cancel and delete where permitted) and **title transfers** (create and edit, final payment and handover details with their evidence files).
+- Desk's buttons as actions, each offered only when Desk's own conditions hold and checked again by its method: **Approve discount** (a Sales Manager up to 5 %, the General Manager above; never the person who prepared it), **Revise draft** (opens the new draft), **Confirm final payment** (a second Sales Manager, not the one who entered it), **Confirm handover** (the General Manager).
+- A registered (External) contract cannot be submitted through the general form: it is confirmed on its contract page, where the acknowledgement of a schedule difference is recorded (G22). Its page now also offers Cancel and Delete where permitted.
+- Link suggestions use Desk's pickers as filters (units Available or Reserved on a quotation, active profiles without legal hold, confirmed contracts on a title transfer); the controllers still check every value.
+- Contracts list: **New contract** (cash or generated, in Berjaya) beside **Register external contract**; the Desk links on contract pages and lists served by the engine are removed.
+- Record pages reload in place after an action, so its result stays on screen.
+- Tests: `api/test_forms_sales.py` (7 integration tests: price change submitted, discount approved by a second person and the quotation issued, the preparer not offered the approval, a cash contract drafted, signed and no longer revisable, Revise draft opening the new draft, a registered contract refused by the general submit, both title transfer confirmations by the right people). Full app suite on a fresh Frappe v16 / ERPNext v16 site: 380 integration tests and 105 engine tests pass. Browser walk-through against a real local site at 1440px and 390px, 6 steps, all PASS: price change submitted and shown on the unit; quotation with a units table and a discount, approved by a second manager and issued; cash contract with parties and the signed copy drafted by a sales user (who cannot sign) and signed by a manager; title transfer final payment entered by one manager and confirmed by another.
+
+### Added (v0.1.29 — Berjaya record forms: customers, KYC, units, schemes, reservations, 14 Nov 2026; decision G23, step 1)
+- **Decision G23** recorded: Berjaya fully replaces Desk for Sidra's business records and actions; everything else is frozen.
+- **Form engine** `sidra_realestate/api/forms.py`: `get_form`, `save_form`, `submit_form`, `cancel_form`, `delete_form`, `run_action`. The server describes each form from the DocType (sections, labels, types, options, help text, required marks, and the show / read-only / mandatory rules) and says which fields this user may change; every write goes through the record's own controller.
+  - Only fields the form allows can be written; anything else is refused, not ignored (rules audit R7). A field that is read-only by its DocType rule for the values as they will be saved keeps its value (e.g. a unit's cash price after creation, which changes only through price history).
+  - Stale edits are refused (each change carries the version the user loaded); a create carries a request key, so a retry makes one record; submit, cancel and delete repeated after they succeeded change nothing.
+  - Actions are the existing server methods (`reserve_unit`, `cancel_reservation`, `verify_kyc`), offered only when Desk's own conditions hold for this user and record; each method checks its roles and state again. Desk's warning before reserving a unit without a positive price is kept (rules audit R3).
+  - Served now: Customer (the fields staff use; phone and email on creation, which ERPNext turns into the primary contact), Sidra Customer KYC, Sidra Unit, Sidra Scheme, and Sidra Reservation (actions only: reservations are made and cancelled through the unit).
+- **Field rules without running code** (`services/form_rules.py`): Frappe evaluates `depends_on` rules only in Desk's browser code. Each rule is parsed once into a small tree that the server and the browser evaluate the same way; nothing is executed. A pure test checks that every rule in the app is understood; a rule that is not understood makes its field read-only.
+- **Screens**: New and Edit pages for every served list (`pages/RecordEdit.vue`, `components/RecordForm.vue`, `components/FormField.vue`: text, numbers, money, dates, selects, links with Frappe's own permission-checked search, checks, tables with rows, and file uploads to the record's field as private files). Record pages gain Edit, Submit, Cancel, Delete and the record's actions, each confirmed on the page (`components/RecordActions.vue`). Lists the engine serves create in Berjaya instead of Desk.
+- **Units** get a record page at `/berjaya/properties/<unit>` (unit, plot and house details, its reservations and price history) and a New unit button; **Schemes** get a list and record page under Properties.
+- Record pages show "—" for a field that is empty and "Unavailable" only for one the user may not read (Frappe's REST answer leaves empty fields out, so the form's values decide).
+- Tests: `api/test_forms.py` (14 integration tests: form description, refused fields, read-only rule on the server, stale edits, permissions, request keys, create-only fields, delete permission, submit/cancel only for submittable types, reserve and cancel, the price warning, KYC verify), `services/tests/test_engine_form_rules.py` (7 pure tests), `frontend/tests/forms.test.mjs` (6 tests: the same rules in the browser, what a save sends). Full app suite on a fresh Frappe v16 / ERPNext v16 site: 373 integration tests and 105 engine tests pass. Browser walk-through against a real local site at 1440px and 390px, 8 steps, all PASS: a manager creates a scheme and a unit (company filled by the server), edits it (price read-only); a sales user reserves and cancels; a sales user creates a customer and a KYC and attaches the scanned ID; a manager verifies it; a sales user cannot open New unit.
+
+### Added (v0.1.28 — additional dashboard cards and charts)
+- Four operational cards for open/completed jobs, posted receipts and collection rate, using the existing permission-checked dashboard response.
+- Scheduled amounts by due window and operational exception charts, with visible exact values and unavailable states.
+- Risk/exposure cards and a needs-attention list linked to server-provided supporting records. Existing dashboard sections and company/period filters remain.
+- Frontend tests and isolated browser checks at desktop and phone widths; no backend rule, permission or posting changes.
+
+### Added (v0.1.27 — registration completed in Berjaya: terms, parties, Fill schedule, Print, 14 Nov 2026; implementation plan Phase 4)
+- The registration screen now covers everything Desk did for a registered (External) contract, so a registration needs no Desk step:
+  - **Agent and notary**: buyer's agent and phone, notary and notary reference (D5: recorded where the contract has them).
+  - **Penalty, default and title terms** (D6, G2, G9), as the signed contract states them; recorded only, nothing is applied. A field appears only when it applies (e.g. Amount per Day only for "Per Day Capped"), by the rule in the DocType.
+  - **Seller, guarantor and witnesses**: role, name, phone, ID number, and the pledged property for a guarantor. The controller's party rules apply at confirmation as in Desk.
+  - **Fill schedule from saved terms** (CC-06): proposes rows from the saved price, installments, due day and dates; asks before replacing existing rows; disabled while there are unsaved changes.
+- **Print** on the contract page opens Frappe's print view with the contract's own print format (Sidra branding, G19).
+- `api/contract_registration.py`: the screen may now also set the term, signing and party fields (anything else is still refused); new `fill_registration_schedule` (stale-edit check and row lock, then the controller's `propose_schedule`) and `get_registration_form` (labels, types, options and a plain "shown when" rule read from the DocType, so the wording lives in one place; a rule it cannot read means the field is always shown). Term, signing and party fields are sent only when that form loaded, so a failed load cannot blank them.
+- Tests: 19 integration tests in `api/test_contract_registration.py` (5 new); 25 frontend unit tests (4 new). Local Frappe v16.55.2 / ERPNext v16.53.0 bench: on a fresh site the full app suite passes with this change once v0.1.26 (demo test order) is in; CI is the check. Browser walk-through against that site at 1440px and 390px, 10 steps, all PASS, including terms shown by rule and kept after reload, a witness, Fill schedule with the replace prompt, and the print view.
+
+### Fixed (v0.1.26 — the finance demo and pilot dataset tests always run in the same order, 14 Nov 2026)
+- The finance demo test checks absolute totals for Sidra Homes, and its loader refuses a Company holding ledger entries it does not own, so it must run before the pilot dataset is loaded. The two were separate modules, and Frappe discovers test files in file-system order (`os.walk`, unsorted), which differs between machines: whenever the pilot ran first, the finance demo test failed (`180 != 60` units). This made CI fail at random, about half the time (seen on PR #60; PR #59 passed by luck).
+- Both now run from one module, `tests/test_demo_datasets.py`, as two classes that unittest loads in name order (`TestDemo1Finance`, then `TestDemo2Pilot`), each with its own test transaction as before. The test bodies are unchanged; `test_finance_demo.py` and `test_pilot_demo.py` now hold them as `FinanceDemoChecks` and `PilotDemoChecks`, and the pilot's `_foreign_gl_refused` is renamed `_pilot_foreign_gl_refused` so the two do not clash. `test_order` guards the class names.
+- Reproduced on a fresh Frappe v16 / ERPNext v16 site (pilot first: the same failure). With the fix, the full app suite passes on a fresh site: 354 integration tests and 98 engine tests.
+
+### Added (v0.1.25 — register an External contract in Berjaya, 14 Nov 2026; implementation plan Phase 4)
+- **Register external contract** at `/berjaya/contracts/new` and **Edit draft** at `/berjaya/contracts/<name>/edit`: customer, company, external reference, signing date, agreed price, profile, down payment mode and amount, installments, due day, grace months, terms summary, units with allocated prices, and the schedule row by row (type, due date, amount). Only a draft registered (External) installment contract can be edited here; penalty, default, title and party terms stay in Desk.
+- **Original signed contract**: uploaded as a private file to the draft's Signed Copy field through Frappe's own upload, then set on the contract by the server after checking the file belongs to this contract only.
+- **Confirm contract** on the contract page, shown only when the workflow timeline lists `confirm_contract` for the user and no stage is blocked. The Sidra Sales Manager's confirmation is the approval of the terms (D7); units become Under Contract, as in Desk. Nothing is posted to the ledger (`CLAUDE.md` rule 3).
+- `sidra_realestate/api/contract_registration.py`: `save_registration_draft`, `attach_registration_copy`, `confirm_registration`. Every rule stays in the Sidra Sale Contract controller; the module only limits which fields the screen may set (rules audit R7: anything else is refused, not ignored) and adds what a second screen needs:
+  - **Stale edits refused**: each change carries the `modified` value the user loaded; a change made since by someone else is named and nothing is written.
+  - **Row lock** before the check and the write, so two confirmations of one draft cannot both run.
+  - **Safe retries**: a create carries a request key (a retry returns the same draft); a confirmation repeated by the same user after it succeeded returns the same result and changes nothing.
+  - **Schedule difference within the tolerance must be acknowledged** (rules audit R1), and the acknowledgement is recorded on the contract as a comment naming the user and the amount. Above the tolerance the controller refuses as before. Approved by Mohamoud as **decision G22** (14 Nov 2026), recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; Desk keeps its own dialog unchanged.
+- Totals on the edit screen are the server's, as last saved; the browser adds nothing up.
+- New code follows the interim module rule of implementation plan v0.2 within the repository's existing layout: contract logic in `frontend/src/registration.js` beside `contracts.js`, the page in `pages/`, the server module in `api/`. No existing file was moved.
+- **Edit draft** on the contract page appears when the server says the user may write the draft (`frappe.client.get_doc_permissions`) or the timeline lists an edit action; **Confirm contract** only when the timeline lists `confirm_contract` and no stage is blocked.
+- Tests: `api/test_contract_registration.py` (14 integration tests: allowed fields, stale edits, request keys, permissions, signed copy ownership, confirmation, repeat, acknowledgement, no ledger effect); 8 new frontend unit tests (`frontend/tests/registration.test.mjs`, 21 in all). Run on a local Frappe v16.55.2 / ERPNext v16.53.0 bench: **the full app suite, 353 integration tests, passes**, plus the 98 engine tests. A browser walk-through against that real site (not synthetic answers), at 1440px and 390px: a sales user registers a draft, sees the server's refusal for a zero amount, attaches the signed copy and cannot confirm; a sales manager acknowledges a USD 3.00 difference and confirms; the timeline shows 6 of 6; the confirmed contract can no longer be edited. GitHub Actions is still not running.
+
+### Added (v0.1.24 — Berjaya is the staff front page; Dashboard; Sales, Customers, Construction work, Titles and prices, 14 Nov 2026; decision G21)
+- **Decision G21** recorded: staff land on `/berjaya` after signing in; `/sidra` and `/sidra-staff/` redirect there (302); ERPNext Desk stays for creating and editing until each Berjaya screen can; the Dashboard shows the old `/sidra-staff/` figures.
+- **Sign-in lands on Berjaya**: the apps-screen entry (and so System Settings "Default App") now routes to `/berjaya`. `/sidra` sends staff to `/berjaya`, guests to sign in and others to Desk; `/sidra-staff/` sends staff to `/berjaya`. Codex's staff client files are not touched.
+- **Dashboard** at `/berjaya/dashboard` (and the home page): from `get_dashboard`, unchanged. Units available, active reservations, contracts and agreed value for the period, new leads; management metrics and six-month trend for roles with executive reporting; properties by status; installments falling due; latest contracts; construction; payments; sales activity. A group the role cannot read shows the server's reason.
+- **New sections**, read-only, each list and record page following the user's server permissions:
+  - Customers: customers (with their KYC, reservations, quotations, contracts, title transfers and construction jobs) and KYC.
+  - Sales: reservations and sale quotations (units and schedule).
+  - Contracts: title transfers beside contracts.
+  - Properties: unit price history beside units.
+  - Construction: quotations, BOQ revisions, variation orders and inspection reports beside jobs.
+- **Desk for editing**: every record page has "Open in Desk"; lists show "New in Desk" only when the server says the user may create. Record links now use `/desk/…`.
+- `/berjaya` boot adds `lists` (read and create per list, computed on the server). Navigation follows the lists a user may read.
+- Tests: `test_berjaya_page` (list permissions from the server), `test_shell` and `test_staff_page` (old pages redirect with 302), `test_branding` (landing route); 13 frontend unit tests; browser check of 18 screens at 1440px and 390px plus a role without KYC access. Integration suite not run here (no database; GitHub Actions refused for billing).
+
+### Fixed (v0.1.23 — sign-in redirects are temporary, 14 Nov 2026)
+- `/berjaya`, `/sidra` and `/sidra-staff/` sent a signed-out visitor to the sign-in page with Frappe's default **301 (permanent)** redirect. Browsers remember a permanent redirect, so after signing in a user could be sent back to the sign-in page instead of the screen. They now use **302 (temporary)**, because the answer depends on the session. Seen on the test server's deploy check on 14 Nov 2026. `test_berjaya_page` asserts the 302.
+
+### Added (v0.1.22 — test server deploy script for Berjaya, 14 Nov 2026)
+- **`deploy/berjaya-deploy_v0.1.sh`**: one script for the test server. `deploy` takes a backup with files first (nothing else runs if it fails), fast-forwards the app to `develop` (local changes or a diverged branch stop it), installs the frontend packages from the lockfile, runs `bench build --app sidra_realestate --force` and proves the Berjaya files are new, migrates, clears caches, restarts and checks. `check` changes nothing. `brand` sets the Berjaya logo and name in Website, Navbar and System Settings when an earlier hand-made value keeps the old logo on the sign-in page. `rollback <commit>` moves the code back after typed confirmation and prints, but never runs, the database restore.
+- Checks are reported as PASS / FAIL / NOT VERIFIED: latest `develop`, built interface, processes running, sign-in page loads the Berjaya stylesheet and wordmark, assets served, `/berjaya` sends a signed-out visitor to sign in, and the timeline of `SSC-2026-00055` (saved as JSON, with the contract's `modified` unchanged by the call).
+- Dry-run against a stand-in server (real git remote; bench, yarn, curl and supervisor stand-ins): deploy, failed check, `brand`, uncommitted changes, failed backup, refused and confirmed rollback, redeploy after rollback. Not yet run on the real test server.
+
+### Added (v0.1.21 — Berjaya screens: Contracts, Collections, Construction, Finance; branded sign-in, 14 Nov 2026; decisions G17, G20)
+- **Contracts** at `/berjaya/contracts`: saved sale contracts with reference, customer, property, source and status; search by reference or customer. **Contract detail** at `/berjaya/contracts/<name>` (read-only): buyer, property, signed agreement, amounts, installment schedule with its saved total.
+- **Workflow panel** in the right-hand slot, fed only by `sidra_realestate.api.workflow.get_contract_timeline`: completed, current, blocked and pending stages by icon, words and colour; an unverified buyer on a registered contract is drawn as "Not verified - informational" and is not counted in "N of M stages complete"; a blocked stage shows the server's reason verbatim; evidence the user may not read says "Unavailable"; a contract with no workflow shows the server's reason. It reloads when the window regains focus and from Refresh. The Workflow button appears only on a page that has a panel.
+- **Collections** at `/berjaya/collections`: one calendar month of installments from confirmed contracts (`get_installment_calendar`), with the server's totals and its notice. A passed date is labelled "Date passed", never "overdue": payments against installments are not recorded yet.
+- **Construction** at `/berjaya/construction` and `/berjaya/construction/<name>`: saved construction jobs, and one job with its contract values, dates and stage rows.
+- **Finance** at `/berjaya/finance`: the server's ledger position for the period (`get_dashboard` → payments) or its reason when the Finance gate is closed, and the submitted Sales Invoices and receipts the user may read.
+- Every screen is read-only and reads saved records through Frappe's permission-checked API. No total is added up in the browser; a figure the server withholds reads "Unavailable". No demo or in-memory data.
+- **Sign-in page** in the Berjaya look (charcoal ground, terracotta action) through `public/css/berjaya-login.css`, loaded by `web_include_css` and scoped to the login page only; Frappe's page is not edited. The wordmark, app icon and favicon are redrawn in the decided colours with the same mark as the `/berjaya` navigation (file names unchanged).
+- Tests: 13 frontend unit tests (`yarn test` in `frontend/`), a browser check of every screen at 1440px and 390px against synthetic answers (`frontend/tests/browser.py`), one integration test for the sign-in stylesheet. GitHub Actions is not running (billing), so checks were run locally; the bench integration suite was not run for this version.
+- Based on Codex's contract screen work (branch `feature/berjaya-contract-screen`), brought up to `develop` and completed.
+
+### Added (v0.1.20 — Berjaya interface shell at `/berjaya`, 13 Nov 2026; decisions G17, G20)
+- **`/berjaya`**: the new interface, a Vue 3 + Vite + Frappe UI app in `frontend/`, served by `www/berjaya.py`; `website_route_rules` sends every path under `/berjaya` to it. Existing Frappe session only: Guests go to the login page and come back to the page they asked for; signed-in people who are not Sidra staff are refused. No tokens, nothing in local storage.
+- **Shell**: charcoal navigation (collapsible; a drawer on phones) with the product wordmark at the top and the user's Company at the bottom; a flexible workspace; a right panel slot (a drawer below 1100px), empty until the workflow panel is built. Colours and fonts are defined once in `frontend/src/tokens.css`; Space Grotesk and Inter are bundled, not fetched.
+- **Navigation follows the server**: `www/berjaya.py` lists the sections the user may read (Properties: Sidra Unit; Contracts and Collections: Sidra Sale Contract; Construction: Sidra Construction Job; Finance: GL Entry, as on `/sidra`). The frontend decides no permission.
+- **Properties**: a read-only list of units and their count from Frappe's REST API, with loading, empty, error and unavailable states. A field the server does not list as readable for the user reads "Unavailable", never zero. No demo or in-memory data; a failed request shows the failure. Other sections read "Not built yet".
+- **Build**: `bench build --app sidra_realestate` now also builds the frontend through the root `package.json` (or `yarn install --frozen-lockfile && yarn build` at the repository root). The output, `public/berjaya/` and `www/berjaya.html`, is not committed.
+- Tests: `api/test_berjaya_page.py` — Guest redirect, outsider refused, navigation for two roles against their permissions, readable unit fields, the route rule, the built page rendering with its boot data.
+- **Unchanged**: every DocType, field, permission, guard, loader and posting gate; `/sidra` and `/sidra-staff/`. No migration. Known gap: `Sidra Unit.cash_price` is not a restricted field today, so every role that reads units sees it.
+
+### Added (v0.1.19 — workflow timeline API for registered contracts, 13 Nov 2026; decisions G17, G20)
+- **`sidra_realestate.api.workflow.get_contract_timeline(contract)`**: one whitelisted, read-only method that returns the ordered stages of registering an External contract for the workflow panel of the new interface. Every state is derived from saved records on each call; nothing is stored and nothing is written.
+- Six stages, with the evidence approved by Mohamoud on 13 Nov 2026: buyer details verified (Sidra Customer KYC; informational for registered contracts under G12, never blocking), property allocation checked (re-derived from the units), external agreement attached (the contract's own private signed-copy File), installment schedule validated (D1 down payment mode, D3 tolerance; a confirmed contract keeps the tolerance frozen in its snapshot), terms approval by the Sales Manager (D7), registration finalized (submitted, external reference reserved).
+- Each stage is `completed`, `current`, `blocked` or `pending`; exactly one is current or blocked unless all are completed. A blocked stage carries the reason in words, with both amounts when the schedule does not reconcile.
+- Read permission on the contract is enforced. `allowed_actions` is computed for the signed-in user. KYC evidence is returned as unavailable to users who cannot read KYC; no contract amount is restricted today, and a figure a user may not read would be returned as unavailable, never zero.
+- Stage lists are defined in one place (`PROCESSES`) so collections and construction can add theirs. Generated and Cash contracts report that no workflow is defined yet.
+- No DocType, field, permission, hook, guard or posting gate is changed. `api/test_workflow.py`: 21 integration tests.
+
+### Changed (v0.1.18 — Berjaya product name on the existing screens, 13 Nov 2026; decisions G17–G20)
+- **Decisions recorded** in `docs/DECISIONS-AND-GATES_v0.1.md`: G17 (interface rebuild), G18 (product name **Berjaya**), G19 (**Sidra** stays the client and company name), G20 (rollout: `/berjaya`, charcoal and terracotta, rebrand first). `CLAUDE.md` and `AGENTS.md` carry the same naming rule.
+- **Branding audit** (`docs/BERJAYA-BRANDING-AUDIT_v0.1.md`): 2,128 "sidra" lines classified — 11 product, 176 client, 1,883 internal, 58 unsure. Approved by Mohamoud on 13 Nov 2026.
+- **Rules audit** (`docs/BERJAYA-RULES-AUDIT_v0.1.md`): every rule held in Desk form scripts or field conditions, with its server check. Document only; no rule moved.
+- **Surfaces rebranded**: the app name on the apps screen, the system and website name (browser tab titles, login page, website footer), the `/sidra` front page title and header, the `/sidra-staff/` page title and sidebar brand, the README title and the app description. The name comes from one constant, `sidra_realestate.branding.BRAND_NAME`.
+- A plain text wordmark and letter icon (`berjaya-wordmark.png`, `berjaya-icon.png`, `berjaya-favicon.png`) replace the company logo as the software's navbar logo, splash and favicon. Colours are unchanged.
+- A site this app had branded "Sidra Homes" is rebranded on migrate: only that exact earlier value in System, Website and Navbar Settings is replaced. An administrator's own value is still left alone.
+- **Unchanged**: Company **Sidra Homes** and every record in it; the Sidra Homes logo and letterhead on the contract and quotation prints; app, module, site, flag, DocType, role and report names; naming series; the routes `/sidra` and `/sidra-staff/`; the Desk sidebar names; the native Android and macOS apps; every guard, loader, posting gate and permission. No patch, no data migration.
+- Tests: product-name source, hooks and apps-screen tile; the login page context and the front page carry Berjaya; earlier branding replaced; Company list and name unchanged by branding; contract print and a Sidra Homes sales invoice print carry no product name.
+
+### Fixed (v0.1.17 — staff dashboard pilot sources and installment calendar, 13 Nov 2026)
+- Read opted-in native financial data from either the twelve-month pilot manifest, the earlier finance demo manifest, or both. Preserve complete permission-filtered invoice/payment cohorts, currency checks and ownership validation; no grants, postings or loader calls.
+- Remove the two historical demo Companies from the staff dashboard selector and prefer Sidra Homes, without changing any Company or historical record.
+- Add a complete, permission-filtered monthly installment endpoint and responsive Calendar/List views with month navigation, day selection, search, date filters and exact server schedule cards. Scheduled obligations and past dates remain explicitly unreconciled; posted receipts and overdue invoice balances use their separate native sources.
+- Show open construction jobs including enquiries and a status breakdown; replace the unconnected project-baseline headline with recorded overdue milestones, preserving the unavailable baseline API field. Label the existing stage-percentage average explicitly.
+
+
+### Added (v0.1.15 — twelve-month pilot demonstration dataset, 13 Nov 2026; decision G16; `docs/PILOT-DEMO_v0.1.md`)
+- **`sidra_realestate.pilot_demo.create_pilot_demo_data`**: one guarded, manual loader that fills the existing Company **Sidra Homes** with twelve months of fictional movement, so a client demonstration opens onto populated records in every module instead of empty screens.
+  - Property: 4 schemes, 120 units across Plot / House / Apartment, ready and off-plan, with 20 submitted price reviews scheduled ahead.
+  - Sales: 40 buyers with KYC (4 left unverified so the contract gate is visible), 60 quotations across Draft / Issued / Expired with discounts above and below the 5 % limit, 25 reservations created through the Reserve Unit service, 45 contracts — Cash and Installment, generated and externally registered, 3 left draft — and 20 title transfers spread across their states.
+  - Installments: a schedule on every installment contract at 12, 18, 24 or 36 months; the rounding lands on the final row so the schedule equals the balance exactly.
+  - Construction: 25 jobs across all four service types and six statuses, each with a BOQ, five stages and billing percentages totalling 100; a draft quotation per job past Enquiry and addition-only variation orders.
+  - Finance: about 160 vouchers over twelve months — opening capital, 60 sales invoices, 35 purchase invoices and their payments — paid, part paid and open in equal thirds so AR ageing has more than one bucket.
+- **Every G14 guard is kept and none relaxed**: Administrator only, all three staging flags, a private ownership manifest (`sidra-pilot-demo-v1.json`), the no-foreign-GL guard as the first read before any insert, one transaction with full rollback, reserved-identity refusals, and a rerun that verifies and writes nothing.
+- The pilot and finance demo manifests are read together, so the two datasets coexist in Sidra Homes and each still refuses ledger rows neither owns.
+- `services/pilot_dataset.py`: the dataset plan as pure, seeded logic with `test_engine_pilot_dataset.py` — counts, dates, schedule arithmetic and the balance-sheet identity are asserted before anything is posted. Frappe integration tests cover the guards, the rollback, the foreign-GL refusal, module coverage and the rerun.
+- `docs/PILOT-DEMO_v0.1.md`, `docs/DECISIONS-AND-GATES_v0.1.md`: G16. `CLAUDE.md` and `AGENTS.md` name the pilot dataset in the scoped exception.
+- Known gap: **Sidra Brokerage has no DocTypes**, so it is not populated and its sidebar section stays empty. Inspection Reports are not created — the DocType needs an inspector User the loader does not make.
+- Production posting gates, refunds, penalties and title transfer are unchanged; ERPNext remains the only ledger.
+
+### Added (v0.1.14 — one front page for staff, decision G15, 13 Nov 2026; `docs/SHELL_v0.1.md`)
+- `/sidra`: a single front page with four doors (Executive Dashboard, Financials, Real Estate Sales, Construction). Each service shows its workflow as numbered steps with counts, items waiting for action, and New buttons. Doors, steps and buttons follow the user's permissions; a step the user can't read is left out, not shown as zero.
+- Staff land on it after signing in: the app's apps-screen route is `/sidra` (desk route `/desk/sidra-sale-contract`) and System Settings Default App is set to this app when blank.
+- Read-only and server-rendered: no new HTTP API, no posting, not cached. The staff dashboard is unchanged and linked from the page.
+- `api/test_shell.py`: Frappe integration tests. `docs/DECISIONS-AND-GATES_v0.1.md`: G15.
+
+### Changed (v0.1.13 — sample data under Sidra Homes on the test site, decision G14, 13 Nov 2026)
+- Decision G14 recorded in `docs/DECISIONS-AND-GATES_v0.1.md`; `docs/FINANCE-DEMO_v0.2.md` replaces v0.1 (kept, marked superseded); `CLAUDE.md`, `AGENTS.md`, `docs/DEPLOYMENT_v0.1.md` and `docs/STAFF-DEMO_v0.1.md` name Sidra Homes.
+- Finance demo loader posts the same ten vouchers (237,000 / 237,000) into the existing Company **Sidra Homes**, named in one constant. It never creates or edits the Company; demo accounts sit under marked `Fictional Demo Accounts` groups; identities are `SHD`, so the v0.1 `SFD` records and both old demo Companies are untouched.
+- New no-foreign-GL guard: before the first insert, refuse a Company holding any GL entry the private manifest does not own, naming the count and first vouchers; refuse on a missing, duplicated or unreadable manifest. Also run by `verify_finance_demo`.
+- Staff dashboard demo finance adapter and `demo_reporting.populate_and_verify` follow the same constant to Sidra Homes.
+- Tests: finance demo tests retargeted; new tests for the guard (refusal, count in the message, nothing written), the missing Company, the unreadable manifest, and the count and checksum of 60 existing units before and after a load.
+- `deploy/sidra-homes-verify_v0.2.sh`: test-site runbook and read-only verification sweep. `deploy/sidra-homes-run_v0.1.sh`: one script that backs up, fast-forwards the app to `develop`, rebuilds, restarts and then runs it.
+
+### Added (v0.1.12 — sale quotation, P1, 12 Nov 2026; decision G13; `docs/SALE-QUOTATION_v0.1.md`)
+- **Sidra Sale Quotation** (SAL-05): an offer for one or more units showing the cash option and the installment option side by side, printed on Sidra letterhead (print format *Sidra Sale Quotation*).
+  - Cash option: the unit's listed price, or lower as a discount.
+  - Installment option: a price entered per unit, never below the listed price; terms from a contract profile, with the number of months adjustable from 12 to 36; an indicative schedule.
+  - Discounts need a second person before the quotation is issued: a Sales Manager up to 5 % of the unit's listed price, the General Manager above. Changing a price clears the approval.
+  - Valid 7 days unless changed; a daily job marks issued quotations Expired.
+  - Offer only: no reservation, no unit change, no contract and no posting.
+- Real Estate sidebar link for Sale Quotations.
+- `services/quotation.py`: pure rules with `test_engine_quotation.py`. The 5 % limit, the month range and the valid days are constants that change only with an approved spec. Frappe integration tests.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G13.
+
+### Fixed (v0.1.11 — staff sample figures, 12 Nov 2026)
+- Staff Sales shows permission-filtered recorded lead statuses for the selected Company and period. Qualification/conversion remain unset.
+- Add a single staging finance-demo population script with ledger and staff-source checks and correctly scoped report links.
+
+### Added (v0.1.10 — buyer KYC and title transfer tracker, P1, 12 Nov 2026; decision G12; `docs/KYC-AND-TITLE_v0.1.md`)
+- **Sidra Customer KYC** (SAL-07): one restricted record per Customer with ID or passport, phone, address, guarantor details and private scans. Sales Users enter it and a Sales Manager verifies it; the General Manager reads. No other role has access. Changing a verified record returns it to Draft.
+- **Contract gate:** a contract generated from a profile can't be submitted until the buyer has verified KYC. Registered (external) contracts don't need it.
+- **Sidra Title Transfer** (SAL-08, SAL-18):
+  - one record per unit of a confirmed contract, with documents required, land office submission, deed number and handover;
+  - the final payment date is entered with private evidence and confirmed by a second Sales Manager; the deadline is the contract's frozen title deadline days after it;
+  - status is Due Soon from 5 days before the deadline and Overdue after it, with days past the deadline; a daily job keeps it current;
+  - the General Manager confirms the handover, after which the record is locked;
+  - record only: no change to the unit, the contract or ownership, and no late-title amount.
+- Real Estate sidebar links for Title Transfers and Customer KYC; Title connection on the sale contract.
+- `services/title.py`: pure deadline rules with `test_engine_title.py`. `services/files.py`: the shared private-file check. Frappe integration tests for both DocTypes and the contract gate.
+- The demo loader gives its fictional buyers verified KYC so generated demo contracts can still be confirmed.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G12.
+
+### Added (v0.1.9 — construction controls, P1, 12 Nov 2026; decision G11; `docs/CONSTRUCTION-CONTROLS_v0.2.md`)
+- **Sidra Construction Quotation** (CON-02, CON-03):
+  - priced from a frozen copy of the job's BOQ, or as a fixed fee; printed on Sidra letterhead (print format *Sidra Construction Quotation*);
+  - the Project Manager issues it; it can't be issued if the BOQ has changed since the draft or the quotation has expired; issuing moves the job to Quoted;
+  - the client's acceptance is recorded with a private signed file;
+  - **Approve Contract** is for the General Manager only. It sets the job's original contract value, start, duration, end and retention (0–10 %, period in months), and the job becomes Contracted. Stage Billing % must add up to exactly 100.
+- **Sidra BOQ Revision** (CON-02 revisions): the Project Manager approves; revisions are numbered and copy their lines to the job. Stale drafts and revisions that change nothing are refused. Never cancelled. The job's BOQ changes only through a new revision.
+- **Sidra Variation Order** (CON-06):
+  - additions only, with the client's approval recorded (who, when, private signed file);
+  - a second person approves: another Project Manager up to $1,000, the General Manager above $1,000, and cancelling follows the same rule;
+  - the job must have an approved contract.
+- **Sidra Inspection Report** (CON-05): date, inspector, stage, checklist results, overall result, defects, next action and due date, private photos. Consistency checks apply. The Inspector approves.
+- **Stage certification** (CON-04): **Certify Stage** for the Project Manager on Completed, 100 %, ended stages. A certified stage is frozen and can't be removed. Not an invoice or revenue.
+- **Sidra Construction Job:**
+  - contract section, read-only and set only by Approve Contract;
+  - Approved Variations and Current Contract Value;
+  - Milestone Amount per stage (current value × Billing %; adds up to the value exactly);
+  - Billing % locked after the contract;
+  - Approved BOQ Revision;
+  - Create buttons, Connections and Construction sidebar links.
+- `services/construction.py`: pure rules with `test_engine_construction.py`. The $1,000 limit and 10 % retention ceiling are constants that change only with an approved spec. Frappe integration tests for each new DocType, contract approval and certification.
+- `docs/DECISIONS-AND-GATES_v0.1.md`: G11.
+- Recorded only: no invoice, Sales Order amendment or posting (`CLAUDE.md` rule 3).
+
+### Security (v0.1.8 — ERPNext hardening, 12 Nov 2026)
+
+- Bind contract-import spreadsheets to their own private File attachment and enforce File read permission before parsing.
+- Enforce Customer access on reservations and linked-unit access on cancellation; reject malformed durations and nonfinite spreadsheet amounts before writes.
+- Add regression tests, a read-only administrative site-security audit, and repeatable secret/Bandit CI checks. See `docs/SECURITY-REVIEW_v0.1.md` for findings and outstanding deployment verification; no AI runtime is bundled or added.
+
+### Changed (v0.1.7 — Somaliland regional settings, 12 Nov 2026)
+- Sidra settings, demo Companies and native setup presets use Somaliland. Create its Country master before assigning links; retain USD, DD/MM/YYYY and Africa/Mogadishu.
+- Migration updates existing site defaults, Company/Address country links, the native territory and address template. Existing contracts, vouchers and customer identities are preserved. Other country selections and the upstream country catalogue remain available.
+
+### Fixed (v0.1.6 — Desk usability)
+- Consistent sidebar ownership, construction/collections/report links and count-chart formatting.
+- Scheme connections and permission-filtered counts, clearer identifiers, unit list columns and house-only fields.
+- Staff-facing labels without requirement codes, readable schedule columns, map fallback and import template download.
+- Missing asking prices are explicit; no prices, signed terms, legal wording or financial rules are invented.
+
+
+### Fixed (v0.1.5 — staff dashboard review fixes, 12 Nov 2026)
+- Sidra Project Manager and Sidra Inspector no longer get a permission error on the staff dashboard: unit, contract, reservation and schedule groups their role cannot read are returned as null/empty (unknown, not zero).
+- Staff dashboard money is summed as exact decimals; a missing or invalid amount makes the total null instead of being counted as zero.
+- The schedule bucket "Next 30 days" now covers tomorrow through day 30, the same window as the executive `due_next_30_days`; rows due today have a separate "Due today" bucket.
+- Overdue milestones use the shared `stage_overdue` rule (no actual end, completion below 100, active/on-hold jobs only), consistent with the executive stage exceptions.
+- Open spec questions, not changed here: the two contract-value totals and the construction progress % (GitHub issues labelled `spec-question`).
 
 ### Added (v0.1.4 — collections rules as profile settings, decision G9, issue #3, 12 Nov 2026)
 - Sidra Contract Profile: eleven new settings for the rules the installment engine had to assume: days before a per-day penalty starts, cap basis, whether payment on the last notice day is late, what a receipt pays first, how a payment beyond what is due is allocated, days before an installment counts as missed, what "one installment" means for the refund, whether penalties paid are in the refund base, and Profile B's title part month, refund-right start and compensation base
@@ -131,3 +653,4 @@ All notable changes to `sidra_realestate`. Versions follow `MAJOR.MINOR.PATCH`; 
 - `docs/SREMS-SRS_v1.6.md` — requirements specification v1.6
 - `docs/ERPNEXT-MAPPING_v0.1.md` — mapping of every requirement to ERPNext standard features or custom DocTypes
 - GitHub Actions CI: ruff lint and Python syntax check
+

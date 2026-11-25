@@ -1,3 +1,8 @@
+## 0.1.4 — 13 Nov 2026
+
+- Monthly installment calendar and complete list share server-filtered dates, search and agreed amounts; past dates remain unreconciled until allocations exist. Native invoice receipts and overdue balances remain separate.
+- Open construction counts include enquiries; status breakdowns explain the active/completed totals. Executive headlines show recorded overdue milestones instead of an unavailable baseline measure.
+
 # Staff clients changelog
 
 ## Web client v0.1.2 — 8 Nov 2026

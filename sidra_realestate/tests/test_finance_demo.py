@@ -1,20 +1,24 @@
 """Real native vouchers and reports on the disposable CI site, never mock ledger balances."""
 
+import hashlib
 from datetime import date
 from decimal import Decimal
 from unittest.mock import patch
 
 import frappe
-from frappe.tests import IntegrationTestCase
 from frappe.utils import getdate
 
 from sidra_realestate.api.finance_demo_snapshot import demo_financials
 from sidra_realestate.api.staff_dashboard import get_dashboard
 from sidra_realestate.finance_demo import (
+	ACCOUNT_PREFIX,
 	COMPANY,
+	CUSTOMER,
 	EXPECTED,
 	FLAGS,
+	SCHEME,
 	VOUCHERS,
+	_fiscal_year,
 	create_finance_demo_data,
 	report_links,
 	verify_finance_demo,
@@ -24,13 +28,72 @@ from sidra_realestate.tests.helpers import (
 	OTHER_COMPANY,
 	as_user,
 	ensure_base_records,
+	ensure_company,
 	ensure_user,
 )
 
+EXISTING_SCHEME = "_TEST-SH-EXISTING"
+EXISTING_UNITS = 60
 
-class TestFinanceDemo(IntegrationTestCase):
+
+def existing_units():
+	"""Count and checksum of every field of the Company's own units (brief 1.4)."""
+	rows = frappe.get_all(
+		"Sidra Unit",
+		filters={"company": COMPANY, "scheme": ("!=", SCHEME)},
+		fields=["*"],
+		order_by="name asc",
+		limit_page_length=0,
+	)
+	return len(rows), hashlib.sha256(frappe.as_json(rows).encode()).hexdigest()
+
+
+def ensure_existing_units():
+	if not frappe.db.exists("Sidra Scheme", EXISTING_SCHEME):
+		frappe.get_doc(
+			{
+				"doctype": "Sidra Scheme",
+				"scheme_code": EXISTING_SCHEME,
+				"scheme_name": "_Test existing plots",
+				"company": COMPANY,
+			}
+		).insert()
+		for index in range(1, EXISTING_UNITS + 1):
+			frappe.get_doc(
+				{
+					"doctype": "Sidra Unit",
+					"unit_code": f"{EXISTING_SCHEME}-{index:02d}",
+					"scheme": EXISTING_SCHEME,
+					"unit_type": "Plot",
+					"cash_price": 10000,
+				}
+			).insert()
+		frappe.db.commit()
+
+
+def demo_masters():
+	return (
+		frappe.db.count("Account", {"company": COMPANY, "account_name": ("like", ACCOUNT_PREFIX + "%")}),
+		frappe.db.count("Customer", {"customer_name": CUSTOMER}),
+		frappe.db.count("Sidra Scheme", {"scheme_code": SCHEME}),
+		frappe.db.count("File", {"attached_to_doctype": "Company", "attached_to_name": COMPANY}),
+	)
+
+
+class FinanceDemoChecks:
+	"""Run by `test_demo_datasets.TestDemoDatasets`, before the pilot checks (see there)."""
+
 	def test_guarded_dataset_native_reports_dashboard_and_repeat(self):
 		ensure_base_records()
+		with as_user("Administrator"), patch.dict(frappe.conf, {flag: 1 for flag in FLAGS}):
+			# The loader never creates its Company.
+			if not frappe.db.exists("Company", COMPANY):
+				with self.assertRaisesRegex(frappe.ValidationError, "does not exist"):
+					create_finance_demo_data()
+			ensure_company(COMPANY, "SH")
+			ensure_existing_units()
+		units_before = existing_units()
+		self.assertEqual(units_before[0], EXISTING_UNITS)
 		with as_user("Administrator"), patch.dict(frappe.conf, {flag: 0 for flag in FLAGS}):
 			before = frappe.db.count("GL Entry")
 			with self.assertRaises(frappe.ValidationError):
@@ -44,17 +107,23 @@ class TestFinanceDemo(IntegrationTestCase):
 			):
 				with self.assertRaisesRegex(RuntimeError, "test rollback"):
 					create_finance_demo_data()
-			self.assertFalse(frappe.db.exists("Company", COMPANY))
+			self.assertEqual(demo_masters(), (0, 0, 0, 0))
 			self.assertEqual(frappe.db.count("GL Entry"), before)
+			self.assertEqual(existing_units(), units_before)
 
-			# A separately created Company must never be adopted as our fixture.
-			with patch("sidra_realestate.finance_demo.frappe.db.exists", return_value=True):
-				with self.assertRaises(frappe.ValidationError):
+			self._foreign_gl_refused()
+			# An unreadable manifest is a refusal, never a clean slate.
+			with patch(
+				"sidra_realestate.finance_demo.frappe.get_all", side_effect=RuntimeError("unreadable")
+			):
+				with self.assertRaisesRegex(frappe.ValidationError, "manifest"):
 					create_finance_demo_data()
+			self.assertEqual(frappe.db.count("GL Entry"), before)
 
 			with patch("frappe.get_print", side_effect=AssertionError("No document generation in demo")):
 				data = create_finance_demo_data()
 			self.assertTrue(data["created"])
+			self.assertEqual(existing_units(), units_before, "the Company's own units must not change")
 			self.assertEqual(verify_finance_demo()["debits"], "237000.00")
 			self.assertEqual(verify_finance_demo()["credits"], "237000.00")
 			before_repeat = frappe.db.count("GL Entry")
@@ -62,8 +131,18 @@ class TestFinanceDemo(IntegrationTestCase):
 			self.assertFalse(second["created"])
 			self.assertEqual(data["vouchers"], second["vouchers"])
 			self.assertEqual(frappe.db.count("GL Entry"), before_repeat)
+			self.assertEqual(existing_units(), units_before)
 			for dt, count in VOUCHERS.items():
 				self.assertEqual(frappe.db.count(dt, {"company": COMPANY, "docstatus": 1}), count)
+
+			# G19: the Company keeps its exact name and its invoices carry it, not the product name.
+			self.assertEqual(COMPANY, "Sidra Homes")
+			self.assertEqual(frappe.db.get_value("Company", COMPANY, "company_name"), "Sidra Homes")
+			invoice = frappe.get_all(
+				"Sales Invoice", filters={"company": COMPANY, "docstatus": 1}, pluck="name", limit=1
+			)[0]
+			self.assertEqual(frappe.db.get_value("Sales Invoice", invoice, "company"), "Sidra Homes")
+			self.assertNotIn("berjaya", frappe.get_print("Sales Invoice", invoice).lower())
 			self.assertEqual(
 				sorted(
 					frappe.get_all("Sales Invoice", filters={"company": COMPANY}, pluck="outstanding_amount")
@@ -88,6 +167,44 @@ class TestFinanceDemo(IntegrationTestCase):
 			with patch("sidra_realestate.finance_demo.frappe.get_all", return_value=[]):
 				with self.assertRaises(frappe.ValidationError):
 					verify_finance_demo(data)
+
+	def _foreign_gl_refused(self):
+		"""One voucher the manifest does not own: refuse, name the count, write nothing (G14)."""
+		before = (frappe.db.count("GL Entry"), demo_masters(), existing_units())
+		frappe.db.savepoint("foreign_gl")
+		try:
+			_fiscal_year(frappe.utils.getdate())
+			cash = frappe.get_all(
+				"Account", filters={"company": COMPANY, "is_group": 0, "account_type": "Cash"}, pluck="name"
+			)[0]
+			equity = frappe.get_all(
+				"Account", filters={"company": COMPANY, "is_group": 0, "root_type": "Equity"}, pluck="name"
+			)[0]
+			foreign = frappe.get_doc(
+				{
+					"doctype": "Journal Entry",
+					"company": COMPANY,
+					"voucher_type": "Journal Entry",
+					"posting_date": frappe.utils.getdate(),
+					"accounts": [
+						{"account": cash, "debit_in_account_currency": 7},
+						{"account": equity, "credit_in_account_currency": 7},
+					],
+				}
+			).insert()
+			foreign.submit()
+			seeded = (frappe.db.count("GL Entry"), demo_masters())
+			with self.assertRaisesRegex(
+				frappe.ValidationError,
+				f"has 2 GL entries not owned by the finance demo manifest .first: Journal Entry {foreign.name}",
+			):
+				create_finance_demo_data()
+			self.assertEqual((frappe.db.count("GL Entry"), demo_masters()), seeded, "nothing was written")
+			self.assertEqual(frappe.db.count("Journal Entry", {"company": COMPANY}), 1)
+		finally:
+			frappe.db.rollback(save_point="foreign_gl")
+			frappe.cache.delete_value("fiscal_years")
+		self.assertEqual((frappe.db.count("GL Entry"), demo_masters(), existing_units()), before)
 
 	def _native_reports(self, data):
 		from erpnext.accounts.report.accounts_payable.accounts_payable import execute as payable
@@ -211,6 +328,13 @@ class TestFinanceDemo(IntegrationTestCase):
 		)
 		with as_user(finance_user):
 			self.assertTrue(demo_financials(COMPANY, "USD", today, today)["available"])
+		operational_finance_user = ensure_user(
+			"sidra.finance-operations-test@example.com", ["Accounts Manager", "Sidra Finance Reviewer"]
+		)
+		with as_user(operational_finance_user):
+			operational = get_dashboard(company=COMPANY)
+			self.assertFalse(operational["executive"]["available"])
+			self.assertTrue(operational["payments"]["available"], operational["payments"])
 		permission = frappe.get_doc(
 			{
 				"doctype": "User Permission",
@@ -236,6 +360,6 @@ class TestFinanceDemo(IntegrationTestCase):
 		self.assertEqual(metrics["overdue_balance"]["value"], "15000.00")
 		self.assertEqual(metrics["sales_value"]["value"], "30000.00")
 		self.assertEqual(metrics["due_next_30_days"]["value"], "10000.00")
-		self.assertEqual(metrics["available_units"]["value"], 2)
+		self.assertEqual(metrics["available_units"]["value"], EXISTING_UNITS + 2)
 		self.assertEqual(dashboard["jobs"]["active"], 1)
 		self.assertEqual(dashboard["jobs"]["overdue_milestones"], 1)

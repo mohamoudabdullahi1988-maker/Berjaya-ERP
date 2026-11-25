@@ -4,7 +4,7 @@
 
 Status (7 Nov 2026): a **test VPS** is running (Contabo, France, Ubuntu, 7.8 GB RAM, site `sidra.local`, bench at `/home/frappe/sidra/frappe-bench`, reached by IP over HTTP). It is a test server, not the final staging site: HTTPS, a DNS name, backups and access rules (section 6) are still open. The steps below were first rehearsed in a disposable container; section 1.1 records what the VPS needed on top.
 
-Update (9 Nov 2026): the user's fictional finance data request has a narrowly scoped exception in [FINANCE-DEMO_v0.1.md](FINANCE-DEMO_v0.1.md). Only that guarded loader may submit its fixed, isolated demo vouchers on an explicitly marked test site. The original operational demo below remains non-posting; production Finance gates remain closed.
+Update (9 Nov 2026): the user's fictional finance data request has a narrowly scoped exception in [FINANCE-DEMO_v0.2.md](FINANCE-DEMO_v0.2.md) (12 Nov 2026, decision G14: the Company is **Sidra Homes**). Only that guarded loader may submit its fixed demo vouchers on an explicitly marked test site. The original operational demo below remains non-posting; production Finance gates remain closed.
 
 Boundaries on staging (CLAUDE.md, SRS v2.0 §3.4, §9):
 - synthetic data only;

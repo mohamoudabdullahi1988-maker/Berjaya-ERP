@@ -43,6 +43,7 @@ export default {
     cash_collected: {available: true, value: '38500', target: '45000', attainment_percent: 85.6, status: 'attention', status_label: 'Collection follow-up', detail: 'Posted receipts · selected reporting period', drilldown: cash},
     overdue_balance: {available: true, value: '9250', status: 'critical', status_label: '6 contracts overdue', detail: 'Unpaid after allocation · as of snapshot', drilldown: aging},
     due_next_30_days: {available: true, value: '18250', detail: '8 Nov–7 Dec 2026 · unpaid obligations', expected_receipts: {available: false, reason: 'No collection forecast approved'}, drilldown: dues},
+    overdue_milestones: {available:true,value:3,basis:'recorded_stage_dates',detail:'Recorded incomplete stages past their planned end',drilldown:report('/app/sidra-construction-job?company=demo',['Job','Recorded exception'],[['Demo House 02','Roofing'],['Demo House 03','Structure'],['Demo Villa 04','Inspection']])},
     projects_on_schedule: {available: true, value: 7, status: 'attention', status_label: '2 jobs need attention', detail: '7 of 9 active jobs · approved baseline', drilldown: jobs},
     available_units: {available: true, value: 42, asking_value: '462000', detail: 'Asking prices · not asset carrying value', drilldown: units},
   },

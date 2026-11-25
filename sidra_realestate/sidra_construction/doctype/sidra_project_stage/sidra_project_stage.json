@@ -13,7 +13,11 @@
   "actual_end",
   "completion_pct",
   "billing_pct",
-  "engineer"
+  "billing_amount",
+  "engineer",
+  "certified",
+  "certified_by",
+  "certified_on"
  ],
  "fields": [
   {
@@ -63,19 +67,51 @@
    "fieldname": "billing_pct",
    "fieldtype": "Percent",
    "label": "Billing %",
-   "description": "Planning only; no invoice in P0"
+   "description": "Payment milestone: must add up to 100 across stages at contract approval; locked after it. No invoice is created."
+  },
+  {
+   "fieldname": "billing_amount",
+   "fieldtype": "Currency",
+   "label": "Milestone Amount",
+   "options": "currency",
+   "read_only": 1,
+   "description": "Current contract value × Billing %. A record of the milestone, not an invoice."
   },
   {
    "fieldname": "engineer",
    "fieldtype": "Link",
    "label": "Responsible Engineer",
    "options": "User"
+  },
+  {
+   "fieldname": "certified",
+   "fieldtype": "Check",
+   "label": "Certified",
+   "read_only": 1,
+   "no_copy": 1,
+   "in_list_view": 1,
+   "description": "Stage completion certified by the Project Manager. Certification is not an invoice or revenue."
+  },
+  {
+   "fieldname": "certified_by",
+   "fieldtype": "Link",
+   "label": "Certified By",
+   "options": "User",
+   "read_only": 1,
+   "no_copy": 1
+  },
+  {
+   "fieldname": "certified_on",
+   "fieldtype": "Datetime",
+   "label": "Certified On",
+   "read_only": 1,
+   "no_copy": 1
   }
  ],
  "index_web_pages_for_search": 0,
  "istable": 1,
  "links": [],
- "modified": "2026-11-05 12:00:00.000000",
+ "modified": "2026-11-12 15:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Project Stage",

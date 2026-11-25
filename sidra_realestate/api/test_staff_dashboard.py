@@ -5,20 +5,27 @@ import frappe
 from frappe.tests import IntegrationTestCase
 
 from sidra_realestate.api.executive_dashboard import snapshot_time
-from sidra_realestate.api.staff_dashboard import get_dashboard
+from sidra_realestate.api.staff_dashboard import get_dashboard, get_installment_calendar
 from sidra_realestate.install import ensure_contract_profiles
 from sidra_realestate.tests.helpers import (
 	BUYER,
 	COMPANY,
+	GENERAL_MANAGER,
+	OTHER_COMPANY,
 	OUTSIDER,
 	SALES_MANAGER,
 	as_user,
 	attach_signed_copy,
 	ensure_base_records,
+	ensure_company,
+	ensure_user,
 	make_scheme,
 	make_unit,
 	unique,
 )
+
+PROJECT_MANAGER = "sidra.projects@example.com"
+INSPECTOR = "sidra.inspector@example.com"
 
 
 class TestStaffDashboard(IntegrationTestCase):
@@ -28,10 +35,16 @@ class TestStaffDashboard(IntegrationTestCase):
 		ensure_base_records()
 		ensure_contract_profiles()
 		cls.scheme = make_scheme("_TEST-DASH")
+		ensure_user(PROJECT_MANAGER, ["Sidra Project Manager"])
+		ensure_user(INSPECTOR, ["Sidra Inspector"])
+		frappe.db.commit()
 
-	def confirmed_contract(self):
+	def confirmed_contract(self, schedule=None):
 		today = snapshot_time().date()  # Dashboard dates use Mogadishu, not the site's calendar.
 		unit = make_unit(unique("_T-DASH"), self.scheme).name
+		if schedule is None:
+			schedule = [(10, 600), (45, 600)]
+		price = round(sum(amount for _days, amount in schedule), 2)
 		doc = frappe.get_doc(
 			{
 				"doctype": "Sidra Sale Contract",
@@ -41,19 +54,15 @@ class TestStaffDashboard(IntegrationTestCase):
 				"customer": BUYER,
 				"company": COMPANY,
 				"signed_on": today,
-				"agreed_price": 1200,
-				"units": [{"unit": unit, "allocated_price": 1200}],
+				"agreed_price": price,
+				"units": [{"unit": unit, "allocated_price": price}],
 				"schedule": [
 					{
 						"row_type": "Installment",
-						"due_date": frappe.utils.add_days(today, 10),
-						"amount": 600,
-					},
-					{
-						"row_type": "Installment",
-						"due_date": frappe.utils.add_days(today, 45),
-						"amount": 600,
-					},
+						"due_date": frappe.utils.add_days(today, days),
+						"amount": amount,
+					}
+					for days, amount in schedule
 				],
 			}
 		).insert(ignore_permissions=True)
@@ -73,7 +82,9 @@ class TestStaffDashboard(IntegrationTestCase):
 		self.assertGreaterEqual(data["summary"]["confirmed_contracts"], 1)
 		self.assertFalse(data["payments"]["available"])  # never zero receipts
 		self.assertTrue(data["payments"]["reason"])
-		self.assertFalse(data["sales"]["available"])
+		if data["sales"]["available"]:
+			self.assertIsNone(data["sales"]["conversion_rate"])
+			self.assertIsNone(data["sales"]["qualified_opportunities"])
 		self.assertFalse(data["jobs"]["available"])  # Sales Manager has no construction access
 		self.assertTrue(all(loc["doctype"] == "Sidra Unit" for loc in data["locations"]))
 		mine = [c for c in data["contracts"] if c["id"] == doc.name]
@@ -81,8 +92,10 @@ class TestStaffDashboard(IntegrationTestCase):
 		upcoming = [r for r in data["schedule"]["upcoming"] if r["contract_id"] == doc.name]
 		self.assertEqual([r["amount"] for r in upcoming], ["600.00", "600.00"])
 		self.assertEqual(
-			[b["label"] for b in data["schedule"]["buckets"]], ["Next 30 days", "31-60 days", "61-90 days"]
+			[b["label"] for b in data["schedule"]["buckets"]],
+			["Due today", "Next 30 days", "31-60 days", "61-90 days"],
 		)
+		self.assertTrue(data["schedule"]["available"])
 
 	def test_company_and_period_checks(self):
 		with as_user(SALES_MANAGER):
@@ -94,3 +107,157 @@ class TestStaffDashboard(IntegrationTestCase):
 	def test_outsider_denied(self):
 		with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
 			get_dashboard()
+
+	def construction_job(self, status, stages):
+		return frappe.get_doc(
+			{
+				"doctype": "Sidra Construction Job",
+				"company": COMPANY,
+				"customer": BUYER,
+				"service_type": "Full Construction",
+				"status": status,
+				"stages": stages,
+			}
+		).insert(ignore_permissions=True)
+
+	def test_construction_roles_get_their_view_without_sales_access(self):
+		self.construction_job("In Progress", [{"stage_name": "Foundation", "completion_pct": 10}])
+		for user in (PROJECT_MANAGER, INSPECTOR):
+			with as_user(user):
+				data = get_dashboard(company=COMPANY)
+			self.assertTrue(data["jobs"]["available"], user)
+			# record types the role cannot read are unknown, never zero and never an error
+			for key in ("units_available", "confirmed_contracts", "agreed_contract_value"):
+				self.assertIsNone(data["summary"][key], (user, key))
+			self.assertIsNone(data["property"]["total"])
+			self.assertEqual(data["property"]["counts"], [])
+			self.assertEqual(data["contracts"], [])
+			self.assertFalse(data["schedule"]["available"])
+			self.assertEqual((data["schedule"]["buckets"], data["schedule"]["upcoming"]), ([], []))
+			self.assertTrue(all(loc["doctype"] == "Sidra Construction Job" for loc in data["locations"]))
+			self.assertFalse(data["executive"]["available"])
+
+	def test_schedule_buckets_share_the_executive_next_30_day_window(self):
+		before = self.bucket_amounts()
+		self.confirmed_contract(schedule=[(0, 100.10), (1, 200.20), (30, 300.30), (31, 0.40)])
+		after = self.bucket_amounts()
+		delta = {label: after[label] - before.get(label, 0) for label in after}
+		# today is its own bucket; "Next 30 days" is tomorrow through day 30, as in the executive view
+		self.assertEqual(str(delta["Due today"]), "100.10")
+		self.assertEqual(str(delta["Next 30 days"]), "500.50")
+		self.assertEqual(str(delta["31-60 days"]), "0.40")
+
+	def bucket_amounts(self):
+		from decimal import Decimal
+
+		with as_user(SALES_MANAGER):
+			buckets = get_dashboard(company=COMPANY)["schedule"]["buckets"]
+		return {b["label"]: Decimal(b["amount"]) for b in buckets}
+
+	def test_overdue_milestones_follow_the_shared_stage_rule(self):
+		with as_user(GENERAL_MANAGER):
+			before = get_dashboard(company=COMPANY)["jobs"].get("overdue_milestones") or 0
+		past = frappe.utils.add_days(snapshot_time().date(), -3)
+		self.construction_job(
+			"In Progress",
+			[
+				{"stage_name": "Late, incomplete", "planned_end": past, "completion_pct": 40},
+				{"stage_name": "Late, at 100%", "planned_end": past, "completion_pct": 100},
+				{
+					"stage_name": "Finished late",
+					"planned_end": past,
+					"actual_end": past,
+					"completion_pct": 100,
+				},
+			],
+		)
+		self.construction_job(
+			"Cancelled", [{"stage_name": "Cancelled job stage", "planned_end": past, "completion_pct": 0}]
+		)
+		with as_user(GENERAL_MANAGER):
+			jobs = get_dashboard(company=COMPANY)["jobs"]
+		self.assertEqual(jobs["overdue_milestones"] - before, 1)
+
+	def test_recorded_sales_activity_is_company_scoped(self):
+		from sidra_realestate.services.sales_activity import sales_activity
+
+		today = snapshot_time().date()
+		with as_user("Administrator"):
+			before = sales_activity(COMPANY, today, today)
+			frappe.get_doc(
+				{
+					"doctype": "Lead",
+					"first_name": unique("_TEST-ACTIVITY"),
+					"company": COMPANY,
+					"status": "Lead",
+				}
+			).insert()
+			after = sales_activity(COMPANY, today, today)
+		self.assertEqual(after["basis"], "recorded_lead_status")
+		before_count = sum(row["value"] for row in before["pipeline"])
+		self.assertEqual(sum(row["value"] for row in after["pipeline"]), before_count + 1)
+		self.assertIsNone(after["conversion_rate"])
+		self.assertIsNone(after["qualified_opportunities"])
+		with as_user(PROJECT_MANAGER):
+			self.assertFalse(sales_activity(COMPANY, today, today)["available"])
+
+	def test_calendar_includes_complete_month_and_rejects_other_scopes(self):
+		frappe.db.savepoint("calendar_completeness")
+		try:
+			today = snapshot_time().date()
+			doc = self.confirmed_contract(schedule=[(0, 1)] * 25)
+			with as_user(SALES_MANAGER):
+				data = get_installment_calendar(COMPANY, today.strftime("%Y-%m"))
+				mine = [row for row in data["events"] if row["contract_id"] == doc.name]
+				self.assertEqual(len(mine), 25, "Calendar must not inherit the 20-row upcoming preview limit")
+				self.assertEqual(len({row["id"] for row in mine}), 25)
+				self.assertTrue(all(row["date_state"] == "today" for row in mine))
+				self.assertFalse(data["allocation_available"])
+				with self.assertRaises(frappe.PermissionError):
+					get_installment_calendar("_No Such Company", today.strftime("%Y-%m"))
+				with self.assertRaises(frappe.ValidationError):
+					get_installment_calendar(COMPANY, "2026-13")
+			self.construction_job("Enquiry", [{"stage_name": "Survey", "completion_pct": 0}])
+			with as_user(PROJECT_MANAGER):
+				self.assertFalse(get_installment_calendar(COMPANY, today.strftime("%Y-%m"))["available"])
+			with as_user(OUTSIDER), self.assertRaises(frappe.PermissionError):
+				get_installment_calendar(COMPANY, today.strftime("%Y-%m"))
+		finally:
+			frappe.db.rollback(save_point="calendar_completeness")
+
+	def test_legacy_demo_companies_are_hidden_but_preserved(self):
+		with as_user("Administrator"):
+			for name, abbr in (("Sidra Demo Homes", "SDHC"), ("Sidra Finance Demo - Fictional", "SFDC")):
+				ensure_company(name, abbr)
+			data = get_dashboard(company=COMPANY)
+			self.assertNotIn("Sidra Demo Homes", [row["id"] for row in data["companies"]])
+			self.assertNotIn("Sidra Finance Demo - Fictional", [row["id"] for row in data["companies"]])
+			self.assertTrue(frappe.db.exists("Company", "Sidra Demo Homes"))
+			self.assertTrue(frappe.db.exists("Company", "Sidra Finance Demo - Fictional"))
+
+	def test_calendar_obeys_company_user_permissions(self):
+		permission = frappe.get_doc(
+			{
+				"doctype": "User Permission",
+				"user": SALES_MANAGER,
+				"allow": "Company",
+				"for_value": COMPANY,
+				"apply_to_all_doctypes": 1,
+			}
+		).insert(ignore_permissions=True)
+		frappe.clear_cache(user=SALES_MANAGER)
+		try:
+			with as_user(SALES_MANAGER), self.assertRaises(frappe.PermissionError):
+				get_installment_calendar(OTHER_COMPANY, snapshot_time().strftime("%Y-%m"))
+		finally:
+			frappe.delete_doc("User Permission", permission.name, ignore_permissions=True)
+			frappe.clear_cache(user=SALES_MANAGER)
+
+	def test_open_jobs_include_enquiries_without_claiming_active_work(self):
+		with as_user(GENERAL_MANAGER):
+			before = get_dashboard(company=COMPANY)["jobs"]
+		self.construction_job("Enquiry", [{"stage_name": "Survey", "completion_pct": 0}])
+		with as_user(GENERAL_MANAGER):
+			after = get_dashboard(company=COMPANY)["jobs"]
+		self.assertEqual(after["open"] - before.get("open", 0), 1)
+		self.assertEqual(after["active"] - before.get("active", 0), 0)

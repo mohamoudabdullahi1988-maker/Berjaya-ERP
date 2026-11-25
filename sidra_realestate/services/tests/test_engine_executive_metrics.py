@@ -12,6 +12,7 @@ from sidra_realestate.services.executive_metrics import (
 	registration_day,
 	site_period_bounds,
 	stage_date_exception,
+	stage_overdue,
 )
 
 
@@ -76,3 +77,17 @@ class TestExecutiveMetrics(unittest.TestCase):
 		self.assertFalse(
 			stage_date_exception({"planned_end": "2026-11-07", "actual_end": "2026-11-07"}, today)
 		)
+
+	def test_stage_overdue_is_incomplete_past_planned_end_only(self):
+		today = date(2026, 11, 8)
+		self.assertTrue(stage_overdue({"planned_end": "2026-11-07", "completion_pct": None}, today))
+		self.assertTrue(stage_overdue({"planned_end": "2026-11-07", "completion_pct": 99.5}, today))
+		self.assertFalse(stage_overdue({"planned_end": "2026-11-08", "completion_pct": 0}, today))
+		self.assertFalse(stage_overdue({"planned_end": "2026-11-07", "completion_pct": 100}, today))
+		self.assertFalse(stage_overdue({"completion_pct": 0}, today))
+		# finished late is a recorded exception, but no longer overdue
+		late = {"planned_end": "2026-11-06", "actual_end": "2026-11-07", "completion_pct": 100}
+		self.assertFalse(stage_overdue(late, today))
+		self.assertTrue(stage_date_exception(late, today))
+		with self.assertRaises(ValueError):
+			stage_overdue({"planned_end": "2026-11-07", "completion_pct": ""}, today)

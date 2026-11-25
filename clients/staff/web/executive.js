@@ -5,7 +5,7 @@ export const HEADLINES = [
   {id: 'cash_collected', label: 'Cash collected', kind: 'money'},
   {id: 'overdue_balance', label: 'Overdue balance', kind: 'money'},
   {id: 'due_next_30_days', label: 'Due in the next 30 days', kind: 'money'},
-  {id: 'projects_on_schedule', label: 'Projects on schedule', kind: 'count'},
+  {id: 'overdue_milestones', label: 'Overdue milestones', kind: 'count'},
   {id: 'available_units', label: 'Available units', kind: 'count'},
 ];
 
@@ -64,7 +64,7 @@ export function renderExecutive(data, {el, empty, preview}) {
   $('metrics').replaceChildren(...cards.map(card => {
     const children = [
       el('div', {class: 'metric-label'}, card.label),
-      el('div', {class: 'metric-value' + (card.available ? '' : ' metric-unavailable')}, card.available ? format(card.value, card.kind) : 'Not connected'),
+      el('div', {class: 'metric-value' + (card.available ? '' : ' metric-unavailable')}, card.available ? format(card.value, card.kind) : 'Unavailable'),
     ];
     if (card.available && card.status_label) children.push(el('span', {class: 'performance-state ' + stateClass(card.status)}, card.status_label));
     if (card.available && ['sales_value', 'cash_collected'].includes(card.id)) {
