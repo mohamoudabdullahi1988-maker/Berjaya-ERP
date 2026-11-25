@@ -19,10 +19,20 @@ FIELD = {"fieldname": "customer_name", "label": "Customer name", "fieldtype": "D
 
 
 def delivery_dashboard(page):
+	verified = set()
+
 	def delivery_api(route):
 		url = urlparse(route.request.url)
 		params = parse_qs(url.query)
 		method = url.path.rsplit(".", 1)[-1]
+		if method == "verify_agreement_invoice":
+			assert route.request.post_data_json == {
+				"company": BOOT["company"], "agreement_type": "sale",
+				"agreement": "SYN-C-1", "sales_invoice": "SYN-I-1",
+			}
+			verified.add("SYN-C-1")
+			route.fulfill(json={"message": {"invoice": "SYN-I-1"}})
+			return
 		assert params["company"] == [BOOT["company"]], params
 		if method == "find_agreements":
 			assert params["text"] == ["Synthetic Buyer"]
@@ -40,8 +50,21 @@ def delivery_dashboard(page):
 			message = {
 				"contract": contract, "customer": "Synthetic Buyer", "signed_on": "2026-10-15", "currency": "USD",
 				"agreed_price": amount, "schedule_total": amount,
+				"agreement_type": "sale",
 				"schedule": [{"due_date": "2026-11-15", "type": "Installment", "amount": amount}],
+				"accounting": {
+					"can_verify": True, "can_read_invoices": True, "can_read_receipts": True,
+					"invoices": [], "balances": [], "receipts": [],
+				},
 			}
+			if contract in verified:
+				message["accounting"].update(
+					invoices=[{"name": "SYN-I-1", "posting_date": "2026-11-15",
+						"outstanding_amount": 75, "party_account_currency": "USD"}],
+					balances=[{"amount": 75, "currency": "USD"}],
+					receipts=[{"id": "SYN-REF", "receipt": "SYN-RECEIPT", "posting_date": "2026-11-22",
+						"invoice": "SYN-I-1", "term": "Second installment", "amount": 25, "currency": "USD"}],
+				)
 		elif method == "overdue_installments":
 			message = {
 				"as_of": "2026-11-24", "currency": "USD", "has_more": False,
@@ -84,9 +107,16 @@ def delivery_dashboard(page):
 	lookup()
 	page.get_by_role("link", name="View statement").first.click()
 	expect(page.get_by_role("cell", name="USD 310.00")).to_be_visible()
+	expect(page.get_by_text("The posted balance is unavailable", exact=False)).to_be_visible()
+	page.get_by_label("Submitted sales invoice reference").fill("SYN-I-1")
+	page.get_by_role("button", name="Verify invoice link").click()
+	expect(page.get_by_role("link", name="SYN-RECEIPT")).to_have_attribute("href", "/desk/payment-entry/SYN-RECEIPT")
+	expect(page.get_by_role("cell", name="Second installment")).to_be_visible()
+	expect(page.get_by_role("cell", name="USD 75.00")).to_be_visible()
 	page.get_by_role("link", name="View statement").last.click()
 	expect(page.get_by_role("cell", name="USD 620.00")).to_be_visible()
 	expect(page.get_by_role("cell", name="USD 310.00")).to_have_count(0)
+	expect(page.get_by_role("link", name="SYN-RECEIPT")).to_have_count(0)
 	page.get_by_role("link", name="Find an agreement for payment").click()
 	lookup()
 	expect(page.get_by_role("link", name="Open payment entries").first).to_have_attribute(

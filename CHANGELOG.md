@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.67 — 25 Nov 2026
+
+- Let Finance verify a posted ERPNext sales invoice against a sale or construction agreement. Show linked outstanding balances and submitted receipt allocations in Berjaya and link overdue invoice terms back to visible agreements.
+- Require the customer-selected ERPNext term for new partial receipts on linked multi-term invoices.
+
 ## 0.1.66 — 24 Nov 2026
 
 - Start Berjaya on a dashboard with three priority reports and shortcuts for agreement payments, Cashbook & Reconciliation, reservations and quotations.

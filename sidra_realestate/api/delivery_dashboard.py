@@ -6,9 +6,17 @@ from frappe.utils import cint, getdate, nowdate
 
 from sidra_realestate.api.native_reports import _run
 from sidra_realestate.api.staff_dashboard import _companies, _staff_only, money
+from sidra_realestate.services.agreement_invoices import (
+	AGREEMENTS,
+	APPROVED_JOB_STATES,
+	account_statement,
+	eligible_agreement,
+	verify_invoice,
+	visible_agreements,
+)
 
-CONTRACT = "Sidra Sale Contract"
-JOB = "Sidra Construction Job"
+CONTRACT = AGREEMENTS["sale"]
+JOB = AGREEMENTS["construction"]
 PAGE_LENGTH = 50
 
 
@@ -53,7 +61,8 @@ def find_agreements(company, text):
 			if doctype == CONTRACT
 			else {
 				"company": company,
-				"status": ["in", ["Contracted", "In Progress", "On Hold", "Completed", "Defects Period"]],
+				"status": ["in", APPROVED_JOB_STATES],
+				"docstatus": ["<", 2],
 			}
 		)
 		permitted = frappe.get_meta(doctype).get_permitted_fieldnames(user=frappe.session.user)
@@ -99,28 +108,33 @@ def find_agreements(company, text):
 
 
 @frappe.whitelist(methods=["GET"])
-def contract_statement(company, contract):
+def contract_statement(company, contract, agreement_type="sale"):
 	_scope(company)
-	frappe.has_permission(CONTRACT, "report", throw=True)
-	if not frappe.get_list(
-		CONTRACT, filters={"name": contract, "company": company, "docstatus": 1}, pluck="name", page_length=1
-	):
-		frappe.throw(_("Contract is not available to you"), frappe.PermissionError)
-	doc = frappe.get_doc(CONTRACT, contract)
-	doc.check_permission("read")
+	doc = eligible_agreement(company, agreement_type, contract)
+	frappe.has_permission(doc.doctype, "report", throw=True)
 	doc.apply_fieldlevel_read_permissions()
 	return {
 		"contract": doc.name,
+		"agreement_type": agreement_type,
 		"customer": doc.customer,
 		"currency": doc.currency,
-		"signed_on": doc.signed_on,
-		"agreed_price": money(doc.agreed_price),
-		"schedule_total": money(doc.schedule_total),
+		"signed_on": doc.get("signed_on"),
+		"agreed_price": money(
+			doc.get("agreed_price") if agreement_type == "sale" else doc.current_contract_value
+		),
+		"schedule_total": money(doc.get("schedule_total")),
 		"schedule": [
 			{"due_date": row.due_date, "type": row.row_type, "amount": money(row.amount)}
 			for row in doc.get("schedule") or []
 		],
+		"accounting": account_statement(doc),
 	}
+
+
+@frappe.whitelist(methods=["POST"])
+def verify_agreement_invoice(company, agreement_type, agreement, sales_invoice):
+	_scope(company)
+	return verify_invoice(company, agreement_type, agreement, sales_invoice)
 
 
 @frappe.whitelist(methods=["GET"])
@@ -140,13 +154,18 @@ def overdue_installments(company, start=0):
 		for row in data.get("result") or []
 		if isinstance(row, dict)
 		and row.get("voucher_type") == "Sales Invoice"
+		and row.get("voucher_no")
 		and "payment_term" in row
 		and row.get("due_date")
 		and getdate(row["due_date"]) < today
 		and row.get("outstanding", 0) > 0
 	]
 	rows.sort(key=lambda row: (getdate(row["due_date"]), row["invoice"]))
-	return {"currency": scope.default_currency, "as_of": today, **_page(rows[start:], start)}
+	page = _page(rows[start:], start)
+	agreements = visible_agreements(company, sorted({row["invoice"] for row in page["rows"]}))
+	for row in page["rows"]:
+		row["agreement"] = agreements.get(row["invoice"])
+	return {"currency": scope.default_currency, "as_of": today, **page}
 
 
 @frappe.whitelist(methods=["GET"])

@@ -1,6 +1,7 @@
 # Berjaya ERP delivery decision and handover v0.3
 
 24 Nov 2026 · Decision by Mohamoud Abdullahi Sheikh for `Berjaya-ERP/develop`.
+See also [G38 in v0.4](DECISIONS-AND-GATES_v0.4.md) for the approved contract-to-invoice reporting and allocation policy.
 
 ## G36 · Berjaya dashboard and ERPNext Desk
 

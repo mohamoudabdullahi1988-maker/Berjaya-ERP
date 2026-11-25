@@ -22,7 +22,11 @@ from sidra_realestate.api.cashbook import (
 	match_voucher,
 	matching_vouchers,
 )
-from sidra_realestate.api.delivery_dashboard import overdue_installments
+from sidra_realestate.api.delivery_dashboard import (
+	contract_statement,
+	overdue_installments,
+	verify_agreement_invoice,
+)
 from sidra_realestate.tests.helpers import (
 	BUYER,
 	COMPANY,
@@ -31,6 +35,9 @@ from sidra_realestate.tests.helpers import (
 	as_user,
 	ensure_base_records,
 	ensure_user,
+	make_confirmed_contract,
+	make_contracted_job,
+	unique,
 )
 from sidra_realestate.www.berjaya import get_boot
 
@@ -113,30 +120,34 @@ class TestCashbook(IntegrationTestCase):
 				).insert()
 		return account.name
 
-	def _record(self, account, reference, *, pay=True):
+	def _record(self, account, reference, *, pay=True, two_terms=False):
 		"""The demo's native invoice → get_payment_entry → submit flow with invoice payment terms."""
 		with as_user("Administrator"):
-			term = frappe.get_doc(
-				{
-					"doctype": "Payment Term",
-					"payment_term_name": f"_Test Installment {reference}",
-					"invoice_portion": 100,
-					"due_date_based_on": "Day(s) after invoice date",
-					"credit_days": 0,
-				}
-			).insert()
+			terms = []
+			for days in (0, 30) if two_terms else (0,):
+				term = frappe.get_doc(
+					{
+						"doctype": "Payment Term",
+						"payment_term_name": f"_Test Installment {reference} {days}",
+						"invoice_portion": 50 if two_terms else 100,
+						"due_date_based_on": "Day(s) after invoice date",
+						"credit_days": days,
+					}
+				).insert()
+				terms.append(
+					{
+						"payment_term": term.name,
+						"invoice_portion": term.invoice_portion,
+						"due_date_based_on": term.due_date_based_on,
+						"credit_days": days,
+					}
+				)
 			template = frappe.get_doc(
 				{
 					"doctype": "Payment Terms Template",
 					"template_name": f"_Test Terms {reference}",
 					"allocate_payment_based_on_payment_terms": 1,
-					"terms": [
-						{
-							"payment_term": term.name,
-							"invoice_portion": 100,
-							"due_date_based_on": term.due_date_based_on,
-						}
-					],
+					"terms": terms,
 				}
 			).insert()
 			item = frappe.get_doc(
@@ -255,12 +266,65 @@ class TestCashbook(IntegrationTestCase):
 		)
 		self.assertEqual(getdate(payment.clearance_date), self.day)
 
+	def test_verified_agreements_for_one_customer_use_only_their_own_receipts(self):
+		account = self._account("Agreement receipt", "Bank")
+		with as_user("Administrator"):
+			contract = make_confirmed_contract(unique("_T-LNK"))
+			job = make_contracted_job()
+		first, _ = self._record(account, "AGREEMENT-SALE", pay=False, two_terms=True)
+		second, _ = self._record(account, "AGREEMENT-JOB", pay=False)
+		with as_user(SALES_USER), self.assertRaises(frappe.PermissionError):
+			verify_agreement_invoice(COMPANY, "sale", contract.name, first.name)
+
+		with as_user(FINANCE):
+			self.assertEqual(contract_statement(COMPANY, contract.name)["accounting"]["balances"], [])
+			verify_agreement_invoice(COMPANY, "sale", contract.name, first.name)
+			verify_agreement_invoice(COMPANY, "sale", contract.name, first.name)
+			with self.assertRaises(frappe.ValidationError):
+				verify_agreement_invoice(COMPANY, "construction", job.name, first.name)
+			with self.assertRaises(frappe.PermissionError):
+				verify_agreement_invoice(OTHER_COMPANY, "sale", contract.name, second.name)
+			verify_agreement_invoice(COMPANY, "construction", job.name, second.name)
+			self.assertEqual(
+				frappe.db.get_value("Sidra Agreement Invoice", {"sales_invoice": first.name}, "owner"),
+				FINANCE,
+			)
+			pe = get_payment_entry("Sales Invoice", first.name, bank_account=account)
+			term = first.payment_schedule[1].payment_term
+			selected = next(row.as_dict() for row in pe.references if row.payment_term == term)
+			selected["allocated_amount"] = 80
+			pe.set("references", [selected])
+			pe.paid_amount = pe.received_amount = 80
+			pe.reference_date = self.day
+			pe.reference_no = "AGREEMENT-PARTIAL"
+			pe.insert().submit()
+
+			sale = contract_statement(COMPANY, contract.name)["accounting"]
+			build = contract_statement(COMPANY, job.name, "construction")["accounting"]
+			self.assertEqual([Decimal(row["amount"]) for row in sale["balances"]], [220])
+			self.assertEqual([Decimal(row["amount"]) for row in build["balances"]], [300])
+			self.assertEqual(
+				[(row["receipt"], row["term"], Decimal(str(row["amount"]))) for row in sale["receipts"]],
+				[(pe.name, term, 80)],
+			)
+			self.assertEqual(build["receipts"], [])
+			first.reload()
+			self.assertEqual([row.outstanding for row in first.payment_schedule], [150, 70])
+
+		with as_user(SALES_USER):
+			protected = contract_statement(COMPANY, contract.name)["accounting"]
+			self.assertFalse(protected["can_verify"])
+			self.assertEqual(protected["receipts"], [])
+
 	def test_overdue_report_uses_posted_invoice_terms(self):
 		account = self._account("Overdue", "Bank")
 		unpaid, _ = self._record(account, "REPORT-UNPAID", pay=False)
 		paid, _ = self._record(account, "REPORT-PAID")
 		tomorrow = self.day + timedelta(days=1)
-		with as_user(FINANCE), patch("sidra_realestate.api.delivery_dashboard.nowdate", return_value=str(tomorrow)):
+		with (
+			as_user(FINANCE),
+			patch("sidra_realestate.api.delivery_dashboard.nowdate", return_value=str(tomorrow)),
+		):
 			report = overdue_installments(COMPANY)
 		rows = {row["invoice"]: row["outstanding"] for row in report["rows"]}
 		self.assertEqual(rows[unpaid.name], "300.00")
