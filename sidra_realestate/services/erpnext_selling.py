@@ -21,6 +21,8 @@ logged, and noted as a comment on the Sidra record; `sync_selling` can make it l
 cancel or change a copy by hand: it follows its Sidra record.
 """
 
+from contextlib import contextmanager
+
 import frappe
 from frappe import _
 from frappe.utils import flt, getdate
@@ -241,14 +243,34 @@ def _line(unit, rate, price_list_rate=None, date=None):
 
 
 def _submit(doc, sidra):
+	"""Insert and submit the copy as the system: it is made because an authorised user issued or
+	confirmed the Sidra record, and ERPNext would otherwise also check that user's rights on Items
+	and Price Lists, which Sidra sales roles do not hold. The comment names who triggered it."""
 	doc.flags.ignore_permissions = True
 	doc.selling_price_list = price_list(doc.currency)
 	doc.price_list_currency = doc.currency
 	doc.plc_conversion_rate = 1
-	doc.insert()
-	doc.submit()
-	sidra.add_comment("Info", _("ERPNext {0} {1} created as a copy").format(_(doc.doctype), doc.name))
+	by = frappe.session.user
+	with _as_system():
+		doc.insert()
+		doc.submit()
+	sidra.add_comment(
+		"Info", _("ERPNext {0} {1} created as a copy (triggered by {2})").format(_(doc.doctype), doc.name, by)
+	)
 	return doc.name
+
+
+@contextmanager
+def _as_system():
+	previous = frappe.session.user
+	if previous == "Administrator":
+		yield
+		return
+	frappe.set_user("Administrator")
+	try:
+		yield
+	finally:
+		frappe.set_user(previous)
 
 
 def _cancel(doctype, filters):
@@ -257,7 +279,8 @@ def _cancel(doctype, filters):
 		try:
 			copy = frappe.get_doc(doctype, name)
 			copy.flags.ignore_permissions = True
-			copy.cancel()
+			with _as_system():
+				copy.cancel()
 		finally:
 			frappe.flags[SYNCING] = False
 
