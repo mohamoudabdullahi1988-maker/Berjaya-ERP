@@ -25,6 +25,9 @@ from sidra_realestate.tests.helpers import (
 
 KYC = "Sidra Customer KYC"
 REQUEST = "Sidra KYC Access Request"
+# Records come from tests/helpers.py; Frappe would otherwise try to generate test records for
+# every linked DocType, including ones this site does not install.
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer", "Company", "User", "Sidra Customer KYC"]
 
 
 class TestSidraKYCAccessRequest(IntegrationTestCase):
