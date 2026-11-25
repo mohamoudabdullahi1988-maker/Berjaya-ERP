@@ -17,6 +17,7 @@ from sidra_realestate.tests.test_finance_demo import FinanceDemoChecks
 from sidra_realestate.tests.test_pilot_approvals import PilotApprovalsChecks
 from sidra_realestate.tests.test_pilot_demo import PilotDemoChecks
 from sidra_realestate.tests.test_pilot_extras import PilotExtrasChecks
+from sidra_realestate.tests.test_pilot_projects import PilotProjectsChecks
 from sidra_realestate.tests.test_pilot_risks import PilotRisksChecks
 
 
@@ -29,7 +30,14 @@ class TestDemo2Pilot(PilotDemoChecks, IntegrationTestCase):
 		classes = [name for name in sorted(dir(sys.modules[__name__])) if name.startswith("TestDemo")]
 		self.assertEqual(
 			classes,
-			["TestDemo1Finance", "TestDemo2Pilot", "TestDemo3Extras", "TestDemo4Risks", "TestDemo5Approvals"],
+			[
+				"TestDemo1Finance",
+				"TestDemo2Pilot",
+				"TestDemo3Extras",
+				"TestDemo4Risks",
+				"TestDemo5Approvals",
+				"TestDemo6Projects",
+			],
 		)
 
 
@@ -43,3 +51,7 @@ class TestDemo4Risks(PilotRisksChecks, IntegrationTestCase):
 
 class TestDemo5Approvals(PilotApprovalsChecks, IntegrationTestCase):
 	"""Approving the pilot's drafts (and lead channels) needs the pilot and its top-up loaded first."""
+
+
+class TestDemo6Projects(PilotProjectsChecks, IntegrationTestCase):
+	"""ERPNext Projects and Tasks for the pilot's construction jobs (G37) need the pilot loaded first."""
