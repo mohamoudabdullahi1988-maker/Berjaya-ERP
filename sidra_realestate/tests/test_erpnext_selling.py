@@ -19,6 +19,7 @@ from sidra_realestate.tests.helpers import (
 	SALES_USER,
 	as_user,
 	ensure_base_records,
+	ensure_fiscal_year,
 	make_confirmed_contract,
 	make_scheme,
 	make_unit,
@@ -27,23 +28,6 @@ from sidra_realestate.tests.helpers import (
 
 QUOTATION = "Sidra Sale Quotation"
 SCHEME = "_T-SEL"
-
-
-def ensure_fiscal_year(day):
-	"""Quotations and Sales Orders need a Fiscal Year for the test Company; add one if none."""
-	from erpnext.accounts.utils import get_fiscal_year
-
-	if get_fiscal_year(day, company=COMPANY, raise_on_missing=False):
-		return
-	frappe.get_doc(
-		{
-			"doctype": "Fiscal Year",
-			"year": f"_Test Sidra FY {day.year}",
-			"year_start_date": f"{day.year}-01-01",
-			"year_end_date": f"{day.year}-12-31",
-			"companies": [{"company": COMPANY}],
-		}
-	).insert(ignore_permissions=True)
 
 
 class TestERPNextSelling(IntegrationTestCase):

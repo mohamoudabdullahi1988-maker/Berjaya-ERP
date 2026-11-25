@@ -27,6 +27,7 @@ from sidra_realestate.tests.helpers import (
 	as_user,
 	attach_signed_copy,
 	ensure_base_records,
+	ensure_fiscal_year,
 	make_held_profile,
 	make_scheme,
 	make_unit,
@@ -67,6 +68,7 @@ class TestContractCapture(IntegrationTestCase):
 		ensure_base_records()
 		ensure_contract_profiles()
 		ensure_contract_settings()
+		ensure_fiscal_year("2026-01-15")  # G40: the Sales Order copy needs one for the signing date
 		cls.scheme = make_scheme("_TEST-CAP")
 
 	def setUp(self):
