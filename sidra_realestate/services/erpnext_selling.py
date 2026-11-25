@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""Decision G39: Sidra sales also appear in ERPNext Selling, as records only.
+"""Decision G40: Sidra sales also appear in ERPNext Selling, as records only.
 
 - An issued Sidra Sale Quotation creates a submitted ERPNext **Quotation**.
 - A confirmed Sidra Sale Contract creates a submitted ERPNext **Sales Order**.
@@ -303,7 +303,7 @@ def _safely(sidra, action):
 def backfill_selling(company=None):
 	"""Make the missing copies of every submitted Sidra quotation and contract (System Manager).
 
-	For adopting G39 on a site that already has sales. Idempotent: a record that has its copy is
+	For adopting G40 on a site that already has sales. Idempotent: a record that has its copy is
 	skipped. Run once after deploying:
 		bench --site <site> execute sidra_realestate.services.erpnext_selling.backfill_selling
 	"""

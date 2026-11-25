@@ -1,5 +1,5 @@
 # Copyright (c) 2026, Mohamoud Abdullahi Sheikh
-"""G39: issued Sidra quotations and confirmed Sidra contracts appear in ERPNext Selling."""
+"""G40: issued Sidra quotations and confirmed Sidra contracts appear in ERPNext Selling."""
 
 import frappe
 from frappe.tests import IntegrationTestCase

@@ -19,9 +19,9 @@ Counts on a site, read only: `bench --site sidra.local execute sidra_realestate.
 
 ## Decisions (Mohamoud, 25 Nov 2026)
 
-1. **ERPNext Selling for real-estate sales: yes** (G39). Issued Sidra quotations create ERPNext Quotations and confirmed contracts create Sales Orders, as records only. Built in v0.1.71; existing sales are copied with `services.erpnext_selling.backfill_selling`.
-2. **ERPNext Assets: yes** (G40). Straight-line at proposed lives; no depreciation entry until Finance approves.
-3. **Stores per house: yes** (G41). One Warehouse per house with its Project; ledger-posting stock moves wait for Finance's stock accounts.
+1. **ERPNext Selling for real-estate sales: yes** (G40). Issued Sidra quotations create ERPNext Quotations and confirmed contracts create Sales Orders, as records only. Built in v0.1.71; existing sales are copied with `services.erpnext_selling.backfill_selling`.
+2. **ERPNext Assets: yes** (G41). Straight-line at proposed lives; no depreciation entry until Finance approves.
+3. **Stores per house: yes** (G42). One Warehouse per house with its Project; ledger-posting stock moves wait for Finance's stock accounts.
 
 ## Applying the Projects fix on the test site
 

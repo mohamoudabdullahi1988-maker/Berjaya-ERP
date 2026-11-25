@@ -86,7 +86,7 @@ doc_events = {
 		"before_submit": "sidra_realestate.services.agreement_invoices.validate_installment_allocation"
 	},
 	"DocShare": {"validate": "sidra_realestate.identity_access.refuse_kyc_share"},
-	# G39: Sidra sales also appear in ERPNext Selling (records only).
+	# G40: Sidra sales also appear in ERPNext Selling (records only).
 	"Sidra Sale Quotation": {
 		"on_submit": "sidra_realestate.services.erpnext_selling.quotation_submitted",
 		"on_cancel": "sidra_realestate.services.erpnext_selling.quotation_cancelled",
