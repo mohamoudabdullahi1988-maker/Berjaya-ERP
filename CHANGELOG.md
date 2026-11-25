@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.69 — 25 Nov 2026
+
+- Give the pilot's fictional construction jobs their ERPNext Projects and Tasks on the test site (`pilot_projects.create_pilot_projects`, decision G37), so the Desk Projects module shows construction data. Same guards as the other pilot loaders; only jobs in the pilot's manifest; a rerun changes nothing.
+- Add the Desk data audit (`docs/DESK-DATA-AUDIT_v0.1.md`): why Selling, Assets and Projects were empty, where the data lives, and the decisions still open. `desk_audit.count_records` counts the records behind each Desk module, read only.
+
 ## Deploy scripts — 25 Nov 2026
 
 - `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).
