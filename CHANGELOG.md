@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.73 — 25 Nov 2026
+
+- Company assets in ERPNext Assets (decision G40): four asset categories with straight-line depreciation at proposed lives (vehicles 5 years, plant and equipment 8, office equipment 5, IT equipment 3) and a fixed-asset item each, set up with Finance's accounts through `services.assets.setup_asset_categories`. No depreciation entry can be posted and automatic booking stays off until the site config holds `sidra_depreciation_approved`. `pilot_assets.create_pilot_assets` records eight fictional assets on the test site, posting nothing. See `docs/ASSETS_v0.1.md`.
+
 ## 0.1.70 — 25 Nov 2026
 
 - Use live report sources in the shared Berjaya workspaces and isolate fictional funding data in Investment.

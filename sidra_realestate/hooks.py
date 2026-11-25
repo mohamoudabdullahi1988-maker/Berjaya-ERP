@@ -86,4 +86,6 @@ doc_events = {
 		"before_submit": "sidra_realestate.services.agreement_invoices.validate_installment_allocation"
 	},
 	"DocShare": {"validate": "sidra_realestate.identity_access.refuse_kyc_share"},
+	# G40: no depreciation entry until Finance approves the method, lives and accounts.
+	"Journal Entry": {"before_submit": "sidra_realestate.services.assets.refuse_depreciation_entry"},
 }
