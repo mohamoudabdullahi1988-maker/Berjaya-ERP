@@ -24,8 +24,6 @@ from sidra_realestate.tests.helpers import (
 	make_job,
 )
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Customer", "Company", "User", "Sidra Construction Job"]
-
 JOB = "Sidra Construction Job"
 BRICK = "_Test Site Brick"
 
