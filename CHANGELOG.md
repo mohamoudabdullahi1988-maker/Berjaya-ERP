@@ -1,5 +1,10 @@
 # Changelog
 
+## Deploy scripts — 25 Nov 2026
+
+- `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).
+- `deploy/berjaya-switch-repo_v0.1.sh`: one-time move of the test server from the sidra-erp checkout to Berjaya-ERP `develop`. It stops if the server runs sidra-erp commits that Berjaya-ERP did not copy, takes a backup, keeps the old commit as a branch, then runs the v0.3 deploy.
+
 ## 0.1.68 — 25 Nov 2026
 
 - Add the General Manager's approval for access to a buyer's identity (KYC) record (decisions G32, G38). A Sales Manager or the GM raises a Sidra KYC Access Request for one staff member and one buyer; only the GM approves, refuses or revokes it. Approval gives read and download access to that one record until the last day the GM sets (30 days by default); a daily job ends it after that day. Every other share of a KYC record is still refused.
