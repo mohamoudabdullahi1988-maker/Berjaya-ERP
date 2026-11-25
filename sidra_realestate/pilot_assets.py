@@ -17,7 +17,7 @@ from datetime import datetime
 from zoneinfo import ZoneInfo
 
 import frappe
-from frappe.utils import add_days, add_months
+from frappe.utils import add_days, add_months, getdate
 
 from sidra_realestate.finance_demo import COMPANY
 from sidra_realestate.pilot_demo import ACCOUNT_PREFIX, _guard, _read_manifest
@@ -77,6 +77,7 @@ def _create():
 	accounts = _accounts()
 	setup_asset_categories(COMPANY, *accounts)
 	locations = [_location(name) for name in LOCATIONS]
+	fiscal_years = _fiscal_years(today)
 	cost_center = frappe.db.get_value("Company", COMPANY, "cost_center")
 	assets = []
 	for name, category, amount, months_ago, where in ASSETS:
@@ -117,8 +118,28 @@ def _create():
 		"as_of": str(today),
 		"accounts": list(accounts),
 		"locations": locations,
+		"created_fiscal_years": fiscal_years,
 		"assets": assets,
 	}
+
+
+def _fiscal_years(today):
+	"""ERPNext builds each schedule to the end of the asset's life, so every year it reaches needs a
+	Fiscal Year for the Company. The pilot's own helper adds a Company-only fictional one where none
+	applies (and refuses to adopt a reserved one); the years it created are kept in the manifest."""
+	from sidra_realestate.finance_demo import _fiscal_year
+
+	first = min(getdate(add_months(today, -months)) for _n, _c, _a, months, _w in ASSETS).year
+	last = max(
+		getdate(add_months(add_months(today, -months), 12 * (CATEGORIES[category] + 1))).year
+		for _n, category, _a, months, _w in ASSETS
+	)
+	created = []
+	for year in range(first, last + 1):
+		name, made = _fiscal_year(getdate(f"{year}-07-01"))
+		if made:
+			created.append(name)
+	return created
 
 
 def _accounts():
