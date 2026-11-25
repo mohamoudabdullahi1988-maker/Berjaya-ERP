@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.68 — 25 Nov 2026
+
+- Add the General Manager's approval for access to a buyer's identity (KYC) record (decisions G32, G38). A Sales Manager or the GM raises a Sidra KYC Access Request for one staff member and one buyer; only the GM approves, refuses or revokes it. Approval gives read and download access to that one record until the last day the GM sets (30 days by default); a daily job ends it after that day. Every other share of a KYC record is still refused.
+
 ## 0.1.67 — 25 Nov 2026
 
 - Let Finance verify a posted ERPNext sales invoice against a sale or construction agreement. Show linked outstanding balances and submitted receipt allocations in Berjaya and link overdue invoice terms back to visible agreements.
