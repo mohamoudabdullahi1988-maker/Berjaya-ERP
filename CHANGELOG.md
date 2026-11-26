@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.71 — 25 Nov 2026
+
+- Show Sidra sales in ERPNext Selling (decision G40): an issued Sidra Sale Quotation creates a submitted ERPNext Quotation and a confirmed Sidra Sale Contract a submitted Sales Order, one line per unit with a sale-type item (Land plot / House / Apartment sale) and a link back. Copies follow their Sidra record and cannot be cancelled by hand; a copy that fails is noted on the Sidra record and never blocks it. `backfill_selling` copies existing sales once. No invoice, payment or ledger entry is created.
+- Record decisions G40 (Selling), G41 (Assets) and G42 (a store per house).
+
 ## 0.1.70 — 25 Nov 2026
 
 - Use live report sources in the shared Berjaya workspaces and isolate fictional funding data in Investment.
