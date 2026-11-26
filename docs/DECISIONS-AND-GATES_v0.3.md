@@ -31,6 +31,14 @@ Mohamoud. Sidra's own assets (vehicles, plant and equipment, office equipment, I
 
 Mohamoud, resolving the stores question of G37. Each construction job (house) gets its own ERPNext **Warehouse**, created with its Project, under a *Construction sites* group. Material requests per house can be raised now. Stock moves that post to the ledger (receipts, transfers and issues into a house store) wait until Finance approves the stock accounts, as the finance posting gate requires.
 
+## G44 · Who opens the native ERPNext records in Desk (26 Nov 2026)
+
+Mohamoud, after the role visibility check (`docs/DESK-DATA-AUDIT_v0.1.md`). Added to ERPNext's own rules, none removed:
+- **Finance Review** reads Quotations, Sales Orders, Projects, Tasks and Assets; it does not create or edit them.
+- **General Management** and **Project Staff** read the Assets register.
+- **Project Staff** raise and submit Material Requests for house stores and read Warehouses and Items. Stock moves still wait for Finance's stock accounts (G42).
+- ERPNext **Quotations and Sales Orders are only the copies of Sidra records** (G40); one made by hand is refused.
+
 ## Sidra feedback and first dashboard scope
 
 Siham selected these three reports in her Finance, Site Inventory and Project Reporting response (21 Nov 2026, Q13):

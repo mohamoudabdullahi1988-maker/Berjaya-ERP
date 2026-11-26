@@ -114,6 +114,12 @@ doc_events = {
 		"on_submit": "sidra_realestate.services.erpnext_selling.contract_submitted",
 		"on_cancel": "sidra_realestate.services.erpnext_selling.contract_cancelled",
 	},
-	"Quotation": {"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy"},
-	"Sales Order": {"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy"},
+	"Quotation": {
+		"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy",
+		"before_insert": "sidra_realestate.services.desk_permissions.refuse_hand_made",
+	},
+	"Sales Order": {
+		"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy",
+		"before_insert": "sidra_realestate.services.desk_permissions.refuse_hand_made",
+	},
 }

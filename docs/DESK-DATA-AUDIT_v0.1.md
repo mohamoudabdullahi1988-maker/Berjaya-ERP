@@ -62,4 +62,6 @@ sudo -u frappe -H bash -lc 'cd /home/frappe/sidra/frappe-bench && bench --site s
 4. **Project Staff cannot raise a Material Request** for a house store, or open the store (Warehouse) or the Items, though G42 lets Material Requests be raised now.
 5. **Sales roles can write ERPNext Quotations and Sales Orders.** ERPNext's *Sales User* role allows staff to make their own besides the copies of Sidra records (G40).
 
-No permission is changed until Mohamoud decides; proposals are in the pull request.
+### Decided (G44, 26 Nov 2026)
+
+Gaps 1, 2, 4 and 5 are closed by G44 (`services/desk_permissions.py`, applied on migrate): Finance reads Sales, Projects, Tasks and Assets; General Management and Project Staff read Assets; Project Staff raise Material Requests and read Warehouses and Items; hand-made ERPNext Quotations and Sales Orders are refused. Gap 3 (General Management reading Projects and Tasks) is still open.

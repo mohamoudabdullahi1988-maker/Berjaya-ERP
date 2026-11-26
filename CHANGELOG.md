@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.75 — 26 Nov 2026
+
+- Desk access to native records (decision G44), added on migrate without removing ERPNext's own rules: Finance Review reads Quotations, Sales Orders, Projects, Tasks and Assets; General Management and Project Staff read the Assets register; Project Staff raise and submit Material Requests and read Warehouses and Items. ERPNext Quotations and Sales Orders are only made as copies of Sidra records; one made by hand is refused.
+
 ## 0.1.74 — 26 Nov 2026
 
 - Add `desk_audit.role_visibility`: what each Sidra staff user can read, write and create among the native ERPNext records (Quotation, Sales Order, Item, Project, Task, Asset, Warehouse, Material Request), by their actual roles. Read only. The Desk data audit records the gaps found; no permission is changed.
