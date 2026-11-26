@@ -15,6 +15,7 @@ from frappe.tests import IntegrationTestCase
 
 from sidra_realestate.tests.test_finance_demo import FinanceDemoChecks
 from sidra_realestate.tests.test_pilot_approvals import PilotApprovalsChecks
+from sidra_realestate.tests.test_pilot_assets import PilotAssetsChecks
 from sidra_realestate.tests.test_pilot_demo import PilotDemoChecks
 from sidra_realestate.tests.test_pilot_extras import PilotExtrasChecks
 from sidra_realestate.tests.test_pilot_projects import PilotProjectsChecks
@@ -37,6 +38,7 @@ class TestDemo2Pilot(PilotDemoChecks, IntegrationTestCase):
 				"TestDemo4Risks",
 				"TestDemo5Approvals",
 				"TestDemo6Projects",
+				"TestDemo7Assets",
 			],
 		)
 
@@ -55,3 +57,7 @@ class TestDemo5Approvals(PilotApprovalsChecks, IntegrationTestCase):
 
 class TestDemo6Projects(PilotProjectsChecks, IntegrationTestCase):
 	"""ERPNext Projects and Tasks for the pilot's construction jobs (G37) need the pilot loaded first."""
+
+
+class TestDemo7Assets(PilotAssetsChecks, IntegrationTestCase):
+	"""Fictional company assets (G41) need the pilot's demo account groups."""

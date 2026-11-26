@@ -236,6 +236,10 @@ def _line(unit, rate, price_list_rate=None, date=None):
 	item = SALE_ITEMS.get(values.unit_type)
 	if not item:
 		frappe.throw(_("Unit {0} has no unit type").format(unit))
+	if not frappe.db.exists("Item", item):
+		# A site migrated before ERPNext's setup finished has no sale items yet: make them now.
+		with _as_system():
+			ensure_selling_setup()
 	line = {
 		"item_code": item,
 		"qty": 1,
