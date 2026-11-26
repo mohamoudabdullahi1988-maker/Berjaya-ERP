@@ -157,7 +157,20 @@ class TestContractCapture(IntegrationTestCase):
 		copies = frappe.get_all(
 			"Sales Order", filters={"sidra_sale_contract": doc.name, "docstatus": 1}, fields=["grand_total"]
 		)
-		self.assertEqual([row.grand_total for row in copies], [confirmed.agreed_price])  # G40
+		notes = frappe.get_all(
+			"Comment", filters={"reference_name": doc.name, "comment_type": "Info"}, pluck="content"
+		)
+		errors = frappe.get_all(
+			"Error Log", filters={"method": ["like", f"%{doc.name}%"]}, pluck="error", limit=1
+		)
+		self.assertEqual(
+			[row.grand_total for row in copies],
+			[confirmed.agreed_price],
+			f"notes: {notes}; frames: "
+			+ " | ".join(
+				line.strip() for line in (errors or [""])[0].splitlines() if line.strip().startswith("File ")
+			),
+		)  # G40
 
 	# ------------------------------------------------------------ propose_schedule (CC-06)
 	def test_propose_schedule_only_when_asked(self):

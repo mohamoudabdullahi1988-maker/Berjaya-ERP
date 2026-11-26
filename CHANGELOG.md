@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.72 — 25 Nov 2026
+
+- A store per house (decision G42): "Create → Project" on a construction job now also creates the house's ERPNext Warehouse under the Company's *Construction sites* group, linked both ways; "Create → Site store" does it for a job that already has a Project, and `backfill_site_stores` for all such jobs. Material Requests to a house store work now. Stock moves that post to the ledger (Stock Entry, Purchase Receipt, Delivery Note, Stock Reconciliation, invoices that update stock) into or out of a house store are refused until Finance approves the stock accounts.
+
 ## 0.1.71 — 25 Nov 2026
 
 - Show Sidra sales in ERPNext Selling (decision G40): an issued Sidra Sale Quotation creates a submitted ERPNext Quotation and a confirmed Sidra Sale Contract a submitted Sales Order, one line per unit with a sale-type item (Land plot / House / Apartment sale) and a link back. Copies follow their Sidra record and cannot be cancelled by hand; a copy that fails is noted on the Sidra record and never blocks it. `backfill_selling` copies existing sales once. No invoice, payment or ledger entry is created.
