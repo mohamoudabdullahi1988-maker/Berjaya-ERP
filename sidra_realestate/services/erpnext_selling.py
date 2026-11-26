@@ -115,9 +115,15 @@ def ensure_selling_setup():
 
 
 def price_list(currency):
-	"""An empty selling price list per currency, so no ERPNext price changes the copied rates."""
+	"""An empty selling price list per currency, so no ERPNext price changes the copied rates.
+
+	Made as the system on first use. ERPNext makes a new selling price list the site's default when
+	none is set; this one is only for the copies, so that default is left as it was."""
 	name = f"{ITEM_GROUP} {currency}"
-	if not frappe.db.exists("Price List", name):
+	if frappe.db.exists("Price List", name):
+		return name
+	default = frappe.db.get_single_value("Selling Settings", "selling_price_list")
+	with _as_system():
 		frappe.get_doc(
 			{
 				"doctype": "Price List",
@@ -128,6 +134,8 @@ def price_list(currency):
 				"enabled": 1,
 			}
 		).insert(ignore_permissions=True)
+	if not default and frappe.db.get_single_value("Selling Settings", "selling_price_list") == name:
+		frappe.db.set_single_value("Selling Settings", "selling_price_list", default)
 	return name
 
 
@@ -247,11 +255,11 @@ def _submit(doc, sidra):
 	confirmed the Sidra record, and ERPNext would otherwise also check that user's rights on Items
 	and Price Lists, which Sidra sales roles do not hold. The comment names who triggered it."""
 	doc.flags.ignore_permissions = True
-	doc.selling_price_list = price_list(doc.currency)
-	doc.price_list_currency = doc.currency
-	doc.plc_conversion_rate = 1
 	by = frappe.session.user
 	with _as_system():
+		doc.selling_price_list = price_list(doc.currency)
+		doc.price_list_currency = doc.currency
+		doc.plc_conversion_rate = 1
 		doc.insert()
 		doc.submit()
 	sidra.add_comment(

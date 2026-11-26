@@ -131,3 +131,12 @@ class TestERPNextSelling(IntegrationTestCase):
 		self.assertNotIn(contract.name, again["made"])
 		with as_user(SALES_MANAGER), self.assertRaises(frappe.PermissionError):
 			backfill_selling()
+
+	def test_first_copy_by_a_sales_manager_leaves_the_default_price_list(self):
+		from sidra_realestate.services.erpnext_selling import price_list
+
+		frappe.db.delete("Price List", {"name": "Real Estate Sales EUR"})
+		frappe.db.set_single_value("Selling Settings", "selling_price_list", None)
+		with as_user(SALES_MANAGER):
+			self.assertEqual(price_list("EUR"), "Real Estate Sales EUR")
+		self.assertFalse(frappe.db.get_single_value("Selling Settings", "selling_price_list"))
