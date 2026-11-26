@@ -17,11 +17,11 @@ Counts on a site, read only: `bench --site sidra.local execute sidra_realestate.
 | **Stock** (Item) | Items only | Demo Items are service items for invoices; no Warehouse stock moves. Separate stores per house are an open question (G37). | ERPNext | Follows that decision. |
 | **Construction** (Sidra) | Has data | 25 jobs, quotations, variations, inspections, risks from the pilot loaders. | Sidra Construction | None. |
 
-## Decisions only Mohamoud can make
+## Decisions (Mohamoud, 25 Nov 2026)
 
-1. **ERPNext Selling for real-estate sales.** Should a Sidra sale also create an ERPNext Quotation or Sales Order? Today the Sidra records are the sale and ERPNext holds only the invoices and payments. Mirroring them would show the sale in Selling, but duplicates the record and its approvals.
-2. **ERPNext Assets.** Should Sidra's own assets (vehicles, plant, equipment, office) be tracked in ERPNext Assets? That needs a list or sample of the assets and how depreciation is handled; nothing is invented.
-3. **Stores per house** (open in G37): whether each house gets its own ERPNext Warehouse for material usage.
+1. **ERPNext Selling for real-estate sales: yes** (G40). Issued Sidra quotations create ERPNext Quotations and confirmed contracts create Sales Orders, as records only. Built in v0.1.71; existing sales are copied with `services.erpnext_selling.backfill_selling`.
+2. **ERPNext Assets: yes** (G41). Straight-line at proposed lives; no depreciation entry until Finance approves.
+3. **Stores per house: yes** (G42). One Warehouse per house with its Project; ledger-posting stock moves wait for Finance's stock accounts.
 
 ## Applying the Projects fix on the test site
 

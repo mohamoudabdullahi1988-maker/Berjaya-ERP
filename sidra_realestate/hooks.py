@@ -103,4 +103,15 @@ doc_events = {
 	"Sales Invoice": {
 		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"
 	},
+	# G40: Sidra sales also appear in ERPNext Selling (records only).
+	"Sidra Sale Quotation": {
+		"on_submit": "sidra_realestate.services.erpnext_selling.quotation_submitted",
+		"on_cancel": "sidra_realestate.services.erpnext_selling.quotation_cancelled",
+	},
+	"Sidra Sale Contract": {
+		"on_submit": "sidra_realestate.services.erpnext_selling.contract_submitted",
+		"on_cancel": "sidra_realestate.services.erpnext_selling.contract_cancelled",
+	},
+	"Quotation": {"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy"},
+	"Sales Order": {"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy"},
 }

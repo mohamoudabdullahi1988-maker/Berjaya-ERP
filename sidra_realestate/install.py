@@ -11,6 +11,7 @@ from sidra_realestate.branding import apply_branding
 from sidra_realestate.desk_setup import repair_desk
 from sidra_realestate.services.construction_projects import ensure_project_fields
 from sidra_realestate.services.construction_stores import ensure_store_fields
+from sidra_realestate.services.erpnext_selling import ensure_selling_setup
 from sidra_realestate.sidra_installments.doctype.sidra_contract_profile.sidra_contract_profile import (
 	COLLECTION_RULE_DEFAULTS,
 )
@@ -111,6 +112,7 @@ def after_install():
 	repair_desk()
 	ensure_project_fields()
 	ensure_store_fields()
+	ensure_selling_setup()
 
 
 def after_migrate():
@@ -122,6 +124,7 @@ def after_migrate():
 	repair_desk()
 	ensure_project_fields()
 	ensure_store_fields()
+	ensure_selling_setup()
 
 
 def ensure_role_profiles():
