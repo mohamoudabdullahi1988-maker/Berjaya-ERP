@@ -88,4 +88,32 @@ doc_events = {
 	"DocShare": {"validate": "sidra_realestate.identity_access.refuse_kyc_share"},
 	# G41: no depreciation entry until Finance approves the method, lives and accounts.
 	"Journal Entry": {"before_submit": "sidra_realestate.services.assets.refuse_depreciation_entry"},
+	# G42: no ledger-posting stock move for a house store until Finance approves the accounts.
+	"Stock Entry": {"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"},
+	"Purchase Receipt": {
+		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"
+	},
+	"Delivery Note": {
+		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"
+	},
+	"Stock Reconciliation": {
+		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"
+	},
+	"Purchase Invoice": {
+		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"
+	},
+	"Sales Invoice": {
+		"before_submit": "sidra_realestate.services.construction_stores.refuse_site_stock_move"
+	},
+	# G40: Sidra sales also appear in ERPNext Selling (records only).
+	"Sidra Sale Quotation": {
+		"on_submit": "sidra_realestate.services.erpnext_selling.quotation_submitted",
+		"on_cancel": "sidra_realestate.services.erpnext_selling.quotation_cancelled",
+	},
+	"Sidra Sale Contract": {
+		"on_submit": "sidra_realestate.services.erpnext_selling.contract_submitted",
+		"on_cancel": "sidra_realestate.services.erpnext_selling.contract_cancelled",
+	},
+	"Quotation": {"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy"},
+	"Sales Order": {"before_cancel": "sidra_realestate.services.erpnext_selling.protect_copy"},
 }

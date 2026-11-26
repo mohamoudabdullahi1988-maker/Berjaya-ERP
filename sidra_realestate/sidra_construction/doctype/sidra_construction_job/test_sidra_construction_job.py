@@ -20,7 +20,7 @@ from sidra_realestate.tests.helpers import (
 	unique,
 )
 
-IGNORE_TEST_RECORD_DEPENDENCIES = ["Project", "Customer", "Company", "User", "UOM"]
+IGNORE_TEST_RECORD_DEPENDENCIES = ["Project", "Warehouse", "Customer", "Company", "User", "UOM"]
 
 
 class TestSidraConstructionJob(IntegrationTestCase):

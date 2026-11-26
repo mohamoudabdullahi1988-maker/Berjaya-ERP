@@ -130,6 +130,28 @@ def ensure_user(email, roles):
 	return email
 
 
+def ensure_fiscal_year(day, company=COMPANY):
+	"""ERPNext Selling and stock records need a Fiscal Year for the Company; add a Company-only one.
+
+	The site's own years are used when one applies; test order varies, so tests that need one call
+	this instead of relying on another test having made it."""
+	from erpnext.accounts.utils import get_fiscal_year
+	from frappe.utils import getdate
+
+	day = getdate(day)
+	if get_fiscal_year(day, company=company, raise_on_missing=False):
+		return
+	frappe.get_doc(
+		{
+			"doctype": "Fiscal Year",
+			"year": f"_Test Sidra FY {day.year}",
+			"year_start_date": f"{day.year}-01-01",
+			"year_end_date": f"{day.year}-12-31",
+			"companies": [{"company": company}],
+		}
+	).insert(ignore_permissions=True)
+
+
 def make_scheme(code, company=COMPANY):
 	if not frappe.db.exists("Sidra Scheme", code):
 		frappe.get_doc(

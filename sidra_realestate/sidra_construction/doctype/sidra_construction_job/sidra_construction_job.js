@@ -56,6 +56,22 @@ frappe.ui.form.on("Sidra Construction Job", {
 			);
 		}
 
+		// G42: a store per house; normally made with the Project.
+		if (frm.doc.project && !frm.doc.warehouse && frappe.user.has_role("Sidra Project Manager")) {
+			frm.add_custom_button(
+				__("Site store"),
+				() =>
+					frappe
+						.call({
+							method: "sidra_realestate.services.construction_stores.create_site_store",
+							args: { job: frm.doc.name },
+							freeze: true,
+						})
+						.then(() => frm.reload_doc()),
+				__("Create")
+			);
+		}
+
 		const ready = (frm.doc.stages || []).filter(
 			(s) => !s.certified && s.status === "Completed" && flt(s.completion_pct) === 100 && s.actual_end
 		);

@@ -10,6 +10,7 @@
   "company",
   "currency",
   "project",
+  "warehouse",
   "column_break_main",
   "service_type",
   "status",
@@ -83,6 +84,15 @@
    "fieldtype": "Link",
    "label": "ERPNext Project",
    "options": "Project"
+  },
+  {
+   "fieldname": "warehouse",
+   "fieldtype": "Link",
+   "label": "Site store",
+   "options": "Warehouse",
+   "read_only": 1,
+   "no_copy": 1,
+   "description": "This house's ERPNext Warehouse (decision G42)"
   },
   {
    "fieldname": "column_break_main",
@@ -308,7 +318,7 @@
    "link_fieldname": "job"
   }
  ],
- "modified": "2026-11-12 15:00:00.000000",
+ "modified": "2026-11-25 16:00:00.000000",
  "modified_by": "Administrator",
  "module": "Sidra Construction",
  "name": "Sidra Construction Job",
