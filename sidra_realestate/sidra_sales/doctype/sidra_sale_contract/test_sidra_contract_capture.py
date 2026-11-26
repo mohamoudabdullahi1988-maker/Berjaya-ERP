@@ -166,7 +166,10 @@ class TestContractCapture(IntegrationTestCase):
 		self.assertEqual(
 			[row.grand_total for row in copies],
 			[confirmed.agreed_price],
-			f"notes: {notes}; error: {(errors or [''])[0][-1500:]}",
+			f"notes: {notes}; frames: "
+			+ " | ".join(
+				line.strip() for line in (errors or [""])[0].splitlines() if line.strip().startswith("File ")
+			),
 		)  # G40
 
 	# ------------------------------------------------------------ propose_schedule (CC-06)
