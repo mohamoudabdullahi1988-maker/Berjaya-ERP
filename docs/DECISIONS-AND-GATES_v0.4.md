@@ -2,7 +2,9 @@
 
 25 Nov 2026 · Approved by Mohamoud Abdullahi Sheikh. Follow the [delivery handover v0.3](DECISIONS-AND-GATES_v0.3.md) and [existing gates v0.2](DECISIONS-AND-GATES_v0.2.md) alongside this decision.
 
-## G38 · Verified ERPNext invoice links
+## G43 · Verified ERPNext invoice links
+
+*Renumbered from G38 on 26 Nov 2026: G38 was already used for General Manager approval of identity access ([v0.3](DECISIONS-AND-GATES_v0.3.md)). The decision is unchanged.*
 
 Finance reviews the signed agreement and verifies the link to each submitted ERPNext Sales Invoice for the same company and customer. An agreement can have several invoices. Each invoice belongs to a single individual sale or construction agreement. Finance adds historical links after reviewing the invoice and signed agreement. Existing customer identity alone is insufficient to match an invoice or receipt.
 
