@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Docs: add `docs/BERJAYA-DASHBOARD-UX-BENCHMARK_v0.2.md`, the dashboard UI/UX benchmark (49.5/100 against Odoo, NetSuite, Dynamics 365 Business Central and Frappe CRM) with work items UX-01 to UX-15 in a server lane and a client lane. Moved from the retired `sidra-erp` repository. No code change.
+
 ## 0.1.76 — 28 Nov 2026
 
 - General Management reads ERPNext Projects and Tasks in Desk (decision G45, closing gap 3 of the Desk data audit), added on migrate like the G44 grants; no create or edit.
