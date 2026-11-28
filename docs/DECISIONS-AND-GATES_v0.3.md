@@ -39,6 +39,10 @@ Mohamoud, after the role visibility check (`docs/DESK-DATA-AUDIT_v0.1.md`). Adde
 - **Project Staff** raise and submit Material Requests for house stores and read Warehouses and Items. Stock moves still wait for Finance's stock accounts (G42).
 - ERPNext **Quotations and Sales Orders are only the copies of Sidra records** (G40); one made by hand is refused.
 
+## G45 · General Management reads Projects and Tasks (28 Nov 2026)
+
+Mohamoud, closing gap 3 of the Desk data audit. **General Management** reads ERPNext Projects and Tasks in Desk; it does not create or edit them. Added to ERPNext's own rules like G44, none removed. Project Staff keep their existing rights.
+
 ## Sidra feedback and first dashboard scope
 
 Siham selected these three reports in her Finance, Site Inventory and Project Reporting response (21 Nov 2026, Q13):

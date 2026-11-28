@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.1.76 — 28 Nov 2026
+
+- General Management reads ERPNext Projects and Tasks in Desk (decision G45, closing gap 3 of the Desk data audit), added on migrate like the G44 grants; no create or edit.
+
 ## 0.1.75 — 26 Nov 2026
 
 - Desk access to native records (decision G44), added on migrate without removing ERPNext's own rules: Finance Review reads Quotations, Sales Orders, Projects, Tasks and Assets; General Management and Project Staff read the Assets register; Project Staff raise and submit Material Requests and read Warehouses and Items. ERPNext Quotations and Sales Orders are only made as copies of Sidra records; one made by hand is refused.

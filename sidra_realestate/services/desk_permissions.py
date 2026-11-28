@@ -8,6 +8,7 @@ Added on top of ERPNext's own rules, never replacing them (after_install / after
   moves stay refused until Finance approves the stock accounts (G42).
 ERPNext Quotations and Sales Orders are only the copies of Sidra records (G40): one made by hand
 is refused (`refuse_hand_made`).
+Decision G45 (28 Nov 2026): General Management also reads Projects and Tasks (no create or edit).
 
 Frappe keeps a DocType's permissions in one place once any is customised: the first grant copies
 ERPNext's standard rules for that DocType into Custom DocPerm, then adds these. A later ERPNext
@@ -31,6 +32,8 @@ GRANTS = (
 	("Asset Category", FINANCE, ("read",)),
 	("Asset", GM, READ),
 	("Asset Category", GM, ("read",)),
+	("Project", GM, READ),  # G45
+	("Task", GM, READ),  # G45
 	("Asset", PM, READ),
 	("Asset Category", PM, ("read",)),
 	("Material Request", PM, ("read", "write", "create", "submit", "report", "print")),

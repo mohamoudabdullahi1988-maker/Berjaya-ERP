@@ -53,6 +53,14 @@ class TestDeskPermissions(IntegrationTestCase):
 				self.assertFalse(can(user, "Asset", "create"))
 		self.assertFalse(can(SALES_USER, "Asset"))
 
+	def test_gm_reads_projects_and_tasks(self):
+		# G45: read only; ERPNext's own Projects rights are not given to the GM role.
+		for doctype in ("Project", "Task"):
+			with self.subTest(doctype=doctype):
+				self.assertTrue(can(GM_ONLY, doctype))
+				self.assertFalse(can(GM_ONLY, doctype, "write"))
+				self.assertFalse(can(GM_ONLY, doctype, "create"))
+
 	def test_project_staff_raise_material_requests(self):
 		for right in ("read", "create", "submit"):
 			self.assertTrue(can(PM_ONLY, "Material Request", right))

@@ -64,4 +64,4 @@ sudo -u frappe -H bash -lc 'cd /home/frappe/sidra/frappe-bench && bench --site s
 
 ### Decided (G44, 26 Nov 2026)
 
-Gaps 1, 2, 4 and 5 are closed by G44 (`services/desk_permissions.py`, applied on migrate): Finance reads Sales, Projects, Tasks and Assets; General Management and Project Staff read Assets; Project Staff raise Material Requests and read Warehouses and Items; hand-made ERPNext Quotations and Sales Orders are refused. Gap 3 (General Management reading Projects and Tasks) is still open.
+Gaps 1, 2, 4 and 5 are closed by G44 (`services/desk_permissions.py`, applied on migrate): Finance reads Sales, Projects, Tasks and Assets; General Management and Project Staff read Assets; Project Staff raise Material Requests and read Warehouses and Items; hand-made ERPNext Quotations and Sales Orders are refused. Gap 3 is closed by G45 (28 Nov 2026, v0.1.76): General Management reads Projects and Tasks, without create or edit.
