@@ -60,7 +60,7 @@ Status values: `Open`, `In progress`, `In review`, `Done`. Update this table in 
 | UX-02 | 1 | A | Collection rate obeys the period and hides on zero receipts | Open |
 | UX-03 | 1 | A | Latest contracts sorted by signed date | Open |
 | UX-04 | 1 | A | One attention row per job | Open |
-| UX-05 | 1 | B | Remove staging/developer wording from user text | Open |
+| UX-05 | 1 | A+B | Remove staging/developer wording from user text | Open |
 | UX-06 | 1 | B | Contrast and colour fixes (tiles, Leads donut) | Open |
 | UX-07 | 2 | B | `/berjaya` = General Manager role home with figures | Needs decision |
 | UX-08 | 2 | B | One visual style for tiles and charts | Open |
@@ -92,7 +92,7 @@ Acceptance: each measure is computed by one server function and both screens cal
 
 **UX-04 — One attention row per job.** Live "Needs attention" repeats SCJ-2026-00014 three times and SCJ-2026-00011/00012 twice (one row per overdue month). Acceptance: one row per job with the count of overdue stages and the oldest planned date; total count matches UX-01's overdue figure.
 
-**UX-05 — User-facing wording.** Remove from rendered text: "Fictional", "staging", "fully permitted", "native Receive Payment Entries", "readable source contracts … inaccessible/inconsistent unit allocations", "An approved project baseline is not inferred". Move needed caveats into an (i) tooltip of at most 15 words. Show snapshot time as "As at 28 Nov 2026, 12:04" (Executive currently prints `2026-11-28T12:04:22+03:00`). Acceptance: a browser test fails if any of those strings appears on `/berjaya/executive` or `/berjaya/dashboard`. Demo names "SHP … Pilot" are replaced before the client demo (data task; coordinate with `docs/PILOT-DEMO_v0.1.md` owner).
+**UX-05 — User-facing wording.** Remove from rendered text: "Fictional", "staging", "fully permitted", "native Receive Payment Entries", "readable source contracts … inaccessible/inconsistent unit allocations", "An approved project baseline is not inferred". Move needed caveats into an (i) tooltip of at most 15 words. Show snapshot time as "As at 28 Nov 2026, 12:04" (Executive currently prints `2026-11-28T12:04:22+03:00`). Acceptance: a browser test fails if any of those strings appears on `/berjaya/executive` or `/berjaya/dashboard`. Demo names "SHP … Pilot" are replaced before the client demo (data task; coordinate with `docs/PILOT-DEMO_v0.1.md` owner). Lane split: most of these strings come from the server (`api/executive_dashboard.py`, `api/finance_demo_snapshot.py`), so Lane A changes the returned text and Lane B the tooltip, date format and browser test.
 
 **UX-06 — Contrast and colour.** White 12 px labels on `--bj-c-green` #2a8f57 (4.07:1), `--bj-c-teal` #0e8a80 (4.23:1), `--bj-c-sky` #2381bd (4.25:1), `--bj-c-rose` #d64561 (4.30:1) fail WCAG AA 4.5:1 (`frontend/src/tokens.css`). The Leads donut sets `tone: 'blue'` on every segment (`frontend/src/showcase/live.js`, Leads by status). Acceptance: every text/background pair on tiles ≥ 4.5:1 (add a unit test over the token pairs); donut segments use distinct tones and show labels or a legend, so colour is not the only signal.
 
@@ -142,5 +142,5 @@ Keep load under 2 s after these changes.
 
 | Version | Date | Change |
 | --- | --- | --- |
-| v0.2 | 28 Nov 2026 | Moved to Berjaya-ERP (sidra-erp retired). File references re-checked against `develop` 0.1.76; deployed-build note resolved (`/` is `DeliveryDashboard.vue`); UX-07, UX-11 and UX-12 aligned with G39; ownership note added |
+| v0.2 | 28 Nov 2026 | Moved to Berjaya-ERP (sidra-erp retired). File references re-checked against `develop` 0.1.76; deployed-build note resolved (`/` is `DeliveryDashboard.vue`); UX-07, UX-11 and UX-12 aligned with G39; ownership note added; UX-05 is A+B (its wording comes from server files) |
 | v0.1 | 28 Nov 2026 | First issue in sidra-erp (PR #110, closed): scores, findings, work items UX-01 to UX-15 |
