@@ -4,13 +4,14 @@
 
 Custom Frappe app that runs Sidra Homes' business on **ERPNext v16**: land and house sales, Murabaha / installment contracts with configurable contract profiles, title transfer tracking, construction projects (full build, design, inspection) and land brokerage.
 
-Current version: **v0.1.1** (Phase 0 skeleton and handover — no DocTypes yet).
+Current version: **v0.1.75** on `develop` — see [CHANGELOG.md](CHANGELOG.md) for what each release contains.
 
 ## Documents
 
 | File | What it is |
 | --- | --- |
-| [Current delivery decision and handover](docs/DECISIONS-AND-GATES_v0.3.md) | Berjaya dashboard, ERPNext Projects and the Claude Code / Codex work split |
+| [Current workspace decision and work split](docs/DECISIONS-AND-GATES_v0.5.md) | Staff dashboards, transaction workflow and the Claude Code / Codex work split (G39) |
+| [Delivery handover and decisions G36–G44](docs/DECISIONS-AND-GATES_v0.3.md) | Berjaya dashboard, ERPNext Projects, Assets, house stores and Desk access |
 | [CLAUDE.md](CLAUDE.md) | Standing instructions for Claude Code |
 | [docs/HANDOVER_v1.0.md](docs/HANDOVER_v1.0.md) | Handover to Claude Code: roles, rules, decisions, plan, acceptance cases, first tasks |
 | [docs/SREMS-SRS_v1.6.md](docs/SREMS-SRS_v1.6.md) | Requirements specification v1.6 (business rules, contract profiles, decisions) |
@@ -39,7 +40,7 @@ bench new-site sidra.local
 bench --site sidra.local install-app erpnext
 
 # 2. This app (private repository: use an SSH key or a GitHub token)
-bench get-app git@github.com:mohamoudabdullahi1988-maker/sidra-erp.git
+bench get-app git@github.com:mohamoudabdullahi1988-maker/Berjaya-ERP.git
 bench --site sidra.local install-app sidra_realestate
 bench --site sidra.local migrate
 ```
@@ -54,7 +55,7 @@ bench --site sidra.local clear-cache
 ## Repository layout
 
 ```
-sidra-erp/
+Berjaya-ERP/
 ├── sidra_realestate/
 │   ├── hooks.py               App settings, fixtures, document events, scheduled jobs
 │   ├── modules.txt            The five Sidra modules

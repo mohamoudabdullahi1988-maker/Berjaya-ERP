@@ -43,4 +43,4 @@ bench --site sidra.local export-fixtures --app sidra_realestate
 
 ## Next task
 
-From `develop`, use `feature/construction-pilot-projects` for the Claude Code package in the [current work split](docs/DECISIONS-AND-GATES_v0.5.md). Check for related open PRs and branches before starting.
+The Claude Code package of the [current work split](docs/DECISIONS-AND-GATES_v0.5.md) is tracked in [issue #15](https://github.com/mohamoudabdullahi1988-maker/Berjaya-ERP/issues/15): the Desk role check and G44 grants are merged (v0.1.75); populating the guarded test-site pilot and adopting fictional Construction jobs remain. Branch from `develop` and check for related open PRs and branches before starting.
