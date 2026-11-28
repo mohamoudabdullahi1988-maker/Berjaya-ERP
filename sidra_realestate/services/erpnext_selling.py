@@ -264,7 +264,11 @@ def _submit(doc, sidra):
 		doc.selling_price_list = price_list(doc.currency)
 		doc.price_list_currency = doc.currency
 		doc.plc_conversion_rate = 1
-		doc.insert()
+		frappe.flags["sidra_selling_copy"] = True  # G44: only copies of Sidra records are made
+		try:
+			doc.insert()
+		finally:
+			frappe.flags["sidra_selling_copy"] = False
 		doc.submit()
 	sidra.add_comment(
 		"Info", _("ERPNext {0} {1} created as a copy (triggered by {2})").format(_(doc.doctype), doc.name, by)

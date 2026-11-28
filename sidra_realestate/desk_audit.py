@@ -54,3 +54,55 @@ def count_records(company=None):
 		for doctype, count in counts.items():
 			print(f"  {doctype:32} {count}")
 	return result
+
+
+# Native ERPNext records staff are meant to open in Desk (G40-G42, G37), checked per person.
+VISIBILITY = (
+	"Quotation",
+	"Sales Order",
+	"Item",
+	"Project",
+	"Task",
+	"Asset",
+	"Asset Category",
+	"Warehouse",
+	"Material Request",
+)
+RIGHTS = ("read", "write", "create")
+
+
+def role_visibility(users=None):
+	"""What each Sidra staff user can do with the native records, by their actual roles (read only).
+
+	Changes nothing. Without `users`, checks every enabled System User holding a Sidra role:
+		bench --site <site> execute sidra_realestate.desk_audit.role_visibility
+	"""
+	frappe.only_for("System Manager")
+	if not users:
+		users = sorted(
+			{
+				row.parent
+				for row in frappe.get_all(
+					"Has Role",
+					filters={"role": ["like", "Sidra %"], "parenttype": "User"},
+					fields=["parent"],
+				)
+				if frappe.db.get_value("User", row.parent, ["enabled", "user_type"]) == (1, "System User")
+			}
+		)
+	result = {}
+	for user in users:
+		rights = {}
+		for doctype in VISIBILITY:
+			if not frappe.db.exists("DocType", doctype):
+				rights[doctype] = "not installed"
+				continue
+			allowed = [r for r in RIGHTS if frappe.has_permission(doctype, r, user=user)]
+			rights[doctype] = "/".join(allowed) or "-"
+		result[user] = rights
+	width = max([len(d) for d in VISIBILITY] + [8])
+	for user, rights in result.items():
+		print(user, "·", ", ".join(r for r in frappe.get_roles(user) if r.startswith("Sidra ")))
+		for doctype, value in rights.items():
+			print(f"  {doctype:{width}} {value}")
+	return result
