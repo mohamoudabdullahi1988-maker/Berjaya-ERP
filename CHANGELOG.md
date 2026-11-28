@@ -27,11 +27,6 @@
 - Open workflow in a window on saved transactions and provide an ERPNext Desk link in the shared header.
 - Link mapped construction jobs directly to their native ERPNext Project for users with Projects access.
 
-## Deploy scripts — 25 Nov 2026
-
-- `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).
-- `deploy/berjaya-switch-repo_v0.1.sh`: one-time move of the test server from the sidra-erp checkout to Berjaya-ERP `develop`. It stops if the server runs sidra-erp commits that Berjaya-ERP did not copy, takes a backup, keeps the old commit as a branch, then runs the v0.3 deploy.
-
 ## 0.1.69 — 25 Nov 2026
 
 - Give the pilot's fictional construction jobs their ERPNext Projects and Tasks on the test site (`pilot_projects.create_pilot_projects`, decision G37), so the Desk Projects module shows construction data. Same guards as the other pilot loaders; only jobs in the pilot's manifest; a rerun changes nothing.
