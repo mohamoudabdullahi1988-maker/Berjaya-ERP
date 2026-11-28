@@ -1,12 +1,7 @@
 import { canOpen, canRead } from '../boot'
 import { listRoute } from '../records'
 
-/** A sample link ({ set, filter }) or a router location, as a router location. */
-export function linkTo(to) {
-  if (!to) return null
-  if (to.set) return { name: 'sample', params: { set: to.set }, query: to.filter ?? {} }
-  return to
-}
+export const linkTo = (to) => to ?? null
 
 /** A button to real records, if this user's session allows it (the server decides; see boot.js). */
 export function recordAction(action) {

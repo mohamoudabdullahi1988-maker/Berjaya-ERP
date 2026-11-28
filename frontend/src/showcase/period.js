@@ -1,6 +1,6 @@
 // The period a dashboard shows (Mohamoud, 15 Nov 2026): quick presets or a custom From–To range.
 // The choice lives in the address (?period=3m, or ?period=custom&from=…&to=…) so it can be shared.
-// Live records are read for that period by the server (api/live_period.py); sample figures are fixed.
+// Report sources read the selected period through api/live_period.py.
 
 export const PRESETS = [
   { key: 'month', label: 'This month' },

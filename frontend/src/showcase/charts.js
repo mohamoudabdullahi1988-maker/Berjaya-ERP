@@ -48,6 +48,16 @@ export function dateTicks(from, until) {
 }
 
 /** Schematic outline of Somaliland (longitude, latitude), for the sites map. Approximate. */
+export const CITIES = {
+  Hargeisa: [44.06, 9.56],
+  Berbera: [45.03, 10.44],
+  Burao: [45.53, 9.52],
+  Gabiley: [43.63, 9.7],
+  Borama: [43.18, 9.94],
+  Sheikh: [45.2, 9.93],
+  Erigavo: [47.37, 10.62],
+}
+
 export const OUTLINE = [
   [43.0, 11.45], [43.45, 11.35], [44.0, 10.95], [44.6, 10.42], [45.03, 10.44], [45.8, 10.86], [46.6, 10.75],
   [47.4, 11.18], [48.2, 11.15], [48.95, 11.25], [48.95, 10.6], [48.4, 9.6], [47.6, 8.8], [47.0, 8.0],

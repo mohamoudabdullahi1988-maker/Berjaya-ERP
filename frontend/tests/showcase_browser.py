@@ -1,7 +1,6 @@
-"""Screen check of every Berjaya business-line screen before the client demonstration.
+"""Screen checks of every Berjaya workspace and report tab.
 
-Opens each module and tab of the sample screens (G25), then each tab that can show live records
-with synthetic server answers, at laptop (1440px) and phone (390px) width. On each screen it checks:
+Opens each module with synthetic server answers, at laptop (1440px) and phone (390px) width. On each screen it checks:
 
 - no script error;
 - no horizontal page scroll;
@@ -20,6 +19,7 @@ Every answer here is synthetic and lives only in this test.
 
 import json
 import os
+import shutil
 import sys
 from pathlib import Path
 from urllib.parse import unquote, urlparse
@@ -35,7 +35,7 @@ OUT = browser.OUT / "showcase"
 WIDTHS = (1440, 390)
 BAD_TEXT = ("NaN", "undefined", "Infinity", "[object Object]")
 
-# Module -> (route path, tabs, tabs with live records). Mirrors frontend/src/showcase/pages.js and
+# Module -> (route path, tabs, tabs with live records). Mirrors frontend/src/showcase/modules.js and
 # live.js; `test_every_module_is_checked` below fails if a module or tab is added there and not here.
 MODULES = {
 	"executive": ("/executive", ["overview"], ["overview"]),
@@ -190,15 +190,17 @@ def answer(url):
 	return browser.answer(url)
 
 
-def check_screen(page, width, name, path, errors):
+def check_screen(page, width, name, path, errors, has_report):
 	page.goto(BASE + path)
 	page.wait_for_load_state("networkidle")
 	expect(page.locator(".sc h1, .sc__title, h1").first).to_be_visible()
-	if "source=live" in path:
-		expect(page.get_by_text("Live records for").first).to_be_visible()
-		expect(page.get_by_text("Could not load")).to_have_count(0)
+	if has_report:
+		expect(page.locator(".sc__subtitle")).to_have_text(f"Live records for {COMPANY}")
 	else:
-		expect(page.get_by_text("Sample data").first).to_be_visible()
+		expect(page.get_by_role("heading", name="Live report unavailable")).to_be_visible()
+	expect(page.get_by_text("Sample data", exact=True)).to_have_count(0)
+	expect(page.get_by_role("button", name="Open workflow")).to_have_count(0)
+	expect(page.get_by_role("link", name="Open ERPNext Desk")).to_have_attribute("href", "/desk")
 	text = page.inner_text("main") if page.locator("main").count() else page.inner_text("body")
 	bad = [word for word in BAD_TEXT if word in text]
 	assert not bad, f"{name} at {width}px shows {bad}"
@@ -214,7 +216,7 @@ def test_every_module_is_checked():
 	import subprocess
 
 	script = (
-		"import('./src/showcase/pages.js').then(async ({ MODULES }) => {"
+		"import('./src/showcase/modules.js').then(async ({ MODULES }) => {"
 		" const { LIVE_TABS } = await import('./src/showcase/live.js');"
 		" console.log(JSON.stringify(Object.fromEntries(Object.entries(MODULES).map(([k, m]) =>"
 		" [k, [Object.keys(m.tabs), LIVE_TABS[k] ?? []]])))) })"
@@ -234,7 +236,8 @@ def main():
 	test_every_module_is_checked()
 	with sync_playwright() as p:
 		# PW_CHROMIUM: a Chromium binary when the installed Playwright has no matching browser.
-		chromium = p.chromium.launch(headless=True, executable_path=os.environ.get("PW_CHROMIUM") or None)
+		binary = os.environ.get("PW_CHROMIUM") or shutil.which("chromium") or shutil.which("google-chrome")
+		chromium = p.chromium.launch(headless=True, executable_path=binary)
 		for width in WIDTHS:
 			page = chromium.new_page(viewport={"width": width, "height": 900})
 			errors = []
@@ -245,18 +248,18 @@ def main():
 			for key, (path, tabs, live) in MODULES.items():
 				for tab in tabs:
 					tab_path = path if len(tabs) == 1 else f"{path}/{tab}"
-					check_screen(page, width, f"{key}-{tab}-sample", tab_path, errors)
+					check_screen(page, width, f"{key}-{tab}", tab_path, errors, tab in live)
 					screens += 1
-					if tab in live:
-						check_screen(page, width, f"{key}-{tab}-live", tab_path + "?source=live", errors)
-						screens += 1
+			check_screen(page, width, "legacy-sample-query", "/build/cost?source=sample", errors, True)
+			page.goto(BASE + "/sample/jobs")
+			expect(page.get_by_role("heading", name="Berjaya Dashboard")).to_be_visible()
 			# Each business line's sub-menu: its dashboard and its record screens (15 Nov 2026).
 			if width == 1440:
 				page.goto(BASE + "/build/portfolio")
 				sub = page.locator(".nav__sub")
 				expect(sub.get_by_role("link", name="Dashboard")).to_have_attribute("aria-current", "page")
 				for label in ("Jobs", "Variations", "Inspections", "Risk register"):
-					expect(sub.get_by_role("link", name=label)).to_be_visible()
+					expect(sub.get_by_role("link", name=label, exact=True)).to_be_visible()
 				sub.get_by_role("link", name="Variations").click()
 				expect(page).to_have_url(BASE + "/construction/variations")
 				expect(page.locator(".nav__sub").get_by_role("link", name="Variations")).to_have_attribute("aria-current", "page")
@@ -265,7 +268,7 @@ def main():
 				expect(page.locator("h1.page__title")).to_have_text("Design and inspection jobs")
 				expect(page.locator(".nav__item--active")).to_have_text("Construction")
 				page.goto(BASE + "/real-estate")
-				for label in ("Units", "Reservations", "Contracts", "Collections"):
+				for label in ("Units", "Reservations", "Land Contracts", "Collections"):
 					expect(page.locator(".nav__sub").get_by_role("link", name=label)).to_be_visible()
 				assert not errors, errors
 				page.screenshot(path=str(OUT / "submenu-1440.png"))
@@ -273,10 +276,10 @@ def main():
 				# Date selection: a preset or a custom range is sent to the live source.
 				sent = []
 				page.on("request", lambda r: sent.append(r.url) if "get_crm_live" in r.url else None)
-				page.goto(BASE + "/crm?source=live")
+				page.goto(BASE + "/crm")
 				expect(page.get_by_text("Live records for Last 12 months.")).to_be_visible()
 				page.get_by_role("button", name="Last 3 months").click()
-				expect(page).to_have_url(BASE + "/crm?source=live&period=3m")
+				expect(page).to_have_url(BASE + "/crm?period=3m")
 				page.get_by_role("button", name="Custom").click()
 				page.get_by_label("From", exact=True).fill("2026-03-01")
 				page.get_by_label("To", exact=True).fill("2026-06-30")

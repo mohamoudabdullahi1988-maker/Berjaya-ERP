@@ -3,7 +3,6 @@ import { computed } from 'vue'
 import Card from './Card.vue'
 import { useWidth } from './useWidth'
 import { datePosition, dateTicks, tone } from '../charts'
-import { TODAY } from '../data'
 import { date, monthLabel } from '../format'
 import { linkTo } from '../link'
 
@@ -16,8 +15,7 @@ const ticks = computed(() =>
     .map((d) => ({ d, left: datePosition(d, w.value.from, w.value.until) }))
     .filter((_, i) => width.value >= 560 || i % 2 === 0),
 )
-const todayDate = computed(() => w.value.today ?? TODAY)
-const today = computed(() => datePosition(todayDate.value, w.value.from, w.value.until))
+const today = computed(() => w.value.today ? datePosition(w.value.today, w.value.from, w.value.until) : null)
 const bar = (row) => {
   const left = datePosition(row.start, w.value.from, w.value.until)
   return { left: `${left}%`, width: `${Math.max(1.2, datePosition(row.end, w.value.from, w.value.until) - left)}%` }
@@ -41,10 +39,10 @@ const bar = (row) => {
             <span v-if="row.progress !== undefined" class="gantt__rest" :style="{ left: row.progress + '%' }" />
             <span v-if="row.progress !== undefined" class="gantt__pct">{{ row.progress }}%</span>
           </span>
-          <span class="today" :style="{ left: today + '%' }" />
+          <span v-if="today !== null" class="today" :style="{ left: today + '%' }" />
         </span>
       </RouterLink>
-      <p class="gantt__legend"><i />Today, {{ date(todayDate) }}</p>
+      <p v-if="w.today" class="gantt__legend"><i />Today, {{ date(w.today) }}</p>
     </div>
   </Card>
 </template>

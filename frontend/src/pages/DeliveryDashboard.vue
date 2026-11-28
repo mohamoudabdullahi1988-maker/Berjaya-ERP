@@ -100,7 +100,6 @@ watch(() => [route.query.contract, route.query.agreement_type], () => {
       <div class="bj-toolbar">
         <CompanyPicker />
         <a v-if="boot.can_open_projects" class="bj-btn" href="/desk/project">Construction projects</a>
-        <a class="bj-btn" href="/desk">Open ERPNext Desk</a>
       </div>
     </header>
 

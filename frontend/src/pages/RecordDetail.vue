@@ -24,6 +24,10 @@ const route = useRoute()
 const key = route.meta.list
 const config = RECORDS[key]
 const detail = config.detail
+const transactionLists = new Set([
+  'reservations', 'sale_quotations', 'title_transfers',
+  'construction_quotations', 'boq_revisions', 'variations', 'inspections',
+])
 
 const doc = ref(null)
 const loading = ref(false)
@@ -65,7 +69,6 @@ onBeforeUnmount(() => ++request)
 </script>
 
 <template>
-  <RecordWorkflow :doctype="config.doctype" :name="route.params.name" :reload-key="doc?.modified" />
   <section class="page">
     <nav class="bj-crumb" aria-label="Breadcrumb">
       <RouterLink class="bj-link" :to="{ name: listRoute(key) }">{{ config.title }}</RouterLink>
@@ -103,6 +106,7 @@ onBeforeUnmount(() => ++request)
           </p>
         </div>
         <div class="bj-toolbar">
+          <RecordWorkflow v-if="transactionLists.has(key)" :key="doc.name" :doctype="config.doctype" :name="doc.name" :reload-key="doc.modified" />
           <span v-if="detail.status" class="bj-pill">
             <FieldValue :value="doc[detail.status]" :present="detail.status in doc" type="status" :tones="config.status" />
           </span>

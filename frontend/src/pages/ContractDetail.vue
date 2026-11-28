@@ -10,7 +10,7 @@ import StatePanel from '../components/StatePanel.vue'
 import WorkflowPanel from '../components/WorkflowPanel.vue'
 import { CONTRACT, CONTRACT_DOCTYPE, permissions, sourceText, statusText, statusTone, timeline } from '../contracts'
 import { dateText, fileLink, isAmount, money, textValue } from '../format'
-import { claimPanel, releasePanel } from '../panel'
+import WorkflowWindow from '../components/WorkflowWindow.vue'
 import { canRead } from '../boot'
 import { CONFIRM_METHOD, canConfirm, canEdit, isRegisteredDraft, printLink, savedDifference } from '../registration'
 
@@ -136,17 +136,11 @@ function onFocus() {
 }
 
 watch(() => route.params.name, load, { immediate: true })
-// The panel belongs to a contract that could be read: no record, no Workflow button.
-watch(doc, (now, before) => {
-  if (now && !before) claimPanel()
-  else if (!now && before) releasePanel()
-})
 onMounted(() => window.addEventListener('focus', onFocus))
 onBeforeUnmount(() => {
   ++request
   ++flowRequest
   window.removeEventListener('focus', onFocus)
-  releasePanel()
 })
 </script>
 
@@ -185,6 +179,9 @@ onBeforeUnmount(() => {
           <p class="bj-sub">{{ textValue(doc.customer) }}</p>
         </div>
         <div class="bj-toolbar">
+          <WorkflowWindow :key="doc.name">
+            <WorkflowPanel :timeline="flow" :loading="flowLoading" :error="flowError" @refresh="refreshWorkflow" />
+          </WorkflowWindow>
           <span v-if="doc.external_reference" class="bj-pill">{{ doc.external_reference }}</span>
           <span class="bj-pill">{{ sourceText(doc) }}</span>
           <span class="bj-pill bj-chip" :class="'bj-chip--' + statusTone(doc.docstatus)">{{ statusText(doc.docstatus) }}</span>
@@ -330,9 +327,6 @@ onBeforeUnmount(() => {
       <RecordExtras :doctype="CONTRACT_DOCTYPE" :name="doc.name" :reload-key="doc.modified" />
     </template>
 
-    <Teleport defer to="#berjaya-panel">
-      <WorkflowPanel v-if="doc" :timeline="flow" :loading="flowLoading" :error="flowError" @refresh="refreshWorkflow" />
-    </Teleport>
   </section>
 </template>
 

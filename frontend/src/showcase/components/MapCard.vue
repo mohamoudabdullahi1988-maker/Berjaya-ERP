@@ -3,8 +3,7 @@ import { computed } from 'vue'
 import { useRouter } from 'vue-router'
 import Card from './Card.vue'
 import { useWidth } from './useWidth'
-import { CITIES } from '../data'
-import { OUTLINE, project, tone } from '../charts'
+import { CITIES, OUTLINE, project, tone } from '../charts'
 import { linkTo } from '../link'
 
 const props = defineProps({ widget: { type: Object, required: true } })
@@ -13,14 +12,13 @@ const { el, width } = useWidth(360)
 const height = computed(() => Math.round(width.value * 0.6))
 const outline = computed(() => OUTLINE.map((p) => project(p, width.value, height.value).map((v) => v.toFixed(1)).join(',')).join(' '))
 const cities = computed(() => Object.entries(CITIES).map(([name, ll]) => ({ name, xy: project(ll, width.value, height.value) })))
-// Pins in the same city fan out so each stays clickable.
+// Jobs at the same point fan out so each pin stays clickable.
 const pins = computed(() => {
   const seen = {}
   return props.widget.pins.map((pin) => {
-    const key = pin.city ?? pin.point.join(',')
+    const key = pin.point.join(',')
     const i = (seen[key] = (seen[key] ?? -1) + 1)
-    // A recorded point is [latitude, longitude]; a sample pin names its city.
-    const [x, y] = project(pin.point ? [pin.point[1], pin.point[0]] : CITIES[pin.city], width.value, height.value)
+    const [x, y] = project([pin.point[1], pin.point[0]], width.value, height.value)
     const angle = i * 2.1
     const r = i ? 9 + i * 3 : 0
     return { ...pin, x: x + Math.cos(angle) * r, y: y + Math.sin(angle) * r }

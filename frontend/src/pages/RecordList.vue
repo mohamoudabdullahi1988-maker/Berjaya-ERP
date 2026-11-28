@@ -1,6 +1,5 @@
 <script setup>
 import BulkActions from '../components/BulkActions.vue'
-import TransactionGuide from '../components/TransactionGuide.vue'
 import ListInsights from '../components/ListInsights.vue'
 import { computed, ref, watch } from 'vue'
 import { useRoute } from 'vue-router'
@@ -75,7 +74,6 @@ const selected = ref([])
 </script>
 
 <template>
-  <TransactionGuide />
   <section class="page">
     <header class="bj-head">
       <div>

@@ -1,7 +1,7 @@
 # Berjaya ERP delivery decision and handover v0.3
 
 24 Nov 2026 · Decision by Mohamoud Abdullahi Sheikh for `Berjaya-ERP/develop`.
-See also [G38 in v0.4](DECISIONS-AND-GATES_v0.4.md) for the approved contract-to-invoice reporting and allocation policy.
+See also [G43 in v0.4](DECISIONS-AND-GATES_v0.4.md) (first numbered G38) for the approved contract-to-invoice reporting and allocation policy.
 
 ## G36 · Berjaya dashboard and ERPNext Desk
 
@@ -18,6 +18,26 @@ Siham reported that stage certification leads Finance to update project cost rep
 ## G38 · General Manager approval for identity access (25 Nov 2026)
 
 Mohamoud, implementing G32. A **Sidra KYC Access Request** records the approval for one staff member and one buyer's identity record. A Sidra Sales Manager or the General Manager raises it with a reason; only the General Manager approves, refuses (with a reason) or revokes it. On approval the GM sets the last day of access (30 days by default); the person can then read that one record and download its identity documents, which G32 counts as the same approval. They cannot edit or re-share it. Access ends when revoked or, automatically, after its last day. Every other share of a KYC record stays refused, in Desk and in Berjaya. Role permissions on the KYC record are unchanged. The request screens are in Desk; Berjaya can call the same server methods (`approve`, `refuse`, `revoke` in `sidra_kyc_access_request.py`).
+
+## G40 · Sidra sales also appear in ERPNext Selling (25 Nov 2026)
+
+Mohamoud, answering the Desk data audit. An issued Sidra Sale Quotation creates a submitted ERPNext **Quotation**; a confirmed Sidra Sale Contract creates a submitted ERPNext **Sales Order**. Each copy has one line per unit with a sale-type item (*Land plot sale*, *House sale*, *Apartment sale*; the unit is on the line) and links back to its Sidra record. The Sidra records stay the sale and keep their approvals; the copies are records only and follow them (cancelled with them, never by hand). Prices are copied, not worked out. No invoice, payment or ledger entry is created by this; invoices and payments keep the existing finance flow and gates.
+
+## G41 · Sidra's own assets in ERPNext Assets (25 Nov 2026)
+
+Mohamoud. Sidra's own assets (vehicles, plant and equipment, office equipment, IT equipment) are tracked in ERPNext Assets with **straight-line** depreciation at proposed useful lives: vehicles 5 years, plant and equipment 8, office equipment 5, IT equipment 3. Finance approves the method, lives and accounts **before any depreciation entry is posted**; until then automatic depreciation posting stays off. Plots and houses for sale remain Sidra Units, not assets.
+
+## G42 · A store per house (25 Nov 2026)
+
+Mohamoud, resolving the stores question of G37. Each construction job (house) gets its own ERPNext **Warehouse**, created with its Project, under a *Construction sites* group. Material requests per house can be raised now. Stock moves that post to the ledger (receipts, transfers and issues into a house store) wait until Finance approves the stock accounts, as the finance posting gate requires.
+
+## G44 · Who opens the native ERPNext records in Desk (26 Nov 2026)
+
+Mohamoud, after the role visibility check (`docs/DESK-DATA-AUDIT_v0.1.md`). Added to ERPNext's own rules, none removed:
+- **Finance Review** reads Quotations, Sales Orders, Projects, Tasks and Assets; it does not create or edit them.
+- **General Management** and **Project Staff** read the Assets register.
+- **Project Staff** raise and submit Material Requests for house stores and read Warehouses and Items. Stock moves still wait for Finance's stock accounts (G42).
+- ERPNext **Quotations and Sales Orders are only the copies of Sidra records** (G40); one made by hand is refused.
 
 ## Sidra feedback and first dashboard scope
 

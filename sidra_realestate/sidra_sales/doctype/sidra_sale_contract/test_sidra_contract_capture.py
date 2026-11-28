@@ -27,6 +27,7 @@ from sidra_realestate.tests.helpers import (
 	as_user,
 	attach_signed_copy,
 	ensure_base_records,
+	ensure_fiscal_year,
 	make_held_profile,
 	make_scheme,
 	make_unit,
@@ -36,8 +37,9 @@ from sidra_realestate.tests.helpers import (
 
 IGNORE_TEST_RECORD_DEPENDENCIES = ["Sidra Unit", "Customer", "Company", "Sidra Contract Profile", "User"]
 
+# Confirmation posts nothing. A Sales Order is not a ledger record: since G40 (25 Nov 2026) a confirmed
+# contract gets exactly one as its ERPNext Selling copy, checked where a contract is registered.
 LEDGER_DOCTYPES = (
-	"Sales Order",
 	"Sales Invoice",
 	"Payment Entry",
 	"Journal Entry",
@@ -66,6 +68,7 @@ class TestContractCapture(IntegrationTestCase):
 		ensure_base_records()
 		ensure_contract_profiles()
 		ensure_contract_settings()
+		ensure_fiscal_year("2026-01-15")  # G40: the Sales Order copy needs one for the signing date
 		cls.scheme = make_scheme("_TEST-CAP")
 
 	def setUp(self):
@@ -151,6 +154,23 @@ class TestContractCapture(IntegrationTestCase):
 				("Under Contract", doc.name),
 			)
 		self.assertEqual({dt: frappe.db.count(dt) for dt in LEDGER_DOCTYPES}, before)
+		copies = frappe.get_all(
+			"Sales Order", filters={"sidra_sale_contract": doc.name, "docstatus": 1}, fields=["grand_total"]
+		)
+		notes = frappe.get_all(
+			"Comment", filters={"reference_name": doc.name, "comment_type": "Info"}, pluck="content"
+		)
+		errors = frappe.get_all(
+			"Error Log", filters={"method": ["like", f"%{doc.name}%"]}, pluck="error", limit=1
+		)
+		self.assertEqual(
+			[row.grand_total for row in copies],
+			[confirmed.agreed_price],
+			f"notes: {notes}; frames: "
+			+ " | ".join(
+				line.strip() for line in (errors or [""])[0].splitlines() if line.strip().startswith("File ")
+			),
+		)  # G40
 
 	# ------------------------------------------------------------ propose_schedule (CC-06)
 	def test_propose_schedule_only_when_asked(self):

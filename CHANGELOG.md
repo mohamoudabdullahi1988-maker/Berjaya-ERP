@@ -1,5 +1,42 @@
 # Changelog
 
+## 0.1.75 — 26 Nov 2026
+
+- Desk access to native records (decision G44), added on migrate without removing ERPNext's own rules: Finance Review reads Quotations, Sales Orders, Projects, Tasks and Assets; General Management and Project Staff read the Assets register; Project Staff raise and submit Material Requests and read Warehouses and Items. ERPNext Quotations and Sales Orders are only made as copies of Sidra records; one made by hand is refused.
+
+## 0.1.74 — 26 Nov 2026
+
+- Add `desk_audit.role_visibility`: what each Sidra staff user can read, write and create among the native ERPNext records (Quotation, Sales Order, Item, Project, Task, Asset, Warehouse, Material Request), by their actual roles. Read only. The Desk data audit records the gaps found; no permission is changed.
+
+## 0.1.73 — 25 Nov 2026
+
+- Company assets in ERPNext Assets (decision G41): four asset categories with straight-line depreciation at proposed lives (vehicles 5 years, plant and equipment 8, office equipment 5, IT equipment 3) and a fixed-asset item each, set up with Finance's accounts through `services.assets.setup_asset_categories`. No depreciation entry can be posted and automatic booking stays off until the site config holds `sidra_depreciation_approved`. `pilot_assets.create_pilot_assets` records eight fictional assets on the test site, posting nothing. See `docs/ASSETS_v0.1.md`.
+
+## 0.1.72 — 25 Nov 2026
+
+- A store per house (decision G42): "Create → Project" on a construction job now also creates the house's ERPNext Warehouse under the Company's *Construction sites* group, linked both ways; "Create → Site store" does it for a job that already has a Project, and `backfill_site_stores` for all such jobs. Material Requests to a house store work now. Stock moves that post to the ledger (Stock Entry, Purchase Receipt, Delivery Note, Stock Reconciliation, invoices that update stock) into or out of a house store are refused until Finance approves the stock accounts.
+
+## 0.1.71 — 25 Nov 2026
+
+- Show Sidra sales in ERPNext Selling (decision G40): an issued Sidra Sale Quotation creates a submitted ERPNext Quotation and a confirmed Sidra Sale Contract a submitted Sales Order, one line per unit with a sale-type item (Land plot / House / Apartment sale) and a link back. Copies follow their Sidra record and cannot be cancelled by hand; a copy that fails is noted on the Sidra record and never blocks it. `backfill_selling` copies existing sales once. No invoice, payment or ledger entry is created.
+- Record decisions G40 (Selling), G41 (Assets) and G42 (a store per house).
+
+## 0.1.70 — 25 Nov 2026
+
+- Use live report sources in the shared Berjaya workspaces and isolate fictional funding data in Investment.
+- Open workflow in a window on saved transactions and provide an ERPNext Desk link in the shared header.
+- Link mapped construction jobs directly to their native ERPNext Project for users with Projects access.
+
+## Deploy scripts — 25 Nov 2026
+
+- `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).
+- `deploy/berjaya-switch-repo_v0.1.sh`: one-time move of the test server from the sidra-erp checkout to Berjaya-ERP `develop`. It stops if the server runs sidra-erp commits that Berjaya-ERP did not copy, takes a backup, keeps the old commit as a branch, then runs the v0.3 deploy.
+
+## 0.1.69 — 25 Nov 2026
+
+- Give the pilot's fictional construction jobs their ERPNext Projects and Tasks on the test site (`pilot_projects.create_pilot_projects`, decision G37), so the Desk Projects module shows construction data. Same guards as the other pilot loaders; only jobs in the pilot's manifest; a rerun changes nothing.
+- Add the Desk data audit (`docs/DESK-DATA-AUDIT_v0.1.md`): why Selling, Assets and Projects were empty, where the data lives, and the decisions still open. `desk_audit.count_records` counts the records behind each Desk module, read only.
+
 ## Deploy scripts — 25 Nov 2026
 
 - `deploy/berjaya-deploy_v0.3.sh`: deploys from the Berjaya-ERP repository (the app needs a git remote pointing at it; the script prints the command to add one).

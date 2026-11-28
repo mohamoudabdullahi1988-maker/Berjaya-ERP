@@ -221,11 +221,7 @@ def main():
 			page.get_by_role("button", name="Confirm print", exact=True).click()
 			expect(page.frame_locator('iframe[title="Selected records print preview"]').get_by_text("Synthetic batch print")).to_be_visible()
 			page.goto(BASE + "/customers/SYN-1")
-			if width < 1100:
-				page.get_by_role("button", name="Open workflow").click()
-			expect(page.get_by_text("Record created", exact=True)).to_be_visible()
-			if width < 1100:
-				page.get_by_role("button", name="Close side panel").click()
+			expect(page.get_by_role("button", name="Open workflow")).to_have_count(0)
 			page.get_by_label("Link Contact", exact=True).fill("SYN-CONTACT")
 			page.get_by_label("Make primary for customer").check()
 			page.get_by_role("button", name="Link", exact=True).click()
@@ -248,7 +244,7 @@ def main():
 			expect(page).to_have_url(BASE + "/customers/SYN-RENAMED")
 			page.wait_for_load_state("networkidle")
 			assert not errors, errors
-			print(f"PASS {width}px bulk update/print, workflow, customer link, tags, sharing, duplicate and rename")
+			print(f"PASS {width}px bulk update/print, customer link, tags, sharing, duplicate and rename")
 			page.unroute_all(behavior="wait")
 			page.close()
 		browser.close()

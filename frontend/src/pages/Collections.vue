@@ -1,5 +1,4 @@
 <script setup>
-import TransactionGuide from '../components/TransactionGuide.vue'
 import ListInsights from '../components/ListInsights.vue'
 import { computed, ref, watch } from 'vue'
 
@@ -70,7 +69,6 @@ watch([company, month], load, { immediate: true })
 </script>
 
 <template>
-  <TransactionGuide />
   <section class="page">
     <header class="bj-head">
       <div>
