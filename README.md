@@ -4,7 +4,7 @@
 
 Custom Frappe app that runs Sidra Homes' business on **ERPNext v16**: land and house sales, Murabaha / installment contracts with configurable contract profiles, title transfer tracking, construction projects (full build, design, inspection) and land brokerage.
 
-Current version: **v0.1.75** on `develop` — see [CHANGELOG.md](CHANGELOG.md) for what each release contains.
+Current version: **v0.1.76** on `develop` — see [CHANGELOG.md](CHANGELOG.md) for what each release contains.
 
 ## Documents
 
